@@ -6,7 +6,12 @@
 <div class="page-header">
     <div class="container-lg">
         <h1><i class="bi bi-building"></i> About Our Dealership</h1>
-        <p>Vision, mission, and the values that guide us</p>
+        <p>{{ about_info.page_tagline }}</p>
+        {% if request.user.is_staff %}
+            <a href="{% url 'cars:about_info_edit' %}" class="btn btn-sm btn-outline-primary mt-2" title="Edit about page content">
+                <i class="bi bi-pencil"></i> Edit About Page
+            </a>
+        {% endif %}
     </div>
 </div>
 
@@ -22,10 +27,7 @@
                         </span>
                         <h3 class="mb-0 text-primary">Our Vision</h3>
                     </div>
-                    <p class="card-text lead mb-0">
-                        To be the region's most trusted dealership &mdash; known for honest pricing,
-                        quality vehicles, and a buying experience customers recommend to friends and family.
-                    </p>
+                    <div class="card-text lead mb-0">{{ about_info.vision_text|linebreaks }}</div>
                 </div>
             </div>
         </div>
@@ -38,11 +40,7 @@
                         </span>
                         <h3 class="mb-0 text-primary">Our Mission</h3>
                     </div>
-                    <p class="card-text lead mb-0">
-                        To help every customer find the right vehicle for their life and budget through
-                        transparent pricing, thorough inspections, flexible financing, and support that
-                        continues long after the sale.
-                    </p>
+                    <div class="card-text lead mb-0">{{ about_info.mission_text|linebreaks }}</div>
                 </div>
             </div>
         </div>
@@ -54,10 +52,8 @@
             <div class="card h-100 text-center">
                 <div class="card-body">
                     <i class="bi bi-shield-check" style="font-size: 2rem; color: #28a745;"></i>
-                    <h5 class="card-title mt-3">Quality You Can Trust</h5>
-                    <p class="card-text small text-muted">
-                        Every vehicle is inspected and certified before it reaches our lot.
-                    </p>
+                    <h5 class="card-title mt-3">{{ about_info.value_one_title }}</h5>
+                    <p class="card-text small text-muted">{{ about_info.value_one_text }}</p>
                 </div>
             </div>
         </div>
@@ -65,10 +61,8 @@
             <div class="card h-100 text-center">
                 <div class="card-body">
                     <i class="bi bi-cash-coin" style="font-size: 2rem; color: #f39c12;"></i>
-                    <h5 class="card-title mt-3">Honest Pricing</h5>
-                    <p class="card-text small text-muted">
-                        Clear, competitive pricing with no surprises &mdash; from quote to keys.
-                    </p>
+                    <h5 class="card-title mt-3">{{ about_info.value_two_title }}</h5>
+                    <p class="card-text small text-muted">{{ about_info.value_two_text }}</p>
                 </div>
             </div>
         </div>
@@ -76,10 +70,8 @@
             <div class="card h-100 text-center">
                 <div class="card-body">
                     <i class="bi bi-headset" style="font-size: 2rem; color: #1a5f7a;"></i>
-                    <h5 class="card-title mt-3">Support For Life</h5>
-                    <p class="card-text small text-muted">
-                        Flexible financing and a dedicated team ready to help long after the sale.
-                    </p>
+                    <h5 class="card-title mt-3">{{ about_info.value_three_title }}</h5>
+                    <p class="card-text small text-muted">{{ about_info.value_three_text }}</p>
                 </div>
             </div>
         </div>

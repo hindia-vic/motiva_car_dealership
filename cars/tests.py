@@ -9,7 +9,7 @@ from django.urls import reverse
 from django.utils import timezone
 
 from .models import (
-    Appointment, Car, CarImage, ContactInfo, ContactMessage, Customer,
+    AboutInfo, Appointment, Car, CarImage, ContactInfo, ContactMessage, Customer,
     NewsletterSubscription, Order, Inquiry, Post, SalesTransaction, SavedSearch,
     Testimonial,
 )
@@ -1324,6 +1324,88 @@ class ContactInfoEditTests(StaffBaseTest):
     def test_staff_nav_links_to_contact_info(self):
         response = self.client.get(reverse('cars:dashboard'))
         self.assertContains(response, reverse('cars:contact_info_edit'))
+
+
+class AboutInfoEditTests(StaffBaseTest):
+    """Staff editing of the content shown on the About page"""
+
+    def valid_data(self, **overrides):
+        data = {
+            'page_tagline': 'Friendly people, great cars',
+            'vision_text': 'To be the friendliest dealership in the state.',
+            'mission_text': 'To make car buying simple and transparent.',
+            'value_one_title': 'Great Cars',
+            'value_one_text': 'Hand-picked, inspected inventory.',
+            'value_two_title': 'Fair Deals',
+            'value_two_text': 'Honest pricing every day.',
+            'value_three_title': 'Lifetime Care',
+            'value_three_text': 'Service that lasts as long as you own the car.',
+        }
+        data.update(overrides)
+        return data
+
+    def test_edit_form_renders_for_staff(self):
+        response = self.client.get(reverse('cars:about_info_edit'))
+        self.assertEqual(response.status_code, 200)
+        self.assertContains(response, 'Edit About Page')
+
+    def test_non_staff_redirected_from_edit(self):
+        self.client.force_login(self.customer_user)
+        response = self.client.get(reverse('cars:about_info_edit'))
+        self.assertRedirects(response, reverse('cars:home'))
+
+    def test_anonymous_redirected_from_edit(self):
+        self.client.logout()
+        response = self.client.get(reverse('cars:about_info_edit'))
+        self.assertRedirects(response, reverse('cars:home'))
+
+    def test_staff_updates_about_info(self):
+        response = self.client.post(reverse('cars:about_info_edit'), self.valid_data())
+        self.assertRedirects(response, reverse('cars:about'))
+        info = AboutInfo.get_solo()
+        self.assertEqual(info.value_one_title, 'Great Cars')
+        self.assertEqual(info.mission_text, 'To make car buying simple and transparent.')
+
+    def test_blank_required_field_renders_form(self):
+        response = self.client.post(reverse('cars:about_info_edit'), self.valid_data(vision_text=''))
+        self.assertEqual(response.status_code, 200)
+        self.assertContains(response, 'This field is required')
+        self.assertEqual(AboutInfo.get_solo().value_one_title, 'Quality You Can Trust')
+
+    def test_about_page_shows_defaults_for_visitors(self):
+        self.client.logout()
+        response = self.client.get(reverse('cars:about'))
+        self.assertEqual(response.status_code, 200)
+        self.assertContains(response, 'Vision, mission, and the values that guide us')
+        self.assertContains(response, 'Quality You Can Trust')
+        self.assertContains(response, 'Honest Pricing')
+        self.assertContains(response, 'Support For Life')
+
+    def test_about_page_shows_updated_content(self):
+        AboutInfo.get_solo()
+        self.client.post(reverse('cars:about_info_edit'), self.valid_data())
+        self.client.logout()
+        response = self.client.get(reverse('cars:about'))
+        self.assertContains(response, 'Great Cars')
+        self.assertContains(response, 'To make car buying simple and transparent.')
+        self.assertNotContains(response, 'Quality You Can Trust')
+
+    def test_edit_button_shown_only_to_staff(self):
+        edit_url = reverse('cars:about_info_edit')
+        response = self.client.get(reverse('cars:about'))
+        self.assertContains(response, edit_url)
+
+        self.client.force_login(self.customer_user)
+        response = self.client.get(reverse('cars:about'))
+        self.assertNotContains(response, edit_url)
+
+        self.client.logout()
+        response = self.client.get(reverse('cars:about'))
+        self.assertNotContains(response, edit_url)
+
+    def test_staff_nav_links_to_about_info(self):
+        response = self.client.get(reverse('cars:dashboard'))
+        self.assertContains(response, reverse('cars:about_info_edit'))
 
 
 class BrowseSortTests(TestCase):

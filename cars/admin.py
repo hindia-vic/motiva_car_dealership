@@ -3,7 +3,7 @@ from django.utils.html import format_html
 from .models import (
     Car, CarImage, Inventory, Customer, SalesTransaction, ServiceRecord, Inquiry, Order,
     Appointment, ContactMessage, NewsletterSubscription, Testimonial, ContactInfo,
-    SavedSearch, Post,
+    SavedSearch, Post, AboutInfo,
 )
 
 
@@ -219,6 +219,11 @@ class TestimonialAdmin(admin.ModelAdmin):
 @admin.register(ContactInfo)
 class ContactInfoAdmin(admin.ModelAdmin):
     list_display = ('phone', 'email', 'address')
+
+
+@admin.register(AboutInfo)
+class AboutInfoAdmin(admin.ModelAdmin):
+    list_display = ('page_tagline', 'value_one_title', 'value_two_title', 'value_three_title')
 
 
 @admin.register(SavedSearch)

@@ -388,6 +388,11 @@
                             </a>
                         </li>
                         <li class="nav-item">
+                            <a class="nav-link {% if request.resolver_match.url_name == 'about_info_edit' %}active{% endif %}" href="{% url 'cars:about_info_edit' %}">
+                                <i class="bi bi-building"></i> About Page
+                            </a>
+                        </li>
+                        <li class="nav-item">
                             <a class="nav-link {% if request.resolver_match.url_name == 'staff_list' or request.resolver_match.url_name == 'staff_create' %}active{% endif %}" href="{% url 'accounts:staff_list' %}">
                                 <i class="bi bi-person-gear"></i> Staff Accounts
                             </a>

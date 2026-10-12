@@ -44,6 +44,7 @@ urlpatterns = [
     path('testimonials/', views.TestimonialListView.as_view(), name='testimonial_list'),
     path('reports/', views.ReportsView.as_view(), name='reports'),
     path('contact-info/', views.ContactInfoUpdateView.as_view(), name='contact_info_edit'),
+    path('about-info/', views.AboutInfoUpdateView.as_view(), name='about_info_edit'),
     path('inquiry/<int:pk>/status/', views.update_inquiry_status, name='inquiry_status_update'),
     path('order/<int:pk>/status/', views.update_order_status, name='order_status_update'),
     path('appointment/<int:pk>/status/', views.update_appointment_status, name='appointment_status_update'),

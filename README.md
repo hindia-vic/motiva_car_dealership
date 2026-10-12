@@ -86,6 +86,8 @@ Staff panel:
 - PDF sales report export (same filters, downloadable report)
 - Edit the "Visit or Call" section on the contact page (address, phone, email, hours)
   from the staff panel or the admin
+- Edit the About page content (tagline, vision, mission, and the three value cards)
+  from the staff panel or the admin
 - Reports (revenue, top models, conversion), customer purchase history
 
 ## Testing

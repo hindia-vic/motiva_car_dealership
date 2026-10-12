@@ -453,6 +453,47 @@ class ContactInfo(models.Model):
         return instance
 
 
+class AboutInfo(models.Model):
+    """Editable 'About Us' page content (singleton)"""
+    page_tagline = models.CharField(
+        max_length=200,
+        default='Vision, mission, and the values that guide us',
+    )
+    vision_text = models.TextField(default=(
+        "To be the region's most trusted dealership — known for honest pricing, "
+        "quality vehicles, and a buying experience customers recommend to friends and family."
+    ))
+    mission_text = models.TextField(default=(
+        "To help every customer find the right vehicle for their life and budget through "
+        "transparent pricing, thorough inspections, flexible financing, and support that "
+        "continues long after the sale."
+    ))
+    value_one_title = models.CharField(max_length=100, default='Quality You Can Trust')
+    value_one_text = models.TextField(
+        default='Every vehicle is inspected and certified before it reaches our lot.'
+    )
+    value_two_title = models.CharField(max_length=100, default='Honest Pricing')
+    value_two_text = models.TextField(
+        default='Clear, competitive pricing with no surprises — from quote to keys.'
+    )
+    value_three_title = models.CharField(max_length=100, default='Support For Life')
+    value_three_text = models.TextField(
+        default='Flexible financing and a dedicated team ready to help long after the sale.'
+    )
+
+    class Meta:
+        verbose_name = 'About Page Content'
+
+    def __str__(self):
+        return 'About Page Content'
+
+    @classmethod
+    def get_solo(cls):
+        """Return the singleton row, creating it with defaults if missing"""
+        instance, _ = cls.objects.get_or_create(pk=1)
+        return instance
+
+
 class SavedSearch(models.Model):
     """A saved vehicle search; matching cars are emailed to the subscriber"""
     user = models.ForeignKey(

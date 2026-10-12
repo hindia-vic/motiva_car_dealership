@@ -3,7 +3,7 @@ from django.utils import timezone
 from .models import (
     Car, Customer, SalesTransaction, ServiceRecord, Inquiry, Order,
     Appointment, ContactMessage, NewsletterSubscription, Testimonial, ContactInfo,
-    SavedSearch,
+    SavedSearch, AboutInfo,
 )
 
 
@@ -347,6 +347,32 @@ class ContactInfoForm(forms.ModelForm):
                 'rows': 3,
                 'placeholder': 'Mon – Sat: 9:00 AM – 7:00 PM\nSunday: Closed',
             }),
+        }
+
+
+class AboutInfoForm(forms.ModelForm):
+    """Staff form for editing the content of the About page"""
+    class Meta:
+        model = AboutInfo
+        fields = [
+            'page_tagline', 'vision_text', 'mission_text',
+            'value_one_title', 'value_one_text',
+            'value_two_title', 'value_two_text',
+            'value_three_title', 'value_three_text',
+        ]
+        widgets = {
+            'page_tagline': forms.TextInput(attrs={
+                'class': 'form-control',
+                'placeholder': 'Vision, mission, and the values that guide us',
+            }),
+            'vision_text': forms.Textarea(attrs={'class': 'form-control', 'rows': 4}),
+            'mission_text': forms.Textarea(attrs={'class': 'form-control', 'rows': 4}),
+            'value_one_title': forms.TextInput(attrs={'class': 'form-control'}),
+            'value_one_text': forms.Textarea(attrs={'class': 'form-control', 'rows': 3}),
+            'value_two_title': forms.TextInput(attrs={'class': 'form-control'}),
+            'value_two_text': forms.Textarea(attrs={'class': 'form-control', 'rows': 3}),
+            'value_three_title': forms.TextInput(attrs={'class': 'form-control'}),
+            'value_three_text': forms.Textarea(attrs={'class': 'form-control', 'rows': 3}),
         }
 
 

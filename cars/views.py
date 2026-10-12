@@ -13,12 +13,12 @@ from django.utils.http import url_has_allowed_host_and_scheme
 from .models import (
     Car, CarImage, Customer, SalesTransaction, ServiceRecord, Inquiry, Order,
     Appointment, ContactMessage, NewsletterSubscription, Testimonial, ContactInfo,
-    SavedSearch, Post,
+    SavedSearch, Post, AboutInfo,
 )
 from .forms import (
     InquiryForm, OrderForm, AppointmentForm, ContactForm, NewsletterForm,
     TestimonialForm, CarForm, CustomerForm, SalesTransactionForm, ContactInfoForm,
-    SavedSearchForm,
+    SavedSearchForm, AboutInfoForm,
 )
 from .emails import (
     send_inquiry_notification, send_order_notification,
@@ -186,6 +186,11 @@ class CarDetailView(DetailView):
 class AboutView(TemplateView):
     """Customer-facing about page with dealership vision and mission"""
     template_name = 'cars/about.html'
+
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        context['about_info'] = AboutInfo.get_solo()
+        return context
 
 
 class FinancingView(TemplateView):
@@ -806,6 +811,23 @@ class ContactInfoUpdateView(StaffRequiredMixin, UpdateView):
 
     def get_success_url(self):
         return reverse('cars:contact')
+
+
+class AboutInfoUpdateView(StaffRequiredMixin, UpdateView):
+    """Staff view: edit the content shown on the About page"""
+    model = AboutInfo
+    form_class = AboutInfoForm
+    template_name = 'cars/about_info_form.html'
+
+    def get_object(self, queryset=None):
+        return AboutInfo.get_solo()
+
+    def form_valid(self, form):
+        messages.success(self.request, 'About page updated successfully.')
+        return super().form_valid(form)
+
+    def get_success_url(self):
+        return reverse('cars:about')
 
 
 class CarRecordMixin(View):
