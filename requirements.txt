@@ -1,0 +1,5 @@
+# Manual-env install list (kept in sync with pyproject.toml).
+# Prefer `uv sync` (recommended) or `pip install -r requirements.txt`.
+django>=6.1
+pillow
+reportlab

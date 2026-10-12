@@ -951,6 +951,21 @@ class PdfExportTests(CsvExportTests):
         self.assertEqual(response.status_code, 200)
         self.assertTrue(response.content.startswith(b'%PDF'))
 
+    def test_pdf_export_degrades_gracefully_when_reportlab_missing(self):
+        """A missing ReportLab must never 500 the site — redirect with an install hint"""
+        from unittest.mock import patch
+
+        from django.contrib.messages import get_messages
+
+        with patch('cars.views.stream_pdf', side_effect=ImportError(
+                "PDF export requires the 'reportlab' package.")):
+            response = self.client.get(reverse('cars:sales_pdf_export'))
+        # fetch_redirect_response=False: assertRedirects would otherwise fetch
+        # the target itself and consume the flash message before we check it.
+        self.assertRedirects(response, reverse('cars:sales_list'), fetch_redirect_response=False)
+        queued = [str(m) for m in get_messages(response.wsgi_request)]
+        self.assertTrue(any('reportlab' in text for text in queued))
+
 
 class CustomerCreateEditTests(StaffBaseTest):
     """Staff customer create/edit forms"""

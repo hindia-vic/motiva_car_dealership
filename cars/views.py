@@ -1068,13 +1068,18 @@ def export_sales_pdf(request):
         ]
         for sale in sales
     )
-    return stream_pdf(
-        'sales-report.pdf',
-        f'Sales Report - {timezone.now().strftime("%Y-%m-%d")}',
-        ['Invoice', 'Sale Date', 'Customer', 'Email', 'Vehicle', 'VIN',
-         'Sale Price', 'Total Amount', 'Payment Method', 'Status', 'Salesperson'],
-        rows,
-    )
+    try:
+        return stream_pdf(
+            'sales-report.pdf',
+            f'Sales Report - {timezone.now().strftime("%Y-%m-%d")}',
+            ['Invoice', 'Sale Date', 'Customer', 'Email', 'Vehicle', 'VIN',
+             'Sale Price', 'Total Amount', 'Payment Method', 'Status', 'Salesperson'],
+            rows,
+        )
+    except ImportError as exc:
+        # ReportLab missing: report it cleanly instead of a 500
+        messages.error(request, str(exc))
+        return redirect('cars:sales_list')
 
 
 # ==================== STAFF REVIEW MODERATION ====================

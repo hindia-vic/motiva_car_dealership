@@ -3,12 +3,6 @@ import io
 
 from django.http import HttpResponse
 
-from reportlab.lib import colors
-from reportlab.lib.pagesizes import landscape, letter
-from reportlab.lib.styles import getSampleStyleSheet, ParagraphStyle
-from reportlab.lib.units import inch
-from reportlab.platypus import Paragraph, SimpleDocTemplate, Spacer, Table, TableStyle
-
 
 def stream_csv(filename, headers, rows):
     """Build an attachment response streaming the given rows as CSV"""
@@ -22,7 +16,24 @@ def stream_csv(filename, headers, rows):
 
 
 def stream_pdf(filename, title, headers, rows):
-    """Build a downloadable PDF with a titled table of the given rows"""
+    """Build a downloadable PDF with a titled table of the given rows
+
+    ReportLab is imported lazily (and only when a PDF is actually requested) so
+    that a missing optional dependency can never prevent the rest of the site
+    from loading.
+    """
+    try:
+        from reportlab.lib import colors
+        from reportlab.lib.pagesizes import landscape, letter
+        from reportlab.lib.styles import getSampleStyleSheet, ParagraphStyle
+        from reportlab.lib.units import inch
+        from reportlab.platypus import Paragraph, SimpleDocTemplate, Table, TableStyle
+    except ImportError:
+        raise ImportError(
+            "PDF export requires the 'reportlab' package. Install it with: "
+            "pip install reportlab   (or in this project: uv add reportlab)"
+        ) from None
+
     buffer = io.BytesIO()
     doc = SimpleDocTemplate(
         buffer,

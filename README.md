@@ -21,6 +21,10 @@ virtual\Scripts\python manage.py populate_sample_data
 virtual\Scripts\python manage.py runserver
 ```
 
+When dependencies change (`pyproject.toml` gains a package), re-run the install
+step in your environment: `virtual\Scripts\pip install -r requirements.txt`
+or `uv sync --active` so the change lands in `virtual` rather than `.venv`.
+
 Visit http://127.0.0.1:8000/ (public site) and
 http://127.0.0.1:8000/admin/ (Django admin).
 
