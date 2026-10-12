@@ -1,0 +1,133 @@
+{% extends "base.html" %}
+
+{% block title %}Review Moderation - Staff Panel{% endblock %}
+
+{% block content %}
+<div class="container-lg py-4">
+    <div class="d-flex flex-wrap flex-column flex-sm-row justify-content-between align-items-start align-items-sm-center gap-2 mb-4">
+        <h1><i class="bi bi-star-half"></i> Customer Reviews</h1>
+        <a href="{% url 'cars:dashboard' %}" class="btn btn-outline-secondary">
+            <i class="bi bi-arrow-left"></i> Back to Dashboard
+        </a>
+    </div>
+
+    <!-- Filter Panel -->
+    <div class="card mb-4">
+        <div class="card-body">
+            <h5 class="card-title mb-3"><i class="bi bi-funnel"></i> Filter Reviews</h5>
+            <div class="d-flex flex-wrap gap-2">
+                <a href="{% url 'cars:testimonial_list' %}"
+                   class="btn btn-sm {% if request.GET.visible %}btn-outline-primary{% else %}btn-primary{% endif %}">
+                    All
+                </a>
+                <a href="{% url 'cars:testimonial_list' %}?visible=0"
+                   class="btn btn-sm {% if request.GET.visible == '0' %}btn-primary{% else %}btn-outline-primary{% endif %}">
+                    <i class="bi bi-clock"></i> Pending Approval
+                </a>
+                <a href="{% url 'cars:testimonial_list' %}?visible=1"
+                   class="btn btn-sm {% if request.GET.visible == '1' %}btn-primary{% else %}btn-outline-primary{% endif %}">
+                    <i class="bi bi-eye"></i> Published
+                </a>
+            </div>
+        </div>
+    </div>
+
+    <!-- Reviews Table -->
+    {% if testimonials %}
+        <div class="table-responsive">
+            <table class="table table-hover">
+                <thead class="table-light">
+                    <tr>
+                        <th>Rating</th>
+                        <th>Customer</th>
+                        <th>Vehicle</th>
+                        <th>Review</th>
+                        <th>Status</th>
+                        <th>Date</th>
+                        <th>Action</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for testimonial in testimonials %}
+                        <tr>
+                            <td>
+                                {% for i in "12345" %}
+                                    {% if forloop.counter <= testimonial.rating %}
+                                        <i class="bi bi-star-fill text-warning"></i>
+                                    {% else %}
+                                        <i class="bi bi-star text-warning"></i>
+                                    {% endif %}
+                                {% endfor %}
+                            </td>
+                            <td><strong>{{ testimonial.customer_name }}</strong></td>
+                            <td><small>{{ testimonial.vehicle|default:"—" }}</small></td>
+                            <td><small>{{ testimonial.quote|truncatewords:15 }}</small></td>
+                            <td>
+                                {% if testimonial.is_visible %}
+                                    <span class="badge badge-available">Published</span>
+                                {% else %}
+                                    <span class="badge bg-warning text-dark">Pending</span>
+                                {% endif %}
+                            </td>
+                            <td><small>{{ testimonial.created_at|date:"M d, Y" }}</small></td>
+                            <td>
+                                <form method="post" action="{% url 'cars:testimonial_visibility_update' testimonial.id %}">
+                                    {% csrf_token %}
+                                    <input type="hidden" name="next" value="{{ request.get_full_path }}">
+                                    <input type="hidden" name="visible" value="{% if testimonial.is_visible %}0{% else %}1{% endif %}">
+                                    <button type="submit" class="btn btn-sm {% if testimonial.is_visible %}btn-outline-danger{% else %}btn-success{% endif %}">
+                                        {% if testimonial.is_visible %}
+                                            <i class="bi bi-eye-slash"></i> Hide
+                                        {% else %}
+                                            <i class="bi bi-check-lg"></i> Approve
+                                        {% endif %}
+                                    </button>
+                                </form>
+                            </td>
+                        </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+
+        <!-- Pagination -->
+        {% if is_paginated %}
+            <nav aria-label="Page navigation" class="mt-4">
+                <ul class="pagination justify-content-center">
+                    {% if page_obj.has_previous %}
+                        <li class="page-item">
+                            <a class="page-link" href="?page=1{% if request.GET.urlencode %}&{{ request.GET.urlencode }}{% endif %}">First</a>
+                        </li>
+                        <li class="page-item">
+                            <a class="page-link" href="?page={{ page_obj.previous_page_number }}{% if request.GET.urlencode %}&{{ request.GET.urlencode }}{% endif %}">Previous</a>
+                        </li>
+                    {% endif %}
+
+                    {% for num in page_obj.paginator.page_range %}
+                        {% if page_obj.number == num %}
+                            <li class="page-item active"><span class="page-link">{{ num }}</span></li>
+                        {% elif num > page_obj.number|add:'-3' and num < page_obj.number|add:'3' %}
+                            <li class="page-item">
+                                <a class="page-link" href="?page={{ num }}{% if request.GET.urlencode %}&{{ request.GET.urlencode }}{% endif %}">{{ num }}</a>
+                            </li>
+                        {% endif %}
+                    {% endfor %}
+
+                    {% if page_obj.has_next %}
+                        <li class="page-item">
+                            <a class="page-link" href="?page={{ page_obj.next_page_number }}{% if request.GET.urlencode %}&{{ request.GET.urlencode }}{% endif %}">Next</a>
+                        </li>
+                        <li class="page-item">
+                            <a class="page-link" href="?page={{ page_obj.paginator.num_pages }}{% if request.GET.urlencode %}&{{ request.GET.urlencode }}{% endif %}">Last</a>
+                        </li>
+                    {% endif %}
+                </ul>
+            </nav>
+        {% endif %}
+    {% else %}
+        <div class="alert alert-info">
+            <i class="bi bi-info-circle"></i> No reviews match this filter.
+        </div>
+    {% endif %}
+</div>
+{% endblock %}

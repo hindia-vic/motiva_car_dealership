@@ -1,0 +1,140 @@
+{% extends "base.html" %}
+
+{% block title %}Compare Vehicles - Car Dealership{% endblock %}
+
+{% block meta %}
+<meta name="description" content="Compare up to four vehicles side by side — price, year, mileage, specs, and features.">
+<meta name="robots" content="noindex, follow">
+{% endblock %}
+
+{% block content %}
+<div class="page-header">
+    <div class="container-lg">
+        <h1><i class="bi bi-arrow-left-right"></i> Compare Vehicles</h1>
+        <p>Side-by-side comparison of your selected vehicles</p>
+    </div>
+</div>
+
+<div class="container-lg py-4">
+    {% if cars %}
+        <div class="table-responsive">
+            <table class="table table-bordered align-middle bg-white">
+                <thead class="table-primary">
+                    <tr>
+                        <th scope="col" style="min-width: 180px;">Specification</th>
+                        {% for car in cars %}
+                            <th scope="col" class="text-center" style="min-width: 220px;">
+                                {% with first_image=car.images.first %}
+                                    {% if first_image %}
+                                        <img src="{{ first_image.image.url }}" class="img-fluid rounded mb-2"
+                                             style="height: 120px; width: 100%; object-fit: cover;"
+                                             alt="{{ car.year }} {{ car.make }} {{ car.model }}">
+                                    {% endif %}
+                                {% endwith %}
+                                <div>{{ car.year }} {{ car.make }} {{ car.model }}</div>
+                                <div class="text-muted small">{{ car.condition|title }}</div>
+                            </th>
+                        {% endfor %}
+                    </tr>
+                </thead>
+                <tbody>
+                    <tr>
+                        <th scope="row">Price</th>
+                        {% for car in cars %}
+                            <td class="text-center price-tag">${{ car.asking_price }}</td>
+                        {% endfor %}
+                    </tr>
+                    <tr>
+                        <th scope="row">Year</th>
+                        {% for car in cars %}<td class="text-center">{{ car.year }}</td>{% endfor %}
+                    </tr>
+                    <tr>
+                        <th scope="row">Mileage</th>
+                        {% for car in cars %}<td class="text-center">{{ car.mileage|floatformat:0 }} mi</td>{% endfor %}
+                    </tr>
+                    <tr>
+                        <th scope="row">Body Type</th>
+                        {% for car in cars %}<td class="text-center">{{ car.body_type|title }}</td>{% endfor %}
+                    </tr>
+                    <tr>
+                        <th scope="row">Color</th>
+                        {% for car in cars %}<td class="text-center">{{ car.color }}</td>{% endfor %}
+                    </tr>
+                    <tr>
+                        <th scope="row">Transmission</th>
+                        {% for car in cars %}<td class="text-center">{{ car.transmission|title }}</td>{% endfor %}
+                    </tr>
+                    <tr>
+                        <th scope="row">Fuel Type</th>
+                        {% for car in cars %}<td class="text-center">{{ car.fuel_type|title }}</td>{% endfor %}
+                    </tr>
+                    <tr>
+                        <th scope="row">Engine Size</th>
+                        {% for car in cars %}<td class="text-center">{{ car.engine_size|default:"—" }}</td>{% endfor %}
+                    </tr>
+                    <tr>
+                        <th scope="row">Horsepower</th>
+                        {% for car in cars %}<td class="text-center">{{ car.horsepower|default:"—" }} hp</td>{% endfor %}
+                    </tr>
+                    <tr>
+                        <th scope="row">VIN</th>
+                        {% for car in cars %}<td class="text-center small">{{ car.vin }}</td>{% endfor %}
+                    </tr>
+                    <tr>
+                        <th scope="row">Features</th>
+                        {% for car in cars %}
+                            <td>
+                                <ul class="list-unstyled mb-0 small">
+                                    {% if car.air_conditioning %}<li><i class="bi bi-check-circle-fill text-success"></i> Air Conditioning</li>{% endif %}
+                                    {% if car.cruise_control %}<li><i class="bi bi-check-circle-fill text-success"></i> Cruise Control</li>{% endif %}
+                                    {% if car.backup_camera %}<li><i class="bi bi-check-circle-fill text-success"></i> Backup Camera</li>{% endif %}
+                                    {% if car.bluetooth %}<li><i class="bi bi-check-circle-fill text-success"></i> Bluetooth</li>{% endif %}
+                                    {% if car.navigation_system %}<li><i class="bi bi-check-circle-fill text-success"></i> Navigation</li>{% endif %}
+                                    {% if car.leather_seats %}<li><i class="bi bi-check-circle-fill text-success"></i> Leather Seats</li>{% endif %}
+                                    {% if car.sunroof %}<li><i class="bi bi-check-circle-fill text-success"></i> Sunroof</li>{% endif %}
+                                    {% if car.all_wheel_drive %}<li><i class="bi bi-check-circle-fill text-success"></i> All-Wheel Drive</li>{% endif %}
+                                    {% if not car.air_conditioning and not car.cruise_control and not car.backup_camera and not car.bluetooth and not car.navigation_system and not car.leather_seats and not car.sunroof and not car.all_wheel_drive %}
+                                        <li class="text-muted">No premium features listed</li>
+                                    {% endif %}
+                                </ul>
+                            </td>
+                        {% endfor %}
+                    </tr>
+                    <tr>
+                        <th scope="row">Status</th>
+                        {% for car in cars %}
+                            <td class="text-center">
+                                <span class="badge {% if car.status == 'available' %}bg-success{% else %}bg-secondary{% endif %}">{{ car.status|title }}</span>
+                            </td>
+                        {% endfor %}
+                    </tr>
+                </tbody>
+                <tfoot>
+                    <tr>
+                        <th scope="row">Action</th>
+                        {% for car in cars %}
+                            <td class="text-center">
+                                <a href="{% url 'cars:car_detail' car.pk %}" class="btn btn-primary btn-sm">
+                                    <i class="bi bi-eye"></i> View Details
+                                </a>
+                            </td>
+                        {% endfor %}
+                    </tr>
+                </tfoot>
+            </table>
+        </div>
+        <div class="text-center my-4">
+            <a href="{% url 'cars:browse_cars' %}" class="btn btn-outline-primary">
+                <i class="bi bi-search"></i> Browse More Cars
+            </a>
+        </div>
+    {% else %}
+        <div class="alert alert-info text-center" role="alert">
+            <i class="bi bi-info-circle"></i>
+            No vehicles selected for comparison.
+            <a href="{% url 'cars:browse_cars' %}" class="alert-link">Browse the inventory</a>
+            and use the <strong>Compare</strong> checkbox on any vehicle to add it here.
+        </div>
+    {% endif %}
+</div>
+{% endblock %}

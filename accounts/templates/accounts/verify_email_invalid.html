@@ -1,0 +1,42 @@
+{% extends "base.html" %}
+
+{% block title %}Invalid Verification Link - Car Dealership{% endblock %}
+
+{% block content %}
+<div class="page-header">
+    <div class="container-lg">
+        <h1><i class="bi bi-exclamation-triangle"></i> Link Not Valid</h1>
+        <p>This verification link is invalid or has expired</p>
+    </div>
+</div>
+
+<div class="container-lg py-4">
+    <div class="row justify-content-center">
+        <div class="col-md-6 col-lg-5">
+            <div class="filter-panel text-center">
+                <i class="bi bi-x-octagon text-danger" style="font-size: 3rem;"></i>
+                <div class="alert alert-danger mt-3">
+                    Verification links expire after a few days and can only be
+                    used once. Request a fresh one below.
+                </div>
+
+                <form method="post" action="{% url 'accounts:resend_verification' %}">
+                    {% csrf_token %}
+                    <div class="mb-3 text-start">
+                        <label for="email" class="form-label">Email Address</label>
+                        <input type="email" name="email" id="email" class="form-control"
+                               value="{{ email }}" placeholder="your.email@example.com" required>
+                    </div>
+                    <button type="submit" class="btn btn-primary w-100">
+                        <i class="bi bi-arrow-clockwise"></i> Resend Verification Email
+                    </button>
+                </form>
+
+                <a href="{% url 'accounts:login' %}" class="btn btn-link mt-3">
+                    <i class="bi bi-box-arrow-in-right"></i> Back to Sign In
+                </a>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

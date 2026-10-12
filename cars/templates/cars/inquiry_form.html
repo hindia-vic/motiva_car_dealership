@@ -1,0 +1,97 @@
+{% extends "base.html" %}
+
+{% block title %}Inquiry for {{ car.year }} {{ car.make }} {{ car.model }} - Car Dealership{% endblock %}
+
+{% block content %}
+<div class="container-lg py-4">
+    <a href="{% url 'cars:car_detail' car.id %}" class="btn btn-outline-secondary mb-3">
+        <i class="bi bi-arrow-left"></i> Back to Car Details
+    </a>
+
+    <div class="row justify-content-center">
+        <div class="col-lg-7">
+            <div class="card">
+                <div class="card-body p-4">
+                    <h2 class="mb-2"><i class="bi bi-chat-dots"></i> Send an Inquiry</h2>
+                    <p class="text-muted mb-4">Tell us more about your interest in this vehicle</p>
+
+                    <!-- Car Info Card -->
+                    <div class="alert alert-info mb-4">
+                        <strong>{{ car.year }} {{ car.make }} {{ car.model }}</strong><br>
+                        Price: <span class="badge bg-primary">${{ car.asking_price }}</span>
+                    </div>
+
+                    <form method="post">
+                        {% csrf_token %}
+
+                        {% if form.non_field_errors %}
+                            <div class="alert alert-danger">
+                                {{ form.non_field_errors }}
+                            </div>
+                        {% endif %}
+
+                        <div class="mb-3">
+                            <label for="{{ form.customer_name.id_for_label }}" class="form-label">Full Name *</label>
+                            {{ form.customer_name }}
+                            {% if form.customer_name.errors %}
+                                <div class="text-danger small mt-1">
+                                    {% for error in form.customer_name.errors %}
+                                        {{ error }}<br>
+                                    {% endfor %}
+                                </div>
+                            {% endif %}
+                        </div>
+
+                        <div class="mb-3">
+                            <label for="{{ form.customer_email.id_for_label }}" class="form-label">Email Address *</label>
+                            {{ form.customer_email }}
+                            {% if form.customer_email.errors %}
+                                <div class="text-danger small mt-1">
+                                    {% for error in form.customer_email.errors %}
+                                        {{ error }}<br>
+                                    {% endfor %}
+                                </div>
+                            {% endif %}
+                        </div>
+
+                        <div class="mb-3">
+                            <label for="{{ form.customer_phone.id_for_label }}" class="form-label">Phone Number *</label>
+                            {{ form.customer_phone }}
+                            {% if form.customer_phone.errors %}
+                                <div class="text-danger small mt-1">
+                                    {% for error in form.customer_phone.errors %}
+                                        {{ error }}<br>
+                                    {% endfor %}
+                                </div>
+                            {% endif %}
+                        </div>
+
+                        <div class="mb-3">
+                            <label for="{{ form.message.id_for_label }}" class="form-label">Message *</label>
+                            {{ form.message }}
+                            {% if form.message.errors %}
+                                <div class="text-danger small mt-1">
+                                    {% for error in form.message.errors %}
+                                        {{ error }}<br>
+                                    {% endfor %}
+                                </div>
+                            {% endif %}
+                            <small class="form-text text-muted">Let us know any questions or concerns about this vehicle</small>
+                        </div>
+
+                        <button type="submit" class="btn btn-primary w-100 btn-lg">
+                            <i class="bi bi-send"></i> Submit Inquiry
+                        </button>
+                    </form>
+
+                    <hr class="my-4">
+
+                    <p class="text-muted text-center mb-0">
+                        <small>By submitting this form, you agree to be contacted by our sales team about this vehicle.</small>
+                    </p>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

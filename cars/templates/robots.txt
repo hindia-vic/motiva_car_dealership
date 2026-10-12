@@ -1,0 +1,12 @@
+User-agent: *
+Disallow: /admin/
+Disallow: /dashboard/
+Disallow: /accounts/
+Disallow: /my-activity/
+Disallow: /inquiries/
+Disallow: /orders/
+Disallow: /customers/
+Disallow: /sales/
+Disallow: /export/
+
+Sitemap: {{ request.scheme }}://{{ request.get_host }}/sitemap.xml

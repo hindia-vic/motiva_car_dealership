@@ -1,0 +1,349 @@
+{% extends "base.html" %}
+
+{% block title %}Browse Vehicles - Car Dealership{% endblock %}
+
+{% block meta %}
+<meta name="description" content="Browse our inventory of new and used cars. Filter by make, body type, price, year, and fuel type to find your perfect vehicle.">
+<link rel="canonical" href="{{ request.scheme }}://{{ request.get_host }}{% url 'cars:browse_cars' %}">
+<meta property="og:type" content="website">
+<meta property="og:site_name" content="Car Dealership">
+<meta property="og:url" content="{{ request.scheme }}://{{ request.get_host }}{% url 'cars:browse_cars' %}">
+<meta property="og:title" content="Browse Vehicles - Car Dealership">
+<meta property="og:description" content="Find your perfect vehicle from our wide selection.">
+{% endblock %}
+
+{% block content %}
+<div class="page-header">
+    <div class="container-lg">
+        <h1><i class="bi bi-car-front"></i> Browse Our Inventory</h1>
+        <p>Find your perfect vehicle from our wide selection</p>
+    </div>
+</div>
+
+<div class="container-lg py-4">
+    <!-- Filter Panel -->
+    <div class="filter-panel">
+        <h5><i class="bi bi-funnel"></i> Search & Filter Vehicles</h5>
+        <form method="get" class="row g-3">
+            <div class="col-md-3">
+                <label for="search" class="form-label">Search</label>
+                <input type="text" name="search" class="form-control" id="search" 
+                       placeholder="Make, Model, or Color" value="{{ request.GET.search }}">
+            </div>
+            <div class="col-md-2">
+                <label for="make" class="form-label">Make</label>
+                <select name="make" class="form-select" id="make">
+                    <option value="">All Makes</option>
+                    {% for make in makes %}
+                        <option value="{{ make }}" {% if request.GET.make == make %}selected{% endif %}>
+                            {{ make }}
+                        </option>
+                    {% endfor %}
+                </select>
+            </div>
+            <div class="col-md-2">
+                <label for="year" class="form-label">Year</label>
+                <select name="year" class="form-select" id="year">
+                    <option value="">All Years</option>
+                    {% for year in years %}
+                        <option value="{{ year }}" {% if request.GET.year|add:"0" == year %}selected{% endif %}>
+                            {{ year }}
+                        </option>
+                    {% endfor %}
+                </select>
+            </div>
+            <div class="col-md-2">
+                <label for="body_type" class="form-label">Body Type</label>
+                <select name="body_type" class="form-select" id="body_type">
+                    <option value="">All Types</option>
+                    {% for type in body_types %}
+                        <option value="{{ type }}" {% if request.GET.body_type == type %}selected{% endif %}>
+                            {{ type|title }}
+                        </option>
+                    {% endfor %}
+                </select>
+            </div>
+            <div class="col-md-3 d-flex align-items-end gap-2">
+                <button type="submit" class="btn btn-primary flex-grow-1">
+                    <i class="bi bi-search"></i> Search
+                </button>
+                <a href="{% url 'cars:browse_cars' %}" class="btn btn-outline-secondary">
+                    <i class="bi bi-arrow-clockwise"></i> Reset
+                </a>
+            </div>
+            <div class="col-md-3">
+                <label for="min_price" class="form-label">Min Price</label>
+                <input type="number" name="min_price" class="form-control" id="min_price" 
+                       placeholder="Min Price" step="0.01" value="{{ request.GET.min_price }}">
+            </div>
+            <div class="col-md-3">
+                <label for="max_price" class="form-label">Max Price</label>
+                <input type="number" name="max_price" class="form-control" id="max_price" 
+                       placeholder="Max Price" step="0.01" value="{{ request.GET.max_price }}">
+            </div>
+            <div class="col-md-3">
+                <label for="fuel_type" class="form-label">Fuel Type</label>
+                <select name="fuel_type" class="form-select" id="fuel_type">
+                    <option value="">All Fuel Types</option>
+                    {% for fuel in fuel_types %}
+                        <option value="{{ fuel }}" {% if request.GET.fuel_type == fuel %}selected{% endif %}>
+                            {{ fuel|title }}
+                        </option>
+                    {% endfor %}
+                </select>
+            </div>
+            <div class="col-md-3">
+                <label for="sort" class="form-label">Sort By</label>
+                <select name="sort" class="form-select" id="sort">
+                    {% for key, label in sort_labels.items %}
+                        <option value="{{ key }}" {% if current_sort == key %}selected{% endif %}>{{ label }}</option>
+                    {% endfor %}
+                </select>
+            </div>
+        </form>
+    </div>
+
+    <!-- Saved Search Alert Panel -->
+    <div class="filter-panel">
+        <h5><i class="bi bi-bell"></i> Get Notified When a Matching Car Arrives</h5>
+        <p class="text-muted small mb-3">
+            Save this kind of search and we'll email you as soon as matching vehicles come in.
+        </p>
+        <form method="post" action="{% url 'cars:saved_search_create' %}" class="row g-3">
+            {% csrf_token %}
+            <input type="hidden" name="next" value="{{ request.get_full_path }}">
+            <div class="col-md-2">
+                <label for="id_email" class="form-label">Email *</label>
+                {{ saved_search_form.email }}
+            </div>
+            <div class="col-md-2">
+                <label for="id_make" class="form-label">Make</label>
+                {{ saved_search_form.make }}
+            </div>
+            <div class="col-md-2">
+                <label for="id_year_min" class="form-label">Year From</label>
+                {{ saved_search_form.year_min }}
+            </div>
+            <div class="col-md-2">
+                <label for="id_year_max" class="form-label">Year To</label>
+                {{ saved_search_form.year_max }}
+            </div>
+            <div class="col-md-2">
+                <label for="id_price_min" class="form-label">Min Price</label>
+                {{ saved_search_form.price_min }}
+            </div>
+            <div class="col-md-2">
+                <label for="id_price_max" class="form-label">Max Price</label>
+                {{ saved_search_form.price_max }}
+            </div>
+            <div class="col-md-3">
+                <label for="id_body_type" class="form-label">Body Type</label>
+                {{ saved_search_form.body_type }}
+            </div>
+            <div class="col-md-3">
+                <label for="id_fuel_type" class="form-label">Fuel Type</label>
+                {{ saved_search_form.fuel_type }}
+            </div>
+            <div class="col-md-3 d-flex align-items-end">
+                <button type="submit" class="btn btn-secondary w-100">
+                    <i class="bi bi-bell"></i> Save Search &amp; Get Alerts
+                </button>
+            </div>
+            <div class="col-md-3 d-flex align-items-end">
+                <span class="text-muted small">Current filters are not applied automatically — set the criteria you care about.</span>
+            </div>
+        </form>
+    </div>
+
+    <!-- Cars Grid -->
+    {% if cars %}
+        <div class="row g-4 mb-4">
+            {% for car in cars %}
+                <div class="col-md-6 col-lg-4">
+                    <div class="card h-100">
+                        {% with first_image=car.images.first %}
+                            {% if first_image %}
+                                <img src="{{ first_image.image.url }}" class="card-img-top"
+                                     style="height: 200px; object-fit: cover;"
+                                     alt="{{ car.year }} {{ car.make }} {{ car.model }}">
+                            {% endif %}
+                        {% endwith %}
+                        <div class="card-body">
+                            <div class="d-flex justify-content-between align-items-start mb-2">
+                                <h5 class="card-title mb-0">{{ car.year }} {{ car.make }} {{ car.model }}</h5>
+                                <span class="badge badge-available">{{ car.condition|title }}</span>
+                            </div>
+                            
+                            <div class="vehicle-specs">
+                                <div class="spec-item">
+                                    <div class="spec-label">Color</div>
+                                    <div class="spec-value">{{ car.color }}</div>
+                                </div>
+                                <div class="spec-item">
+                                    <div class="spec-label">Body Type</div>
+                                    <div class="spec-value">{{ car.body_type|title }}</div>
+                                </div>
+                                <div class="spec-item">
+                                    <div class="spec-label">Transmission</div>
+                                    <div class="spec-value">{{ car.transmission|title }}</div>
+                                </div>
+                                <div class="spec-item">
+                                    <div class="spec-label">Fuel Type</div>
+                                    <div class="spec-value">{{ car.fuel_type|title }}</div>
+                                </div>
+                                <div class="spec-item">
+                                    <div class="spec-label">Mileage</div>
+                                    <div class="spec-value">{{ car.mileage|floatformat:0 }} mi</div>
+                                </div>
+                                <div class="spec-item">
+                                    <div class="spec-label">Engine</div>
+                                    <div class="spec-value">{{ car.engine_size }}</div>
+                                </div>
+                            </div>
+                            
+                            <div class="mt-3 pt-3 border-top">
+                                <p class="mb-0">
+                                    <strong>Price:</strong>
+                                    <span class="price-tag">${{ car.asking_price }}</span>
+                                </p>
+                            </div>
+                        </div>
+                        <div class="card-footer bg-light">
+                            <div class="form-check mb-2">
+                                <input type="checkbox" class="form-check-input compare-check" id="compare-{{ car.id }}" value="{{ car.id }}">
+                                <label class="form-check-label small text-muted" for="compare-{{ car.id }}">
+                                    <i class="bi bi-arrow-left-right"></i> Compare this vehicle
+                                </label>
+                            </div>
+                            <div class="d-flex gap-2">
+                                <a href="{% url 'cars:car_detail' car.id %}" class="btn btn-primary btn-sm flex-grow-1">
+                                    <i class="bi bi-eye"></i> View Details & Inquire
+                                </a>
+                                {% if user.is_authenticated %}
+                                    <form method="post" action="{% url 'accounts:toggle_favorite' car.id %}">
+                                        {% csrf_token %}
+                                        <input type="hidden" name="next" value="{{ request.get_full_path }}">
+                                        <button type="submit" class="btn btn-outline-danger btn-sm" title="Save/remove from favorites">
+                                            <i class="bi bi-heart"></i>
+                                        </button>
+                                    </form>
+                                {% endif %}
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            {% endfor %}
+        </div>
+
+        <!-- Pagination -->
+        {% if is_paginated %}
+            <nav aria-label="Page navigation" class="mb-4">
+                <ul class="pagination justify-content-center">
+                    {% if page_obj.has_previous %}
+                        <li class="page-item">
+                            <a class="page-link" href="?page=1{% if request.GET.urlencode %}&{{ request.GET.urlencode }}{% endif %}">First</a>
+                        </li>
+                        <li class="page-item">
+                            <a class="page-link" href="?page={{ page_obj.previous_page_number }}{% if request.GET.urlencode %}&{{ request.GET.urlencode }}{% endif %}">Previous</a>
+                        </li>
+                    {% endif %}
+
+                    {% for num in page_obj.paginator.page_range %}
+                        {% if page_obj.number == num %}
+                            <li class="page-item active"><span class="page-link">{{ num }}</span></li>
+                        {% elif num > page_obj.number|add:'-3' and num < page_obj.number|add:'3' %}
+                            <li class="page-item">
+                                <a class="page-link" href="?page={{ num }}{% if request.GET.urlencode %}&{{ request.GET.urlencode }}{% endif %}">{{ num }}</a>
+                            </li>
+                        {% endif %}
+                    {% endfor %}
+
+                    {% if page_obj.has_next %}
+                        <li class="page-item">
+                            <a class="page-link" href="?page={{ page_obj.next_page_number }}{% if request.GET.urlencode %}&{{ request.GET.urlencode }}{% endif %}">Next</a>
+                        </li>
+                        <li class="page-item">
+                            <a class="page-link" href="?page={{ page_obj.paginator.num_pages }}{% if request.GET.urlencode %}&{{ request.GET.urlencode }}{% endif %}">Last</a>
+                        </li>
+                    {% endif %}
+                </ul>
+            </nav>
+        {% endif %}
+    {% else %}
+        <div class="alert alert-info" role="alert">
+            <i class="bi bi-info-circle"></i> No vehicles found matching your criteria. Please try different filters or <a href="{% url 'cars:browse_cars' %}">reset filters</a>.
+        </div>
+    {% endif %}
+</div>
+
+<!-- Floating compare bar -->
+<div id="compareBar" class="d-none fixed-bottom bg-white shadow p-3" style="border-top: 2px solid var(--primary-color); z-index: 1050;">
+    <div class="container-lg d-flex justify-content-between align-items-center">
+        <span class="text-dark"><strong id="compareCount">0</strong> vehicle(s) selected for comparison</span>
+        <div>
+            <button type="button" class="btn btn-outline-secondary btn-sm me-2" onclick="clearCompare()">Clear</button>
+            <a id="compareLink" href="{% url 'cars:compare' %}" class="btn btn-primary btn-sm">
+                <i class="bi bi-arrow-left-right"></i> Compare Now
+            </a>
+        </div>
+    </div>
+</div>
+
+{% endblock %}
+
+{% block extra_js %}
+<script>
+(function () {
+    const KEY = 'compareCars';
+    const MAX = 4;
+    let selected = new Set(JSON.parse(localStorage.getItem(KEY) || '[]'));
+
+    const bar = document.getElementById('compareBar');
+    const count = document.getElementById('compareCount');
+    const link = document.getElementById('compareLink');
+
+    function save() {
+        localStorage.setItem(KEY, JSON.stringify([...selected]));
+    }
+
+    function updateBar() {
+        count.textContent = selected.size;
+        if (selected.size > 0) {
+            bar.classList.remove('d-none');
+            link.href = "{% url 'cars:compare' %}?ids=" + [...selected].join(',');
+        } else {
+            bar.classList.add('d-none');
+        }
+    }
+
+    document.querySelectorAll('.compare-check').forEach(function (box) {
+        if (selected.has(box.value)) {
+            box.checked = true;
+        }
+        box.addEventListener('change', function () {
+            if (box.checked) {
+                if (selected.size >= MAX) {
+                    box.checked = false;
+                    alert('You can compare up to ' + MAX + ' vehicles at once.');
+                    return;
+                }
+                selected.add(box.value);
+            } else {
+                selected.delete(box.value);
+            }
+            save();
+            updateBar();
+        });
+    });
+
+    window.clearCompare = function () {
+        selected = new Set();
+        save();
+        document.querySelectorAll('.compare-check').forEach(function (box) { box.checked = false; });
+        updateBar();
+    };
+
+    updateBar();
+})();
+</script>
+{% endblock %}

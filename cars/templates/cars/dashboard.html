@@ -1,0 +1,306 @@
+{% extends "base.html" %}
+
+{% block title %}Staff Dashboard - Admin{% endblock %}
+
+{% block extra_css %}
+<style>
+    .dashboard-header {
+        background: linear-gradient(135deg, var(--primary-color) 0%, #0f3d50 100%);
+        color: white;
+        padding: 2rem;
+        border-radius: 8px;
+        margin-bottom: 2rem;
+    }
+    
+    .stat-card {
+        background: white;
+        border-left: 4px solid var(--primary-color);
+        padding: 1.5rem;
+        border-radius: 6px;
+        box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+        margin-bottom: 1rem;
+    }
+    
+    .stat-card.warning {
+        border-left-color: #f39c12;
+    }
+    
+    .stat-card.success {
+        border-left-color: #28a745;
+    }
+    
+    .stat-card.danger {
+        border-left-color: #dc3545;
+    }
+    
+    .stat-number {
+        font-size: 2rem;
+        font-weight: 700;
+        color: var(--primary-color);
+    }
+    
+    .stat-card.warning .stat-number {
+        color: #f39c12;
+    }
+    
+    .stat-card.success .stat-number {
+        color: #28a745;
+    }
+    
+    .stat-card.danger .stat-number {
+        color: #dc3545;
+    }
+    
+    .stat-label {
+        color: #666;
+        font-weight: 500;
+        margin-top: 0.5rem;
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<!-- Dashboard Header -->
+<div class="dashboard-header">
+    <h1><i class="bi bi-speedometer2"></i> Staff Dashboard</h1>
+    <p>Welcome back! Here's an overview of your dealership</p>
+</div>
+<div class="container-lg">
+    <!-- Stats Grid -->
+    <div class="row mb-4">
+        <div class="col-md-3">
+            <div class="stat-card">
+                <div class="stat-number">{{ total_cars }}</div>
+                <div class="stat-label"><i class="bi bi-car-front"></i> Total Vehicles</div>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="stat-card success">
+                <div class="stat-number">{{ available_cars }}</div>
+                <div class="stat-label"><i class="bi bi-check-circle"></i> Available</div>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="stat-card">
+                <div class="stat-number">{{ sold_cars }}</div>
+                <div class="stat-label"><i class="bi bi-bag-check"></i> Sold</div>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="stat-card">
+                <div class="stat-number">${{ total_sales_revenue|floatformat:0 }}</div>
+                <div class="stat-label"><i class="bi bi-cash-coin"></i> Revenue</div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Customer & Inquiry Stats -->
+    <div class="row mb-4">
+        <div class="col-md-3">
+            <div class="stat-card">
+                <div class="stat-number">{{ total_customers }}</div>
+                <div class="stat-label"><i class="bi bi-people"></i> Customers</div>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="stat-card warning">
+                <div class="stat-number">{{ pending_inquiries }}</div>
+                <div class="stat-label"><i class="bi bi-chat-dots"></i> New Inquiries</div>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="stat-card danger">
+                <div class="stat-number">{{ pending_orders }}</div>
+                <div class="stat-label"><i class="bi bi-cart"></i> Pending Orders</div>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="card">
+                <div class="card-body text-center">
+                    <p class="mb-0"><small class="text-muted">Quick Actions</small></p>
+                    <div class="d-grid gap-2 mt-2">
+                        <a href="{% url 'cars:inquiries_list' %}" class="btn btn-sm btn-outline-primary">
+                            View Inquiries
+                        </a>
+                        <a href="{% url 'cars:orders_list' %}" class="btn btn-sm btn-outline-danger">
+                            View Orders
+                        </a>
+                        <a href="{% url 'cars:appointments_list' %}" class="btn btn-sm btn-outline-secondary">
+                            Test Drives
+                            {% if pending_appointments %}
+                                <span class="badge bg-warning text-dark">{{ pending_appointments }}</span>
+                            {% endif %}
+                        </a>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Recent Activity -->
+    <div class="row">
+        <!-- Recent Inquiries -->
+        <div class="col-lg-4 mb-4">
+            <div class="card">
+                <div class="card-header bg-light">
+                    <h5 class="mb-0"><i class="bi bi-chat-dots"></i> Recent Inquiries</h5>
+                </div>
+                <div class="card-body p-0">
+                    {% if recent_inquiries %}
+                        <div class="list-group list-group-flush">
+                            {% for inquiry in recent_inquiries %}
+                                <div class="list-group-item">
+                                    <div class="d-flex justify-content-between align-items-start">
+                                        <div>
+                                            <h6 class="mb-1">{{ inquiry.car.year }} {{ inquiry.car.make }} {{ inquiry.car.model }}</h6>
+                                            <p class="mb-1"><small>From: <strong>{{ inquiry.customer_name }}</strong></small></p>
+                                            <p class="mb-0"><small class="text-muted">{{ inquiry.created_at|date:"M d, Y H:i" }}</small></p>
+                                        </div>
+                                        <span class="badge bg-info">{{ inquiry.status|title }}</span>
+                                    </div>
+                                </div>
+                            {% endfor %}
+                        </div>
+                    {% else %}
+                        <div class="p-3 text-center text-muted">
+                            <small>No recent inquiries</small>
+                        </div>
+                    {% endif %}
+                </div>
+                <div class="card-footer">
+                    <a href="{% url 'cars:inquiries_list' %}" class="btn btn-sm btn-primary">
+                        View All Inquiries
+                    </a>
+                </div>
+            </div>
+        </div>
+
+        <!-- Recent Orders -->
+        <div class="col-lg-4 mb-4">
+            <div class="card">
+                <div class="card-header bg-light">
+                    <h5 class="mb-0"><i class="bi bi-cart-check"></i> Recent Orders</h5>
+                </div>
+                <div class="card-body p-0">
+                    {% if recent_orders %}
+                        <div class="list-group list-group-flush">
+                            {% for order in recent_orders %}
+                                <div class="list-group-item">
+                                    <div class="d-flex justify-content-between align-items-start">
+                                        <div>
+                                            <h6 class="mb-1">{{ order.car.year }} {{ order.car.make }} {{ order.car.model }}</h6>
+                                            <p class="mb-1"><small>From: <strong>{{ order.customer_name }}</strong></small></p>
+                                            <p class="mb-0"><small class="text-muted">${{ order.price }} • {{ order.order_date|date:"M d, Y" }}</small></p>
+                                        </div>
+                                        <span class="badge bg-warning">{{ order.status|title }}</span>
+                                    </div>
+                                </div>
+                            {% endfor %}
+                        </div>
+                    {% else %}
+                        <div class="p-3 text-center text-muted">
+                            <small>No recent orders</small>
+                        </div>
+                    {% endif %}
+                </div>
+                <div class="card-footer">
+                    <a href="{% url 'cars:orders_list' %}" class="btn btn-sm btn-danger">
+                        View All Orders
+                    </a>
+                </div>
+            </div>
+        </div>
+
+        <!-- Recent Test Drives -->
+        <div class="col-lg-4 mb-4">
+            <div class="card">
+                <div class="card-header bg-light">
+                    <h5 class="mb-0"><i class="bi bi-calendar-check"></i> Upcoming Test Drives</h5>
+                </div>
+                <div class="card-body p-0">
+                    {% if recent_appointments %}
+                        <div class="list-group list-group-flush">
+                            {% for appointment in recent_appointments %}
+                                <div class="list-group-item">
+                                    <div class="d-flex justify-content-between align-items-start">
+                                        <div>
+                                            <h6 class="mb-1">{{ appointment.car.year }} {{ appointment.car.make }} {{ appointment.car.model }}</h6>
+                                            <p class="mb-1"><small>From: <strong>{{ appointment.customer_name }}</strong></small></p>
+                                            <p class="mb-0"><small class="text-muted">{{ appointment.preferred_date|date:"M d, Y" }} at {{ appointment.preferred_time|time:"H:i" }}</small></p>
+                                        </div>
+                                        <span class="badge bg-secondary">{{ appointment.status|title }}</span>
+                                    </div>
+                                </div>
+                            {% endfor %}
+                        </div>
+                    {% else %}
+                        <div class="p-3 text-center text-muted">
+                            <small>No upcoming test drives</small>
+                        </div>
+                    {% endif %}
+                </div>
+                <div class="card-footer">
+                    <a href="{% url 'cars:appointments_list' %}" class="btn btn-sm btn-secondary">
+                        View All Test Drives
+                    </a>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Additional Management Options -->
+    <div class="row">
+        <div class="col-md-3 mb-3">
+            <div class="card text-center">
+                <div class="card-body">
+                    <i class="bi bi-person-check" style="font-size: 2rem; color: var(--primary-color);"></i>
+                    <h5 class="card-title mt-3">Manage Customers</h5>
+                    <p class="card-text small">View and manage customer information</p>
+                    <a href="{% url 'cars:customer_list' %}" class="btn btn-outline-primary btn-sm">
+                        Go to Customers
+                    </a>
+                </div>
+            </div>
+        </div>
+
+        <div class="col-md-3 mb-3">
+            <div class="card text-center">
+                <div class="card-body">
+                    <i class="bi bi-chat-left-dots" style="font-size: 2rem; color: #f39c12;"></i>
+                    <h5 class="card-title mt-3">Track Inquiries</h5>
+                    <p class="card-text small">Monitor and respond to customer inquiries</p>
+                    <a href="{% url 'cars:inquiries_list' %}" class="btn btn-outline-warning btn-sm">
+                        Go to Inquiries
+                    </a>
+                </div>
+            </div>
+        </div>
+
+        <div class="col-md-3 mb-3">
+            <div class="card text-center">
+                <div class="card-body">
+                    <i class="bi bi-bag-plus" style="font-size: 2rem; color: #dc3545;"></i>
+                    <h5 class="card-title mt-3">Manage Orders</h5>
+                    <p class="card-text small">View and process customer orders</p>
+                    <a href="{% url 'cars:orders_list' %}" class="btn btn-outline-danger btn-sm">
+                        Go to Orders
+                    </a>
+                </div>
+            </div>
+        </div>
+
+        <div class="col-md-3 mb-3">
+            <div class="card text-center">
+                <div class="card-body">
+                    <i class="bi bi-person-plus" style="font-size: 2rem; color: #17a2b8;"></i>
+                    <h5 class="card-title mt-3">Manage Staff</h5>
+                    <p class="card-text small">Create staff accounts and send login credentials</p>
+                    <a href="{% url 'accounts:staff_create' %}" class="btn btn-outline-success btn-sm">
+                        Create Staff Account
+                    </a>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

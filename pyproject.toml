@@ -1,0 +1,11 @@
+[project]
+name = "project"
+version = "0.1.0"
+description = "Car Dealership Management System - Django web app with a public shop front and staff panel"
+readme = "README.md"
+requires-python = ">=3.14"
+dependencies = [
+    "django>=6.1",
+    "pillow",
+    "reportlab",
+]

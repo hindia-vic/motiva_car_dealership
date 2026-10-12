@@ -1,0 +1,278 @@
+{% extends "base.html" %}
+
+{% block title %}{{ car.year }} {{ car.make }} {{ car.model }} - Car Dealership{% endblock %}
+
+{% block content %}
+<div class="container-lg py-4">
+    <!-- Breadcrumb -->
+    <nav aria-label="breadcrumb">
+        <ol class="breadcrumb">
+            <li class="breadcrumb-item"><a href="{% url 'cars:dashboard' %}">Dashboard</a></li>
+            <li class="breadcrumb-item"><a href="{% url 'cars:car_list' %}">Cars</a></li>
+            <li class="breadcrumb-item active">{{ car.year }} {{ car.make }} {{ car.model }}</li>
+        </ol>
+    </nav>
+
+    <!-- Header Section -->
+    <div class="row mb-4">
+        <div class="col-md-8">
+            <h1>{{ car.year }} {{ car.make }} {{ car.model }}</h1>
+            <p class="text-muted mb-2">
+                <i class="bi bi-key"></i> VIN: <strong>{{ car.vin }}</strong>
+            </p>
+        </div>
+        <div class="col-md-4 text-end">
+            <span class="badge badge-status badge-{{ car.status }} me-2" style="font-size: 1rem;">
+                {{ car.status|title }}
+            </span>
+            <span class="badge bg-info text-white" style="font-size: 1rem;">
+                {{ car.condition|title }}
+            </span>
+        </div>
+    </div>
+
+    <!-- Main Content Row -->
+    <div class="row">
+        <!-- Left Column - Details -->
+        <div class="col-md-8">
+            <!-- Pricing Card -->
+            <div class="card mb-4">
+                <div class="card-header bg-light">
+                    <h5 class="card-title mb-0"><i class="bi bi-tag"></i> Pricing</h5>
+                </div>
+                <div class="card-body">
+                    <div class="row">
+                        <div class="col-md-6">
+                            <p class="text-muted">Purchase Price</p>
+                            <p class="price-tag">${{ car.purchase_price }}</p>
+                        </div>
+                        <div class="col-md-6">
+                            <p class="text-muted">Asking Price</p>
+                            <p class="price-tag">${{ car.asking_price }}</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Basic Information Card -->
+            <div class="card mb-4">
+                <div class="card-header bg-light">
+                    <h5 class="card-title mb-0"><i class="bi bi-info-circle"></i> Basic Information</h5>
+                </div>
+                <div class="card-body">
+                    <div class="vehicle-specs">
+                        <div class="spec-item">
+                            <div class="spec-label">Make</div>
+                            <div class="spec-value">{{ car.make }}</div>
+                        </div>
+                        <div class="spec-item">
+                            <div class="spec-label">Model</div>
+                            <div class="spec-value">{{ car.model }}</div>
+                        </div>
+                        <div class="spec-item">
+                            <div class="spec-label">Year</div>
+                            <div class="spec-value">{{ car.year }}</div>
+                        </div>
+                        <div class="spec-item">
+                            <div class="spec-label">Color</div>
+                            <div class="spec-value">{{ car.color }}</div>
+                        </div>
+                        <div class="spec-item">
+                            <div class="spec-label">Body Type</div>
+                            <div class="spec-value">{{ car.body_type|title }}</div>
+                        </div>
+                        <div class="spec-item">
+                            <div class="spec-label">Condition</div>
+                            <div class="spec-value">{{ car.condition|title }}</div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Performance & Technical Card -->
+            <div class="card mb-4">
+                <div class="card-header bg-light">
+                    <h5 class="card-title mb-0"><i class="bi bi-gear"></i> Performance & Technical</h5>
+                </div>
+                <div class="card-body">
+                    <div class="vehicle-specs">
+                        <div class="spec-item">
+                            <div class="spec-label">Transmission</div>
+                            <div class="spec-value">{{ car.transmission|title }}</div>
+                        </div>
+                        <div class="spec-item">
+                            <div class="spec-label">Fuel Type</div>
+                            <div class="spec-value">{{ car.fuel_type|title }}</div>
+                        </div>
+                        <div class="spec-item">
+                            <div class="spec-label">Engine Size</div>
+                            <div class="spec-value">{{ car.engine_size }}</div>
+                        </div>
+                        <div class="spec-item">
+                            <div class="spec-label">Horsepower</div>
+                            <div class="spec-value">{{ car.horsepower|default:"N/A" }}</div>
+                        </div>
+                        <div class="spec-item">
+                            <div class="spec-label">Mileage</div>
+                            <div class="spec-value">{{ car.mileage|floatformat:0 }} miles</div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Features Card -->
+            <div class="card mb-4">
+                <div class="card-header bg-light">
+                    <h5 class="card-title mb-0"><i class="bi bi-star"></i> Features</h5>
+                </div>
+                <div class="card-body">
+                    <div class="row">
+                        <div class="col-md-6">
+                            <ul class="list-unstyled">
+                                <li class="mb-2">
+                                    <i class="bi {% if car.air_conditioning %}bi-check-circle-fill text-success{% else %}bi-x-circle-fill text-danger{% endif %}"></i>
+                                    Air Conditioning
+                                </li>
+                                <li class="mb-2">
+                                    <i class="bi {% if car.power_steering %}bi-check-circle-fill text-success{% else %}bi-x-circle-fill text-danger{% endif %}"></i>
+                                    Power Steering
+                                </li>
+                                <li class="mb-2">
+                                    <i class="bi {% if car.power_windows %}bi-check-circle-fill text-success{% else %}bi-x-circle-fill text-danger{% endif %}"></i>
+                                    Power Windows
+                                </li>
+                                <li class="mb-2">
+                                    <i class="bi {% if car.power_locks %}bi-check-circle-fill text-success{% else %}bi-x-circle-fill text-danger{% endif %}"></i>
+                                    Power Locks
+                                </li>
+                                <li class="mb-2">
+                                    <i class="bi {% if car.cruise_control %}bi-check-circle-fill text-success{% else %}bi-x-circle-fill text-danger{% endif %}"></i>
+                                    Cruise Control
+                                </li>
+                                <li class="mb-2">
+                                    <i class="bi {% if car.backup_camera %}bi-check-circle-fill text-success{% else %}bi-x-circle-fill text-danger{% endif %}"></i>
+                                    Backup Camera
+                                </li>
+                            </ul>
+                        </div>
+                        <div class="col-md-6">
+                            <ul class="list-unstyled">
+                                <li class="mb-2">
+                                    <i class="bi {% if car.bluetooth %}bi-check-circle-fill text-success{% else %}bi-x-circle-fill text-danger{% endif %}"></i>
+                                    Bluetooth
+                                </li>
+                                <li class="mb-2">
+                                    <i class="bi {% if car.navigation_system %}bi-check-circle-fill text-success{% else %}bi-x-circle-fill text-danger{% endif %}"></i>
+                                    Navigation System
+                                </li>
+                                <li class="mb-2">
+                                    <i class="bi {% if car.leather_seats %}bi-check-circle-fill text-success{% else %}bi-x-circle-fill text-danger{% endif %}"></i>
+                                    Leather Seats
+                                </li>
+                                <li class="mb-2">
+                                    <i class="bi {% if car.sunroof %}bi-check-circle-fill text-success{% else %}bi-x-circle-fill text-danger{% endif %}"></i>
+                                    Sunroof
+                                </li>
+                                <li class="mb-2">
+                                    <i class="bi {% if car.all_wheel_drive %}bi-check-circle-fill text-success{% else %}bi-x-circle-fill text-danger{% endif %}"></i>
+                                    All-Wheel Drive
+                                </li>
+                            </ul>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Description Card -->
+            {% if car.description %}
+                <div class="card mb-4">
+                    <div class="card-header bg-light">
+                        <h5 class="card-title mb-0"><i class="bi bi-chat-left-text"></i> Description</h5>
+                    </div>
+                    <div class="card-body">
+                        <p>{{ car.description }}</p>
+                    </div>
+                </div>
+            {% endif %}
+
+            <!-- Service History -->
+            {% if service_records %}
+                <div class="card mb-4">
+                    <div class="card-header bg-light">
+                        <h5 class="card-title mb-0"><i class="bi bi-tools"></i> Service History</h5>
+                    </div>
+                    <div class="table-responsive">
+                        <table class="table table-hover mb-0">
+                            <thead class="table-light">
+                                <tr>
+                                    <th>Date</th>
+                                    <th>Service Type</th>
+                                    <th>Odometer</th>
+                                    <th>Cost</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for record in service_records %}
+                                    <tr>
+                                        <td>{{ record.service_date|date:"M d, Y" }}</td>
+                                        <td>{{ record.service_type|title }}</td>
+                                        <td>{{ record.odometer_reading|floatformat:0 }} miles</td>
+                                        <td>${{ record.cost }}</td>
+                                    </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            {% endif %}
+        </div>
+
+        <!-- Right Column - Sidebar -->
+        <div class="col-md-4">
+            <!-- Status Card -->
+            <div class="card mb-4 sticky-top" style="top: 20px;">
+                <div class="card-header bg-light">
+                    <h5 class="card-title mb-0"><i class="bi bi-bookmark"></i> Details</h5>
+                </div>
+                <div class="card-body">
+                    <div class="mb-3">
+                        <p class="text-muted mb-1">Status</p>
+                        <span class="badge badge-status badge-{{ car.status }}" style="font-size: 0.95rem;">
+                            {{ car.status|title }}
+                        </span>
+                    </div>
+                    
+                    <div class="mb-3">
+                        <p class="text-muted mb-1">Added to Inventory</p>
+                        <p class="mb-0">{{ car.date_added|date:"M d, Y" }}</p>
+                    </div>
+                    
+                    <div class="mb-3">
+                        <p class="text-muted mb-1">Last Updated</p>
+                        <p class="mb-0">{{ car.last_updated|date:"M d, Y" }}</p>
+                    </div>
+
+                    {% if car.is_available %}
+                        <div class="alert alert-success" role="alert">
+                            <i class="bi bi-check-circle"></i> This vehicle is available for purchase
+                        </div>
+                    {% else %}
+                        <div class="alert alert-warning" role="alert">
+                            <i class="bi bi-exclamation-circle"></i> This vehicle is not currently available
+                        </div>
+                    {% endif %}
+
+                    <div class="d-grid gap-2">
+                        <a href="{% url 'admin:cars_car_change' car.id %}" class="btn btn-outline-primary">
+                            <i class="bi bi-pencil"></i> Edit in Admin
+                        </a>
+                        <a href="{% url 'cars:car_list' %}" class="btn btn-outline-secondary">
+                            <i class="bi bi-arrow-left"></i> Back to Cars
+                        </a>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

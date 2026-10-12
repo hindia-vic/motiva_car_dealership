@@ -1,0 +1,20 @@
+# Python-generated files
+__pycache__/
+*.py[oc]
+build/
+dist/
+wheels/
+*.egg-info
+
+# Virtual environments
+.venv
+virtual/
+
+# Uploaded media files
+media/
+
+# Local environment / secrets
+.env
+
+# SQLite database (regenerable via populate_sample_data)
+db.sqlite3

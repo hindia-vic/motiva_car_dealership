@@ -1,0 +1,101 @@
+{% extends "base.html" %}
+
+{% block title %}Financing - Car Dealership{% endblock %}
+
+{% block meta %}
+<meta name="description" content="Explore flexible financing options for your next vehicle — loans, leasing, and more. Get pre-qualified today.">
+<link rel="canonical" href="{{ request.scheme }}://{{ request.get_host }}{% url 'cars:financing' %}">
+<meta property="og:type" content="website">
+<meta property="og:site_name" content="Car Dealership">
+<meta property="og:url" content="{{ request.scheme }}://{{ request.get_host }}{% url 'cars:financing' %}">
+<meta property="og:title" content="Financing - Car Dealership">
+<meta property="og:description" content="Flexible financing options for your next vehicle.">
+{% endblock %}
+
+{% block content %}
+<div class="page-header">
+    <div class="container-lg">
+        <h1><i class="bi bi-credit-card"></i> Financing Options</h1>
+        <p>Flexible plans to get you behind the wheel</p>
+    </div>
+</div>
+
+<div class="container-lg py-4">
+    <div class="row g-4">
+        <div class="col-md-6 mb-4">
+            <div class="card h-100">
+                <div class="card-body">
+                    <i class="bi bi-bank" style="font-size: 2rem; color: var(--primary-color);"></i>
+                    <h5 class="card-title mt-3">Auto Loans</h5>
+                    <p class="card-text">
+                        Competitive interest rates with flexible loan terms from 24 to 72 months.
+                        Calculated monthly payments fit your budget — apply online and get an answer fast.
+                    </p>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-6 mb-4">
+            <div class="card h-100">
+                <div class="card-body">
+                    <i class="bi bi-calendar3" style="font-size: 2rem; color: var(--secondary-color);"></i>
+                    <h5 class="card-title mt-3">Leasing</h5>
+                    <p class="card-text">
+                        Drive a newer vehicle with lower monthly payments and the option to
+                        purchase at the end of the lease term.
+                    </p>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-6 mb-4">
+            <div class="card h-100">
+                <div class="card-body">
+                    <i class="bi bi-arrow-repeat" style="font-size: 2rem; color: #28a745;"></i>
+                    <h5 class="card-title mt-3">Trade-Ins</h5>
+                    <p class="card-text">
+                        Bring your current vehicle for a free appraisal. Its value can be applied
+                        toward your down payment or the total purchase price.
+                    </p>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-6 mb-4">
+            <div class="card h-100">
+                <div class="card-body">
+                    <i class="bi bi-shield-check" style="font-size: 2rem; color: #dc3545;"></i>
+                    <h5 class="card-title mt-3">First-Time Buyers</h5>
+                    <p class="card-text">
+                        No credit history? No problem. Our finance team works with a range of
+                        lenders to find a plan that works for first-time buyers.
+                    </p>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="card border-0 shadow-sm mb-4">
+        <div class="card-body p-4">
+            <h4><i class="bi bi-calculator"></i> Estimate Your Monthly Payment</h4>
+            <p class="text-muted mb-3">
+                Use the payment calculator on any vehicle's detail page, or start with a
+                quick estimate on one of our featured cars.
+            </p>
+            <a href="{% url 'cars:browse_cars' %}" class="btn btn-primary">
+                <i class="bi bi-search"></i> Browse Vehicles
+            </a>
+        </div>
+    </div>
+
+    <div class="card border-0 shadow-sm">
+        <div class="card-body p-4">
+            <h4><i class="bi bi-envelope"></i> Ready to Get Started?</h4>
+            <p class="text-muted mb-3">
+                Questions about qualifying? Reach out and one of our finance specialists
+                will help you through the process.
+            </p>
+            <a href="{% url 'cars:contact' %}" class="btn btn-secondary">
+                <i class="bi bi-chat-dots"></i> Contact the Finance Team
+            </a>
+        </div>
+    </div>
+</div>
+{% endblock %}

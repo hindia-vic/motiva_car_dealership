@@ -1,0 +1,91 @@
+{% extends "base.html" %}
+
+{% block title %}Staff Accounts - Car Dealership{% endblock %}
+
+{% block content %}
+<div class="page-header">
+    <div class="container-lg">
+        <h1><i class="bi bi-people-fill"></i> Staff Accounts</h1>
+        <p>Manage the people who can use the staff area</p>
+    </div>
+</div>
+
+<div class="container-lg py-4">
+    <div class="d-flex justify-content-end mb-3">
+        <a href="{% url 'accounts:staff_create' %}" class="btn btn-primary">
+            <i class="bi bi-person-plus-fill"></i> Create Staff Account
+        </a>
+    </div>
+
+    <div class="card shadow-sm">
+        <div class="table-responsive">
+            <table class="table table-hover align-middle mb-0">
+                <thead class="table-light">
+                    <tr>
+                        <th>Username</th>
+                        <th>Name</th>
+                        <th>Email</th>
+                        <th>Status</th>
+                        <th>Password</th>
+                        <th>Actions</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for staff in staff_users %}
+                        <tr>
+                            <td>{{ staff.username }}</td>
+                            <td>{{ staff.first_name }} {{ staff.last_name }}</td>
+                            <td>{{ staff.email }}</td>
+                            <td>
+                                {% if staff.is_active %}
+                                    <span class="badge bg-success">Active</span>
+                                {% else %}
+                                    <span class="badge bg-secondary">Inactive</span>
+                                {% endif %}
+                                {% if staff.is_superuser %}
+                                    <span class="badge bg-danger">Superuser</span>
+                                {% else %}
+                                    <span class="badge bg-primary">Staff</span>
+                                {% endif %}
+                            </td>
+                            <td>
+                                {% if staff.profile.must_change_password %}
+                                    <span class="badge bg-warning text-dark">Must change on login</span>
+                                {% else %}
+                                    <span class="text-success"><i class="bi bi-check-circle"></i> Up to date</span>
+                                {% endif %}
+                            </td>
+                            <td>
+                                {% if staff.pk != request.user.pk %}
+                                    {% if staff.is_active %}
+                                        <form method="post" action="{% url 'accounts:toggle_staff_active' staff.pk %}"
+                                              onsubmit="return confirm('Deactivate {{ staff.username }}? They will no longer be able to log in.');">
+                                            {% csrf_token %}
+                                            <button type="submit" class="btn btn-sm btn-outline-danger">
+                                                <i class="bi bi-person-slash"></i> Deactivate
+                                            </button>
+                                        </form>
+                                    {% else %}
+                                        <form method="post" action="{% url 'accounts:toggle_staff_active' staff.pk %}">
+                                            {% csrf_token %}
+                                            <button type="submit" class="btn btn-sm btn-outline-success">
+                                                <i class="bi bi-person-check"></i> Activate
+                                            </button>
+                                        </form>
+                                    {% endif %}
+                                {% else %}
+                                    <span class="text-muted small"><i class="bi bi-shield-lock"></i> You</span>
+                                {% endif %}
+                            </td>
+                        </tr>
+                    {% empty %}
+                        <tr>
+                            <td colspan="6" class="text-center text-muted py-4">No staff accounts yet.</td>
+                        </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
+{% endblock %}

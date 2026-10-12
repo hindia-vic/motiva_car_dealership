@@ -1,0 +1,102 @@
+{% extends "base.html" %}
+
+{% block title %}About Us - Car Dealership{% endblock %}
+
+{% block content %}
+<div class="page-header">
+    <div class="container-lg">
+        <h1><i class="bi bi-building"></i> About Our Dealership</h1>
+        <p>Vision, mission, and the values that guide us</p>
+    </div>
+</div>
+
+<div class="container-lg py-4">
+    <!-- Vision & Mission -->
+    <div class="row g-4 mb-5">
+        <div class="col-lg-6">
+            <div class="card h-100">
+                <div class="card-body p-4">
+                    <div class="d-flex align-items-center mb-3">
+                        <span class="badge bg-primary me-2" style="font-size: 1.1rem;">
+                            <i class="bi bi-eye"></i>
+                        </span>
+                        <h3 class="mb-0 text-primary">Our Vision</h3>
+                    </div>
+                    <p class="card-text lead mb-0">
+                        To be the region's most trusted dealership &mdash; known for honest pricing,
+                        quality vehicles, and a buying experience customers recommend to friends and family.
+                    </p>
+                </div>
+            </div>
+        </div>
+        <div class="col-lg-6">
+            <div class="card h-100">
+                <div class="card-body p-4">
+                    <div class="d-flex align-items-center mb-3">
+                        <span class="badge bg-secondary me-2" style="font-size: 1.1rem;">
+                            <i class="bi bi-bullseye"></i>
+                        </span>
+                        <h3 class="mb-0 text-primary">Our Mission</h3>
+                    </div>
+                    <p class="card-text lead mb-0">
+                        To help every customer find the right vehicle for their life and budget through
+                        transparent pricing, thorough inspections, flexible financing, and support that
+                        continues long after the sale.
+                    </p>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Values -->
+    <div class="row g-4 mb-5">
+        <div class="col-md-4">
+            <div class="card h-100 text-center">
+                <div class="card-body">
+                    <i class="bi bi-shield-check" style="font-size: 2rem; color: #28a745;"></i>
+                    <h5 class="card-title mt-3">Quality You Can Trust</h5>
+                    <p class="card-text small text-muted">
+                        Every vehicle is inspected and certified before it reaches our lot.
+                    </p>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-4">
+            <div class="card h-100 text-center">
+                <div class="card-body">
+                    <i class="bi bi-cash-coin" style="font-size: 2rem; color: #f39c12;"></i>
+                    <h5 class="card-title mt-3">Honest Pricing</h5>
+                    <p class="card-text small text-muted">
+                        Clear, competitive pricing with no surprises &mdash; from quote to keys.
+                    </p>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-4">
+            <div class="card h-100 text-center">
+                <div class="card-body">
+                    <i class="bi bi-headset" style="font-size: 2rem; color: #1a5f7a;"></i>
+                    <h5 class="card-title mt-3">Support For Life</h5>
+                    <p class="card-text small text-muted">
+                        Flexible financing and a dedicated team ready to help long after the sale.
+                    </p>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- CTA -->
+    <div class="card bg-light mb-5">
+        <div class="card-body text-center py-5">
+            <h3>Ready to Find Your Perfect Car?</h3>
+            <p class="text-muted mb-3">Browse our inventory or stop by the dealership today.</p>
+            <a href="{% url 'cars:browse_cars' %}" class="btn btn-primary btn-lg me-2">
+                <i class="bi bi-search"></i> Browse Inventory
+            </a>
+            <a href="mailto:sales@dealership.com" class="btn btn-secondary btn-lg">
+                <i class="bi bi-envelope"></i> Contact Us
+            </a>
+        </div>
+    </div>
+</div>
+{% endblock %}

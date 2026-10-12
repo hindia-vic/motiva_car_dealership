@@ -1,0 +1,80 @@
+{% extends "base.html" %}
+
+{% block title %}News &amp; Blog - Car Dealership{% endblock %}
+
+{% block meta %}
+<meta name="description" content="News, tips, and updates from our dealership — buying guides, financing advice, and new arrivals.">
+<link rel="canonical" href="{{ request.scheme }}://{{ request.get_host }}{% url 'cars:blog_list' %}">
+<meta property="og:type" content="website">
+<meta property="og:site_name" content="Car Dealership">
+<meta property="og:url" content="{{ request.scheme }}://{{ request.get_host }}{% url 'cars:blog_list' %}">
+<meta property="og:title" content="News &amp; Blog - Car Dealership">
+<meta property="og:description" content="News, tips, and updates from our dealership.">
+{% endblock %}
+
+{% block content %}
+<div class="page-header">
+    <div class="container-lg">
+        <h1><i class="bi bi-newspaper"></i> News &amp; Blog</h1>
+        <p>Buying tips, dealership updates, and new arrivals</p>
+    </div>
+</div>
+
+<div class="container-lg py-4">
+    {% if posts %}
+        <div class="row g-4">
+            {% for post in posts %}
+                <div class="col-md-6 col-lg-4">
+                    <div class="card h-100">
+                        {% if post.cover_image %}
+                            <img src="{{ post.cover_image.url }}" class="card-img-top"
+                                 style="height: 180px; object-fit: cover;"
+                                 alt="{{ post.title }}">
+                        {% endif %}
+                        <div class="card-body d-flex flex-column">
+                            <p class="text-muted small mb-1">
+                                <i class="bi bi-calendar"></i> {{ post.published_at|date:"M d, Y" }}
+                            </p>
+                            <h5 class="card-title">
+                                <a href="{% url 'cars:blog_detail' post.slug %}" class="text-decoration-none">{{ post.title }}</a>
+                            </h5>
+                            <p class="card-text flex-grow-1">
+                                {{ post.excerpt|default:post.body|truncatewords:28 }}
+                            </p>
+                            <a href="{% url 'cars:blog_detail' post.slug %}" class="btn btn-primary btn-sm align-self-start">
+                                <i class="bi bi-book"></i> Read More
+                            </a>
+                        </div>
+                    </div>
+                </div>
+            {% endfor %}
+        </div>
+
+        {% if is_paginated %}
+            <nav aria-label="Page navigation" class="my-4">
+                <ul class="pagination justify-content-center">
+                    {% if page_obj.has_previous %}
+                        <li class="page-item">
+                            <a class="page-link" href="?page={{ page_obj.previous_page_number }}">Previous</a>
+                        </li>
+                    {% endif %}
+                    {% for num in page_obj.paginator.page_range %}
+                        <li class="page-item {% if page_obj.number == num %}active{% endif %}">
+                            <a class="page-link" href="?page={{ num }}">{{ num }}</a>
+                        </li>
+                    {% endfor %}
+                    {% if page_obj.has_next %}
+                        <li class="page-item">
+                            <a class="page-link" href="?page={{ page_obj.next_page_number }}">Next</a>
+                        </li>
+                    {% endif %}
+                </ul>
+            </nav>
+        {% endif %}
+    {% else %}
+        <div class="alert alert-info" role="alert">
+            <i class="bi bi-info-circle"></i> No articles published yet — check back soon!
+        </div>
+    {% endif %}
+</div>
+{% endblock %}

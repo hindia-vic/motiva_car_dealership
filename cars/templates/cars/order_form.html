@@ -1,0 +1,169 @@
+{% extends "base.html" %}
+
+{% block title %}Place Order for {{ car.year }} {{ car.make }} {{ car.model }} - Car Dealership{% endblock %}
+
+{% block content %}
+<div class="container-lg py-4">
+    <a href="{% url 'cars:car_detail' car.id %}" class="btn btn-outline-secondary mb-3">
+        <i class="bi bi-arrow-left"></i> Back to Car Details
+    </a>
+
+    <div class="row justify-content-center">
+        <div class="col-lg-7">
+            <div class="card">
+                <div class="card-body p-4">
+                    <h2 class="mb-2"><i class="bi bi-cart-check"></i> Place Your Order</h2>
+                    <p class="text-muted mb-4">Complete the form below to place an order for this vehicle</p>
+
+                    <!-- Car Info Card -->
+                    <div class="alert alert-info mb-4">
+                        <strong>{{ car.year }} {{ car.make }} {{ car.model }}</strong><br>
+                        Listed Price: <span class="badge bg-primary">${{ car.asking_price }}</span>
+                    </div>
+
+                    <form method="post">
+                        {% csrf_token %}
+
+                        {% if form.non_field_errors %}
+                            <div class="alert alert-danger">
+                                {{ form.non_field_errors }}
+                            </div>
+                        {% endif %}
+
+                        <!-- Contact Information -->
+                        <h5 class="mb-3"><i class="bi bi-person"></i> Your Information</h5>
+
+                        <div class="mb-3">
+                            <label for="{{ form.customer_name.id_for_label }}" class="form-label">Full Name *</label>
+                            {{ form.customer_name }}
+                            {% if form.customer_name.errors %}
+                                <div class="text-danger small mt-1">
+                                    {% for error in form.customer_name.errors %}
+                                        {{ error }}<br>
+                                    {% endfor %}
+                                </div>
+                            {% endif %}
+                        </div>
+
+                        <div class="mb-3">
+                            <label for="{{ form.customer_email.id_for_label }}" class="form-label">Email Address *</label>
+                            {{ form.customer_email }}
+                            {% if form.customer_email.errors %}
+                                <div class="text-danger small mt-1">
+                                    {% for error in form.customer_email.errors %}
+                                        {{ error }}<br>
+                                    {% endfor %}
+                                </div>
+                            {% endif %}
+                        </div>
+
+                        <div class="mb-3">
+                            <label for="{{ form.customer_phone.id_for_label }}" class="form-label">Phone Number *</label>
+                            {{ form.customer_phone }}
+                            {% if form.customer_phone.errors %}
+                                <div class="text-danger small mt-1">
+                                    {% for error in form.customer_phone.errors %}
+                                        {{ error }}<br>
+                                    {% endfor %}
+                                </div>
+                            {% endif %}
+                        </div>
+
+                        <div class="mb-3">
+                            <label for="{{ form.customer_address.id_for_label }}" class="form-label">Delivery Address *</label>
+                            {{ form.customer_address }}
+                            {% if form.customer_address.errors %}
+                                <div class="text-danger small mt-1">
+                                    {% for error in form.customer_address.errors %}
+                                        {{ error }}<br>
+                                    {% endfor %}
+                                </div>
+                            {% endif %}
+                        </div>
+
+                        <!-- Pricing Information -->
+                        <hr class="my-4">
+                        <h5 class="mb-3"><i class="bi bi-credit-card"></i> Pricing & Payment</h5>
+
+                        <div class="row">
+                            <div class="col-md-6 mb-3">
+                                <label for="{{ form.price.id_for_label }}" class="form-label">Purchase Price *</label>
+                                {{ form.price }}
+                                {% if form.price.errors %}
+                                    <div class="text-danger small mt-1">
+                                        {% for error in form.price.errors %}
+                                            {{ error }}<br>
+                                        {% endfor %}
+                                    </div>
+                                {% endif %}
+                            </div>
+
+                            <div class="col-md-6 mb-3">
+                                <label for="{{ form.trade_in_value.id_for_label }}" class="form-label">Trade-In Value</label>
+                                {{ form.trade_in_value }}
+                                {% if form.trade_in_value.errors %}
+                                    <div class="text-danger small mt-1">
+                                        {% for error in form.trade_in_value.errors %}
+                                            {{ error }}<br>
+                                        {% endfor %}
+                                    </div>
+                                {% endif %}
+                            </div>
+                        </div>
+
+                        <div class="row">
+                            <div class="col-md-6 mb-3">
+                                <label for="{{ form.down_payment.id_for_label }}" class="form-label">Down Payment</label>
+                                {{ form.down_payment }}
+                                {% if form.down_payment.errors %}
+                                    <div class="text-danger small mt-1">
+                                        {% for error in form.down_payment.errors %}
+                                            {{ error }}<br>
+                                        {% endfor %}
+                                    </div>
+                                {% endif %}
+                            </div>
+
+                            <div class="col-md-6 mb-3">
+                                <div class="form-check mt-4">
+                                    {{ form.financing_needed }}
+                                    <label class="form-check-label" for="{{ form.financing_needed.id_for_label }}">
+                                        I need financing for this purchase
+                                    </label>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Additional Notes -->
+                        <hr class="my-4">
+                        <h5 class="mb-3"><i class="bi bi-file-text"></i> Additional Information</h5>
+
+                        <div class="mb-3">
+                            <label for="{{ form.notes.id_for_label }}" class="form-label">Additional Notes or Special Requests</label>
+                            {{ form.notes }}
+                            {% if form.notes.errors %}
+                                <div class="text-danger small mt-1">
+                                    {% for error in form.notes.errors %}
+                                        {{ error }}<br>
+                                    {% endfor %}
+                                </div>
+                            {% endif %}
+                            <small class="form-text text-muted">Let us know about any special requests or conditions for your order</small>
+                        </div>
+
+                        <button type="submit" class="btn btn-success w-100 btn-lg">
+                            <i class="bi bi-check-circle"></i> Submit Order
+                        </button>
+                    </form>
+
+                    <hr class="my-4">
+
+                    <p class="text-muted text-center mb-0">
+                        <small>By submitting this order, you agree to our terms and conditions. Our team will contact you shortly to confirm the order details.</small>
+                    </p>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

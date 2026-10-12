@@ -1,0 +1,106 @@
+{% extends "base.html" %}
+
+{% block title %}Customer Reviews - Car Dealership{% endblock %}
+
+{% block content %}
+<div class="page-header">
+    <div class="container-lg">
+        <h1><i class="bi bi-star"></i> Customer Reviews</h1>
+        <p>See what our customers say &mdash; or share your own experience</p>
+    </div>
+</div>
+
+<div class="container-lg py-4">
+    <div class="row justify-content-center mb-5">
+        <div class="col-lg-7">
+            <div class="filter-panel">
+                <h5 class="mb-4"><i class="bi bi-pencil-square"></i> Write a Review</h5>
+
+                {% if user.is_authenticated %}
+                    <form method="post" novalidate>
+                        {% csrf_token %}
+
+                        {% if form.non_field_errors %}
+                            <div class="alert alert-danger">{{ form.non_field_errors }}</div>
+                        {% endif %}
+
+                        <div class="row">
+                            <div class="col-md-6 mb-3">
+                                <label for="{{ form.customer_name.id_for_label }}" class="form-label">Your Name *</label>
+                                {{ form.customer_name }}
+                                {% if form.customer_name.errors %}
+                                    <div class="text-danger small mt-1">{{ form.customer_name.errors }}</div>
+                                {% endif %}
+                            </div>
+                            <div class="col-md-6 mb-3">
+                                <label for="{{ form.vehicle.id_for_label }}" class="form-label">Vehicle Purchased</label>
+                                {{ form.vehicle }}
+                                {% if form.vehicle.errors %}
+                                    <div class="text-danger small mt-1">{{ form.vehicle.errors }}</div>
+                                {% endif %}
+                            </div>
+                        </div>
+
+                        <div class="mb-3">
+                            <label for="{{ form.rating.id_for_label }}" class="form-label">Rating *</label>
+                            {{ form.rating }}
+                            {% if form.rating.errors %}
+                                <div class="text-danger small mt-1">{{ form.rating.errors }}</div>
+                            {% endif %}
+                        </div>
+
+                        <div class="mb-3">
+                            <label for="{{ form.quote.id_for_label }}" class="form-label">{{ form.quote.label|default:"Your Review" }} *</label>
+                            {{ form.quote }}
+                            {% if form.quote.errors %}
+                                <div class="text-danger small mt-1">{{ form.quote.errors }}</div>
+                            {% endif %}
+                        </div>
+
+                        <button type="submit" class="btn btn-primary w-100">
+                            <i class="bi bi-send"></i> Submit Review
+                        </button>
+                        <small class="text-muted d-block mt-2">
+                            Reviews are checked by our team before they appear publicly.
+                        </small>
+                    </form>
+                {% else %}
+                    <p class="text-muted mb-3">
+                        Have you bought from us? We'd love to hear about your experience.
+                    </p>
+                    <a href="{% url 'accounts:login' %}" class="btn btn-primary">
+                        <i class="bi bi-box-arrow-in-right"></i> Sign In to Leave a Review
+                    </a>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+
+    <div class="featured-section">
+        <h2 class="mb-4"><i class="bi bi-chat-quote"></i> What Our Customers Say</h2>
+
+        <div class="featured-cars-grid">
+            {% for testimonial in testimonials %}
+                <div class="card h-100">
+                    <div class="card-body">
+                        <i class="bi bi-quote" style="font-size: 2rem; color: #f39c12;"></i>
+                        <div class="mb-2">
+                            {% for _ in ""|ljust:testimonial.rating %}
+                                <i class="bi bi-star-fill" style="color: #f39c12;"></i>
+                            {% endfor %}
+                        </div>
+                        <p class="card-text">
+                            "{{ testimonial.quote }}"
+                        </p>
+                        <p class="mb-0"><strong>{{ testimonial.customer_name }}</strong>
+                            {% if testimonial.vehicle %}<span class="text-muted">{{ testimonial.vehicle }}</span>{% endif %}
+                        </p>
+                    </div>
+                </div>
+            {% empty %}
+                <p class="text-muted">No reviews yet. Be the first to share your experience!</p>
+            {% endfor %}
+        </div>
+    </div>
+</div>
+{% endblock %}

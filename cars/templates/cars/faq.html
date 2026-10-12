@@ -1,0 +1,132 @@
+{% extends "base.html" %}
+
+{% block title %}Frequently Asked Questions - Car Dealership{% endblock %}
+
+{% block meta %}
+<meta name="description" content="Answers to common questions about buying, financing, test drives, trade-ins, and our dealership.">
+<link rel="canonical" href="{{ request.scheme }}://{{ request.get_host }}{% url 'cars:faq' %}">
+<meta property="og:type" content="website">
+<meta property="og:site_name" content="Car Dealership">
+<meta property="og:url" content="{{ request.scheme }}://{{ request.get_host }}{% url 'cars:faq' %}">
+<meta property="og:title" content="Frequently Asked Questions - Car Dealership">
+<meta property="og:description" content="Answers to common questions about buying and financing.">
+{% endblock %}
+
+{% block content %}
+<div class="page-header">
+    <div class="container-lg">
+        <h1><i class="bi bi-question-circle"></i> Frequently Asked Questions</h1>
+        <p>Quick answers to the questions we hear most</p>
+    </div>
+</div>
+
+<div class="container-lg py-4">
+    <div class="row justify-content-center">
+        <div class="col-lg-8">
+            <div class="accordion" id="faqAccordion">
+                <div class="accordion-item">
+                    <h2 class="accordion-header">
+                        <button class="accordion-button" type="button" data-bs-toggle="collapse" data-bs-target="#faq1">
+                            Do you offer financing?
+                        </button>
+                    </h2>
+                    <div id="faq1" class="accordion-collapse collapse show" data-bs-parent="#faqAccordion">
+                        <div class="accordion-body">
+                            Yes. We offer auto loans, leases, and financing for first-time buyers.
+                            <a href="{% url 'cars:financing' %}">Learn more about our financing options</a>,
+                            or use the payment calculator on any vehicle page to estimate your monthly payment.
+                        </div>
+                    </div>
+                </div>
+
+                <div class="accordion-item">
+                    <h2 class="accordion-header">
+                        <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#faq2">
+                            Can I trade in my current vehicle?
+                        </button>
+                    </h2>
+                    <div id="faq2" class="accordion-collapse collapse" data-bs-parent="#faqAccordion">
+                        <div class="accordion-body">
+                            Absolutely. We offer free appraisals and apply the trade-in value toward
+                            your purchase. Just mention it when you place an order or contact us.
+                        </div>
+                    </div>
+                </div>
+
+                <div class="accordion-item">
+                    <h2 class="accordion-header">
+                        <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#faq3">
+                            How do I book a test drive?
+                        </button>
+                    </h2>
+                    <div id="faq3" class="accordion-collapse collapse" data-bs-parent="#faqAccordion">
+                        <div class="accordion-body">
+                            Open any vehicle's detail page and click <strong>Book a Test Drive</strong>.
+                            Pick a date and time, and we will confirm your appointment by email.
+                        </div>
+                    </div>
+                </div>
+
+                <div class="accordion-item">
+                    <h2 class="accordion-header">
+                        <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#faq4">
+                            Are the vehicles inspected before sale?
+                        </button>
+                    </h2>
+                    <div id="faq4" class="accordion-collapse collapse" data-bs-parent="#faqAccordion">
+                        <div class="accordion-body">
+                            Yes. Every vehicle passes our multi-point inspection, and certified
+                            pre-owned vehicles come with additional coverage. See the service
+                            history on any vehicle's detail page.
+                        </div>
+                    </div>
+                </div>
+
+                <div class="accordion-item">
+                    <h2 class="accordion-header">
+                        <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#faq5">
+                            What do I need to buy a car?
+                        </button>
+                    </h2>
+                    <div id="faq5" class="accordion-collapse collapse" data-bs-parent="#faqAccordion">
+                        <div class="accordion-body">
+                            A valid driver's license, proof of insurance, and a form of payment or
+                            financing approval. If you are financing, we will walk you through the
+                            application with our finance team.
+                        </div>
+                    </div>
+                </div>
+
+                <div class="accordion-item">
+                    <h2 class="accordion-header">
+                        <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#faq6">
+                            Can you help me find a vehicle that isn't listed?
+                        </button>
+                    </h2>
+                    <div id="faq6" class="accordion-collapse collapse" data-bs-parent="#faqAccordion">
+                        <div class="accordion-body">
+                            Yes — tell us what you are looking for and we can source it for you.
+                            You can also save a search on our browse page and we will email you
+                            when a matching vehicle arrives.
+                        </div>
+                    </div>
+                </div>
+
+                <div class="accordion-item">
+                    <h2 class="accordion-header">
+                        <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#faq7">
+                            What are your hours and location?
+                        </button>
+                    </h2>
+                    <div id="faq7" class="accordion-collapse collapse" data-bs-parent="#faqAccordion">
+                        <div class="accordion-body">
+                            Find our address, phone, email, and opening hours on the
+                            <a href="{% url 'cars:contact' %}">contact page</a>.
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

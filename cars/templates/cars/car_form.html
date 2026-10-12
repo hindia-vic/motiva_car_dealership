@@ -1,0 +1,170 @@
+{% extends "base.html" %}
+
+{% block title %}{% if is_edit %}Edit {{ form.instance.year }} {{ form.instance.make }} {{ form.instance.model }}{% else %}Add Car{% endif %} - Staff Panel{% endblock %}
+
+{% block content %}
+<div class="page-header">
+    <div class="container-lg">
+        <h1><i class="bi bi-car-front"></i> {% if is_edit %}Edit Car{% else %}Add Car{% endif %}</h1>
+        <p>{% if is_edit %}Update the details or photos for this inventory car{% else %}Add a new inventory car to the website{% endif %}</p>
+    </div>
+</div>
+
+<div class="container-lg py-4">
+    <div class="row justify-content-center">
+        <div class="col-md-9 col-lg-8">
+            <form method="post" enctype="multipart/form-data" novalidate>
+                {% csrf_token %}
+
+                {% if form.non_field_errors %}
+                    <div class="alert alert-danger">{{ form.non_field_errors }}</div>
+                {% endif %}
+
+                <div class="filter-panel mb-4">
+                    <h5 class="mb-3"><i class="bi bi-info-circle"></i> Basic Information</h5>
+                    <div class="row">
+                        <div class="col-md-6 mb-3">
+                            <label for="{{ form.make.id_for_label }}" class="form-label">Make *</label>
+                            {{ form.make }}
+                            {% if form.make.errors %}<div class="text-danger small mt-1">{{ form.make.errors }}</div>{% endif %}
+                        </div>
+                        <div class="col-md-6 mb-3">
+                            <label for="{{ form.model.id_for_label }}" class="form-label">Model *</label>
+                            {{ form.model }}
+                            {% if form.model.errors %}<div class="text-danger small mt-1">{{ form.model.errors }}</div>{% endif %}
+                        </div>
+                        <div class="col-md-4 mb-3">
+                            <label for="{{ form.year.id_for_label }}" class="form-label">Year *</label>
+                            {{ form.year }}
+                            {% if form.year.errors %}<div class="text-danger small mt-1">{{ form.year.errors }}</div>{% endif %}
+                        </div>
+                        <div class="col-md-8 mb-3">
+                            <label for="{{ form.vin.id_for_label }}" class="form-label">VIN *</label>
+                            {{ form.vin }}
+                            {% if form.vin.errors %}<div class="text-danger small mt-1">{{ form.vin.errors }}</div>{% endif %}
+                            <div class="form-text">17-character vehicle identification number (stored uppercase).</div>
+                        </div>
+                        <div class="col-md-6 mb-3">
+                            <label for="{{ form.color.id_for_label }}" class="form-label">Color</label>
+                            {{ form.color }}
+                            {% if form.color.errors %}<div class="text-danger small mt-1">{{ form.color.errors }}</div>{% endif %}
+                        </div>
+                        <div class="col-md-6 mb-3">
+                            <label for="{{ form.body_type.id_for_label }}" class="form-label">Body Type</label>
+                            {{ form.body_type }}
+                            {% if form.body_type.errors %}<div class="text-danger small mt-1">{{ form.body_type.errors }}</div>{% endif %}
+                        </div>
+                    </div>
+                </div>
+
+                <div class="filter-panel mb-4">
+                    <h5 class="mb-3"><i class="bi bi-gear"></i> Transmission &amp; Engine</h5>
+                    <div class="row">
+                        <div class="col-md-6 mb-3">
+                            <label for="{{ form.transmission.id_for_label }}" class="form-label">Transmission</label>
+                            {{ form.transmission }}
+                            {% if form.transmission.errors %}<div class="text-danger small mt-1">{{ form.transmission.errors }}</div>{% endif %}
+                        </div>
+                        <div class="col-md-6 mb-3">
+                            <label for="{{ form.fuel_type.id_for_label }}" class="form-label">Fuel Type</label>
+                            {{ form.fuel_type }}
+                            {% if form.fuel_type.errors %}<div class="text-danger small mt-1">{{ form.fuel_type.errors }}</div>{% endif %}
+                        </div>
+                        <div class="col-md-4 mb-3">
+                            <label for="{{ form.engine_size.id_for_label }}" class="form-label">Engine Size</label>
+                            {{ form.engine_size }}
+                            {% if form.engine_size.errors %}<div class="text-danger small mt-1">{{ form.engine_size.errors }}</div>{% endif %}
+                        </div>
+                        <div class="col-md-4 mb-3">
+                            <label for="{{ form.horsepower.id_for_label }}" class="form-label">Horsepower</label>
+                            {{ form.horsepower }}
+                            {% if form.horsepower.errors %}<div class="text-danger small mt-1">{{ form.horsepower.errors }}</div>{% endif %}
+                        </div>
+                        <div class="col-md-4 mb-3">
+                            <label for="{{ form.mileage.id_for_label }}" class="form-label">Mileage</label>
+                            {{ form.mileage }}
+                            {% if form.mileage.errors %}<div class="text-danger small mt-1">{{ form.mileage.errors }}</div>{% endif %}
+                        </div>
+                    </div>
+                </div>
+
+                <div class="filter-panel mb-4">
+                    <h5 class="mb-3"><i class="bi bi-tag"></i> Pricing &amp; Listing</h5>
+                    <div class="row">
+                        <div class="col-md-6 mb-3">
+                            <label for="{{ form.purchase_price.id_for_label }}" class="form-label">Purchase Price</label>
+                            {{ form.purchase_price }}
+                            {% if form.purchase_price.errors %}<div class="text-danger small mt-1">{{ form.purchase_price.errors }}</div>{% endif %}
+                        </div>
+                        <div class="col-md-6 mb-3">
+                            <label for="{{ form.asking_price.id_for_label }}" class="form-label">Asking Price *</label>
+                            {{ form.asking_price }}
+                            {% if form.asking_price.errors %}<div class="text-danger small mt-1">{{ form.asking_price.errors }}</div>{% endif %}
+                        </div>
+                        <div class="col-md-6 mb-3">
+                            <label for="{{ form.condition.id_for_label }}" class="form-label">Condition</label>
+                            {{ form.condition }}
+                            {% if form.condition.errors %}<div class="text-danger small mt-1">{{ form.condition.errors }}</div>{% endif %}
+                        </div>
+                        <div class="col-md-6 mb-3">
+                            <label for="{{ form.status.id_for_label }}" class="form-label">Status</label>
+                            {{ form.status }}
+                            {% if form.status.errors %}<div class="text-danger small mt-1">{{ form.status.errors }}</div>{% endif %}
+                        </div>
+                    </div>
+                </div>
+
+                <div class="filter-panel mb-4">
+                    <h5 class="mb-3"><i class="bi bi-star"></i> Features</h5>
+                    <div class="row">
+                        {% for field in form %}
+                            {% if field.widget_type == 'checkbox' %}
+                                <div class="col-sm-6 col-md-4 mb-2">
+                                    <div class="form-check">
+                                        {{ field }}
+                                        <label class="form-check-label" for="{{ field.id_for_label }}">{{ field.label }}</label>
+                                        {% if field.errors %}<div class="text-danger small mt-1">{{ field.errors }}</div>{% endif %}
+                                    </div>
+                                </div>
+                            {% endif %}
+                        {% endfor %}
+                    </div>
+                </div>
+
+                <div class="filter-panel mb-4">
+                    <h5 class="mb-3"><i class="bi bi-images"></i> Photos</h5>
+                    <div class="mb-3">
+                        <label for="{{ form.images.id_for_label }}" class="form-label">Car Photos</label>
+                        {{ form.images }}
+                        {% if form.images.errors %}<div class="text-danger small mt-1">{{ form.images.errors }}</div>{% endif %}
+                        <div class="form-text">You can select multiple images. The first photo becomes the main photo (jpg/png).</div>
+                    </div>
+                    {% if is_edit and existing_images %}
+                        <label class="form-label">Current Photos</label>
+                        <div class="d-flex flex-wrap gap-2 mb-2">
+                            {% for img in existing_images %}
+                                <img src="{{ img.image.url }}" alt="{{ img.caption|default:'Car photo' }}" class="img-thumbnail car-photo-thumb">
+                            {% endfor %}
+                        </div>
+                    {% endif %}
+                </div>
+
+                <div class="filter-panel mb-4">
+                    <h5 class="mb-3"><i class="bi bi-card-text"></i> Description</h5>
+                    <div class="mb-3">
+                        {{ form.description }}
+                        {% if form.description.errors %}<div class="text-danger small mt-1">{{ form.description.errors }}</div>{% endif %}
+                    </div>
+                </div>
+
+                <div class="d-flex gap-2">
+                    <button type="submit" class="btn btn-primary">
+                        <i class="bi bi-check-lg"></i> {% if is_edit %}Save Changes{% else %}Add Car{% endif %}
+                    </button>
+                    <a href="{% url 'cars:dashboard' %}" class="btn btn-outline-secondary"><i class="bi bi-x-lg"></i> Cancel</a>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+{% endblock %}

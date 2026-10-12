@@ -1,0 +1,248 @@
+{% extends "base.html" %}
+
+{% block title %}Reports - Staff Panel{% endblock %}
+
+{% block content %}
+<div class="page-header">
+    <div class="container-lg">
+        <h1><i class="bi bi-bar-chart"></i> Sales Reports</h1>
+        <p>Dealership revenue and pipeline analytics</p>
+    </div>
+</div>
+
+<div class="container-lg py-4">
+    <!-- Top Stats -->
+    <div class="row mb-4">
+        <div class="col-md-3 mb-3">
+            <div class="stat-card success">
+                <div class="stat-number">${{ total_revenue|floatformat:0 }}</div>
+                <div class="stat-label"><i class="bi bi-cash-stack"></i> Total Revenue</div>
+            </div>
+        </div>
+        <div class="col-md-3 mb-3">
+            <div class="stat-card">
+                <div class="stat-number">${{ avg_sale_price|floatformat:0 }}</div>
+                <div class="stat-label"><i class="bi bi-tag"></i> Avg Sale Price</div>
+            </div>
+        </div>
+        <div class="col-md-3 mb-3">
+            <div class="stat-card">
+                <div class="stat-number">{{ total_sales }}</div>
+                <div class="stat-label"><i class="bi bi-bag-check"></i> Completed Sales</div>
+            </div>
+        </div>
+        <div class="col-md-3 mb-3">
+            <div class="stat-card warning">
+                <div class="stat-number">{{ total_orders }}</div>
+                <div class="stat-label"><i class="bi bi-cart-check"></i> Total Orders</div>
+            </div>
+        </div>
+    </div>
+
+    <div class="row mb-4">
+        <div class="col-md-3 mb-3">
+            <div class="stat-card">
+                <div class="stat-number">{{ total_inquiries }}</div>
+                <div class="stat-label"><i class="bi bi-chat-dots"></i> Total Inquiries</div>
+            </div>
+        </div>
+        <div class="col-md-3 mb-3">
+            <div class="stat-card warning">
+                <div class="stat-number">{{ inquiry_to_order }}%</div>
+                <div class="stat-label"><i class="bi bi-arrow-right-circle"></i> Inquiry &rarr; Order</div>
+            </div>
+        </div>
+        <div class="col-md-3 mb-3">
+            <div class="stat-card success">
+                <div class="stat-number">{{ sale_from_order }}%</div>
+                <div class="stat-label"><i class="bi bi-check2-circle"></i> Order &rarr; Sale</div>
+            </div>
+        </div>
+        <div class="col-md-3 mb-3">
+            <div class="stat-card">
+                <div class="stat-number">{{ open_items }}</div>
+                <div class="stat-label"><i class="bi bi-funnel"></i> Open Items</div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Monthly Revenue Chart -->
+    <div class="card mb-4">
+        <div class="card-header bg-light">
+            <h5 class="card-title mb-0"><i class="bi bi-graph-up-arrow"></i> Monthly Revenue (Last 6 Months)</h5>
+        </div>
+        <div class="card-body">
+            <canvas id="revenueChart" height="100"></canvas>
+        </div>
+    </div>
+
+    <div class="row">
+        <!-- Sales by Make -->
+        <div class="col-lg-6 mb-4">
+            <div class="card h-100">
+                <div class="card-header bg-light">
+                    <h5 class="card-title mb-0"><i class="bi bi-car-front"></i> Sales by Make</h5>
+                </div>
+                <div class="table-responsive">
+                    <table class="table table-hover mb-0">
+                        <thead class="table-light">
+                            <tr>
+                                <th>Make</th>
+                                <th class="text-end">Sales</th>
+                                <th class="text-end">Revenue</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for row in sales_by_make %}
+                                <tr>
+                                    <td><strong>{{ row.car__make|title }}</strong></td>
+                                    <td class="text-end">{{ row.count }}</td>
+                                    <td class="text-end price-tag" style="font-size: 1rem;">${{ row.revenue|floatformat:0 }}</td>
+                                </tr>
+                            {% empty %}
+                                <tr><td colspan="3" class="text-center text-muted">No completed sales yet.</td></tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+
+        <!-- Revenue by Payment Method -->
+        <div class="col-lg-6 mb-4">
+            <div class="card h-100">
+                <div class="card-header bg-light">
+                    <h5 class="card-title mb-0"><i class="bi bi-credit-card"></i> Revenue by Payment Method</h5>
+                </div>
+                <div class="table-responsive">
+                    <table class="table table-hover mb-0">
+                        <thead class="table-light">
+                            <tr>
+                                <th>Method</th>
+                                <th class="text-end">Sales</th>
+                                <th class="text-end">Revenue</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for row in revenue_by_payment %}
+                                <tr>
+                                    <td><span class="badge bg-light text-dark">{{ row.payment_method|title }}</span></td>
+                                    <td class="text-end">{{ row.count }}</td>
+                                    <td class="text-end price-tag" style="font-size: 1rem;">${{ row.revenue|floatformat:0 }}</td>
+                                </tr>
+                            {% empty %}
+                                <tr><td colspan="3" class="text-center text-muted">No completed sales yet.</td></tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="row">
+        <!-- Top Selling Models -->
+        <div class="col-lg-6 mb-4">
+            <div class="card h-100">
+                <div class="card-header bg-light">
+                    <h5 class="card-title mb-0"><i class="bi bi-trophy"></i> Top Selling Models</h5>
+                </div>
+                <div class="table-responsive">
+                    <table class="table table-hover mb-0">
+                        <thead class="table-light">
+                            <tr>
+                                <th>Model</th>
+                                <th class="text-end">Sales</th>
+                                <th class="text-end">Revenue</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for row in top_models %}
+                                <tr>
+                                    <td><strong>{{ row.car__make|title }} {{ row.car__model|title }}</strong></td>
+                                    <td class="text-end">{{ row.count }}</td>
+                                    <td class="text-end price-tag" style="font-size: 1rem;">${{ row.revenue|floatformat:0 }}</td>
+                                </tr>
+                            {% empty %}
+                                <tr><td colspan="3" class="text-center text-muted">No completed sales yet.</td></tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+
+        <!-- Pipeline Status -->
+        <div class="col-lg-6 mb-4">
+            <div class="card h-100">
+                <div class="card-header bg-light">
+                    <h5 class="card-title mb-0"><i class="bi bi-diagram-3"></i> Pipeline: Inquiries & Orders by Status</h5>
+                </div>
+                <div class="table-responsive">
+                    <table class="table table-hover mb-0">
+                        <thead class="table-light">
+                            <tr>
+                                <th>Status</th>
+                                <th class="text-end">Inquiries</th>
+                                <th class="text-end">Orders</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for row in inquiries_by_status %}
+                                <tr>
+                                    <td>{{ row.status|title }}</td>
+                                    <td class="text-end">{{ row.count }}</td>
+                                    <td class="text-end">
+                                        {% for o in orders_by_status %}
+                                            {% if o.status == row.status %}{{ o.count }}{% endif %}
+                                        {% endfor %}
+                                    </td>
+                                </tr>
+                            {% empty %}
+                                <tr><td colspan="3" class="text-center text-muted">No activity yet.</td></tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+<script>
+    const labels = [{% for row in monthly_revenue %}'{{ row.label }}',{% endfor %}];
+    const revenues = [{% for row in monthly_revenue %}{{ row.revenue|floatformat:2 }},{% endfor %}];
+
+    const ctx = document.getElementById('revenueChart');
+    new Chart(ctx, {
+        type: 'bar',
+        data: {
+            labels: labels,
+            datasets: [{
+                label: 'Revenue ($)',
+                data: revenues,
+                backgroundColor: 'rgba(26, 95, 122, 0.7)',
+                borderColor: '#1a5f7a',
+                borderWidth: 1,
+            }],
+        },
+        options: {
+            responsive: true,
+            plugins: {
+                legend: { display: false },
+            },
+            scales: {
+                y: {
+                    beginAtZero: true,
+                    ticks: {
+                        callback: (value) => '$' + value.toLocaleString(),
+                    },
+                },
+            },
+        },
+    });
+</script>
+{% endblock %}

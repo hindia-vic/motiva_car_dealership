@@ -1,0 +1,456 @@
+{% extends "base.html" %}
+
+{% block title %}{{ car.year }} {{ car.make }} {{ car.model }} for Sale - Car Dealership{% endblock %}
+
+{% block meta %}
+<meta name="description" content="{{ car.year }} {{ car.make }} {{ car.model }} for sale at Car Dealership. {{ car.condition|title }}, {{ car.mileage|floatformat:0 }} miles, {{ car.transmission|title }}. Priced at ${{ car.asking_price }}.">
+<link rel="canonical" href="{{ request.scheme }}://{{ request.get_host }}{% url 'cars:car_detail' car.pk %}">
+<meta property="og:type" content="product">
+<meta property="og:title" content="{{ car.year }} {{ car.make }} {{ car.model }} - ${{ car.asking_price }}">
+<meta property="og:url" content="{{ request.scheme }}://{{ request.get_host }}{% url 'cars:car_detail' car.pk %}">
+<meta property="og:description" content="{{ car.condition|title }}, {{ car.mileage|floatformat:0 }} miles, {{ car.transmission|title }}. View details and schedule a test drive.">
+{% if car.images.first %}
+<meta property="og:image" content="{{ request.scheme }}://{{ request.get_host }}{{ car.images.first.image.url }}">
+{% endif %}
+{% endblock %}
+
+{% block extra_css %}
+<style>
+    .car-detail-section {
+        background: white;
+        border-radius: 8px;
+        margin-bottom: 2rem;
+        box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+    }
+    
+    .specs-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+        gap: 1rem;
+    }
+    
+    .spec-box {
+        background: #f8f9fa;
+        padding: 1rem;
+        border-radius: 6px;
+        text-align: center;
+    }
+    
+    .spec-label {
+        font-size: 0.85rem;
+        color: #666;
+        font-weight: 500;
+        margin-bottom: 0.5rem;
+    }
+    
+    .spec-value {
+        font-size: 1.1rem;
+        font-weight: 600;
+        color: #333;
+    }
+    
+    .form-section {
+        background: white;
+        border-radius: 8px;
+        padding: 2rem;
+        box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+        margin-bottom: 2rem;
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="container-lg py-4">
+    <a href="{% url 'cars:browse_cars' %}" class="btn btn-outline-secondary mb-3">
+        <i class="bi bi-arrow-left"></i> Back to Inventory
+    </a>
+
+    <div class="row">
+        <!-- Car Details -->
+        <div class="col-lg-7">
+            <!-- Header -->
+            <div class="car-detail-section p-4">
+                <div class="d-flex justify-content-between align-items-start mb-2">
+                    <div>
+                        <h1>{{ car.year }} {{ car.make }} {{ car.model }}</h1>
+                        <p class="text-muted">VIN: {{ car.vin }}</p>
+                    </div>
+                    <div class="d-flex align-items-center gap-2">
+                        <span class="badge bg-success fs-6">
+                            {% if car.status == 'available' %}
+                                <i class="bi bi-check-circle"></i> Available
+                            {% else %}
+                                <i class="bi bi-x-circle"></i> Sold
+                            {% endif %}
+                        </span>
+                        {% if user.is_authenticated %}
+                            <form method="post" action="{% url 'accounts:toggle_favorite' car.id %}">
+                                {% csrf_token %}
+                                <input type="hidden" name="next" value="{% url 'cars:car_detail' car.id %}">
+                                <button type="submit" class="btn {% if is_favorited %}btn-danger{% else %}btn-outline-danger{% endif %}"
+                                        title="{% if is_favorited %}Remove from favorites{% else %}Save to favorites{% endif %}">
+                                    <i class="bi {% if is_favorited %}bi-heart-fill{% else %}bi-heart{% endif %}"></i>
+                                </button>
+                            </form>
+                        {% else %}
+                            <a href="{% url 'accounts:login' %}?next={% url 'cars:car_detail' car.id %}"
+                               class="btn btn-outline-danger" title="Sign in to save this vehicle">
+                                <i class="bi bi-heart"></i>
+                            </a>
+                        {% endif %}
+                    </div>
+                </div>
+                
+                <h3 class="text-primary">${{ car.asking_price }}</h3>
+                <p class="text-muted">Condition: <strong>{{ car.condition|title }}</strong></p>
+            </div>
+
+            <!-- Photo Gallery -->
+            {% if car.images.all %}
+                <div class="car-detail-section p-0 overflow-hidden">
+                    <div id="carImages" class="carousel slide" data-bs-ride="carousel">
+                        <div class="carousel-inner">
+                            {% for image in car.images.all %}
+                                <div class="carousel-item {% if forloop.first %}active{% endif %}">
+                                    <img src="{{ image.image.url }}" class="d-block w-100"
+                                         style="height: 380px; object-fit: cover;"
+                                         alt="{{ image.caption|default:car }}">
+                                    {% if image.caption %}
+                                        <div class="carousel-caption d-none d-md-block pb-2">
+                                            <span class="p-2 rounded" style="background: rgba(0,0,0,0.55);">{{ image.caption }}</span>
+                                        </div>
+                                    {% endif %}
+                                </div>
+                            {% endfor %}
+                        </div>
+                        {% if car.images.count > 1 %}
+                            <button class="carousel-control-prev" type="button" data-bs-target="#carImages" data-bs-slide="prev">
+                                <span class="carousel-control-prev-icon" aria-hidden="true"></span>
+                                <span class="visually-hidden">Previous</span>
+                            </button>
+                            <button class="carousel-control-next" type="button" data-bs-target="#carImages" data-bs-slide="next">
+                                <span class="carousel-control-next-icon" aria-hidden="true"></span>
+                                <span class="visually-hidden">Next</span>
+                            </button>
+                        {% endif %}
+                    </div>
+                </div>
+            {% else %}
+                <div class="car-detail-section p-4 text-center">
+                    <i class="bi bi-image" style="font-size: 3rem; color: #ccc;"></i>
+                    <p class="text-muted mt-2 mb-0">No photos available for this vehicle yet.</p>
+                </div>
+            {% endif %}
+
+            <!-- Specifications -->
+            <div class="car-detail-section p-4">
+                <h4 class="mb-4"><i class="bi bi-gear"></i> Vehicle Specifications</h4>
+                
+                <div class="specs-grid">
+                    <div class="spec-box">
+                        <div class="spec-label">Body Type</div>
+                        <div class="spec-value">{{ car.body_type|title }}</div>
+                    </div>
+                    <div class="spec-box">
+                        <div class="spec-label">Color</div>
+                        <div class="spec-value">{{ car.color }}</div>
+                    </div>
+                    <div class="spec-box">
+                        <div class="spec-label">Transmission</div>
+                        <div class="spec-value">{{ car.transmission|title }}</div>
+                    </div>
+                    <div class="spec-box">
+                        <div class="spec-label">Fuel Type</div>
+                        <div class="spec-value">{{ car.fuel_type|title }}</div>
+                    </div>
+                    <div class="spec-box">
+                        <div class="spec-label">Mileage</div>
+                        <div class="spec-value">{{ car.mileage|floatformat:0 }} mi</div>
+                    </div>
+                    <div class="spec-box">
+                        <div class="spec-label">Engine Size</div>
+                        <div class="spec-value">{{ car.engine_size }}</div>
+                    </div>
+                    <div class="spec-box">
+                        <div class="spec-label">Horsepower</div>
+                        <div class="spec-value">{{ car.horsepower }} hp</div>
+                    </div>
+                    <div class="spec-box">
+                        <div class="spec-label">Status</div>
+                        <div class="spec-value">{{ car.status|title }}</div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Features -->
+            <div class="car-detail-section p-4">
+                <h4 class="mb-3"><i class="bi bi-star"></i> Features & Options</h4>
+                
+                <div class="row g-2">
+                    {% if car.air_conditioning %}<div class="col-6"><span class="badge bg-light text-dark"><i class="bi bi-snow"></i> Air Conditioning</span></div>{% endif %}
+                    {% if car.power_steering %}<div class="col-6"><span class="badge bg-light text-dark"><i class="bi bi-speedometer2"></i> Power Steering</span></div>{% endif %}
+                    {% if car.power_windows %}<div class="col-6"><span class="badge bg-light text-dark"><i class="bi bi-window"></i> Power Windows</span></div>{% endif %}
+                    {% if car.power_locks %}<div class="col-6"><span class="badge bg-light text-dark"><i class="bi bi-door-closed"></i> Power Locks</span></div>{% endif %}
+                    {% if car.cruise_control %}<div class="col-6"><span class="badge bg-light text-dark"><i class="bi bi-speedometer"></i> Cruise Control</span></div>{% endif %}
+                    {% if car.backup_camera %}<div class="col-6"><span class="badge bg-light text-dark"><i class="bi bi-camera"></i> Backup Camera</span></div>{% endif %}
+                    {% if car.bluetooth %}<div class="col-6"><span class="badge bg-light text-dark"><i class="bi bi-bluetooth"></i> Bluetooth</span></div>{% endif %}
+                    {% if car.navigation_system %}<div class="col-6"><span class="badge bg-light text-dark"><i class="bi bi-map"></i> Navigation</span></div>{% endif %}
+                    {% if car.leather_seats %}<div class="col-6"><span class="badge bg-light text-dark"><i class="bi bi-chair"></i> Leather Seats</span></div>{% endif %}
+                    {% if car.sunroof %}<div class="col-6"><span class="badge bg-light text-dark"><i class="bi bi-sun"></i> Sunroof</span></div>{% endif %}
+                    {% if car.all_wheel_drive %}<div class="col-6"><span class="badge bg-light text-dark"><i class="bi bi-diagram-3"></i> All-Wheel Drive</span></div>{% endif %}
+                </div>
+
+                {% if not car.air_conditioning and not car.power_steering and not car.power_windows %}
+                    <p class="text-muted small mt-3">No special features listed for this vehicle.</p>
+                {% endif %}
+            </div>
+
+            <!-- Description -->
+            {% if car.description %}
+                <div class="car-detail-section p-4">
+                    <h4 class="mb-3"><i class="bi bi-file-text"></i> Description</h4>
+                    <p>{{ car.description|linebreaks }}</p>
+                </div>
+            {% endif %}
+        </div>
+
+        <!-- Inquiry/Order Forms -->
+        <div class="col-lg-5">
+            <!-- Test Drive CTA -->
+            <div class="form-section text-center">
+                <h4 class="mb-2"><i class="bi bi-calendar-check"></i> Test Drive This Car</h4>
+                <p class="text-muted small mb-3">Book a time to get behind the wheel.</p>
+                <a href="{% url 'cars:test_drive' car.id %}" class="btn btn-secondary w-100 mb-3">
+                    <i class="bi bi-calendar-check"></i> Book a Test Drive
+                </a>
+            </div>
+
+            <!-- Payment Calculator -->
+            <div class="form-section" id="payment-calculator">
+                <h4 class="mb-4"><i class="bi bi-calculator"></i> Estimate Your Monthly Payment</h4>
+                <div class="mb-3">
+                    <label for="calc-price" class="form-label">Vehicle Price</label>
+                    <div class="input-group">
+                        <span class="input-group-text">$</span>
+                        <input type="number" class="form-control" id="calc-price" step="0.01" value="{{ car.asking_price }}">
+                    </div>
+                </div>
+                <div class="mb-3">
+                    <label for="calc-down" class="form-label">Down Payment</label>
+                    <div class="input-group">
+                        <span class="input-group-text">$</span>
+                        <input type="number" class="form-control" id="calc-down" step="0.01" value="0">
+                    </div>
+                </div>
+                <div class="row">
+                    <div class="col-md-6 mb-3">
+                        <label for="calc-rate" class="form-label">Annual Interest Rate (%)</label>
+                        <input type="number" class="form-control" id="calc-rate" step="0.01" value="6.0">
+                    </div>
+                    <div class="col-md-6 mb-3">
+                        <label for="calc-term" class="form-label">Loan Term (months)</label>
+                        <input type="number" class="form-control" id="calc-term" step="1" min="1" value="60">
+                    </div>
+                </div>
+                <div class="alert alert-primary text-center mb-0">
+                    <div class="text-muted small">Estimated Monthly Payment</div>
+                    <div class="price-tag" id="calc-result" style="font-size: 1.6rem;">$0.00</div>
+                </div>
+                <p class="text-muted small mt-3 mb-0">
+                    <i class="bi bi-info-circle"></i> Estimate only — does not include taxes, fees, or insurance.
+                    <a href="{% url 'cars:financing' %}">Learn about financing</a>.
+                </p>
+            </div>
+
+            <!-- Inquiry Form -->
+            <div class="form-section">
+                <h4 class="mb-4"><i class="bi bi-chat-dots"></i> Send an Inquiry</h4>
+                <form method="post" action="{% url 'cars:inquiry' car.id %}">
+                    {% csrf_token %}
+                    
+                    {% if inquiry_form.non_field_errors %}
+                        <div class="alert alert-danger">
+                            {{ inquiry_form.non_field_errors }}
+                        </div>
+                    {% endif %}
+
+                    <div class="mb-3">
+                        <label for="{{ inquiry_form.customer_name.id_for_label }}" class="form-label">Full Name *</label>
+                        {{ inquiry_form.customer_name }}
+                        {% if inquiry_form.customer_name.errors %}
+                            <div class="text-danger small mt-1">{{ inquiry_form.customer_name.errors }}</div>
+                        {% endif %}
+                    </div>
+
+                    <div class="mb-3">
+                        <label for="{{ inquiry_form.customer_email.id_for_label }}" class="form-label">Email Address *</label>
+                        {{ inquiry_form.customer_email }}
+                        {% if inquiry_form.customer_email.errors %}
+                            <div class="text-danger small mt-1">{{ inquiry_form.customer_email.errors }}</div>
+                        {% endif %}
+                    </div>
+
+                    <div class="mb-3">
+                        <label for="{{ inquiry_form.customer_phone.id_for_label }}" class="form-label">Phone Number *</label>
+                        {{ inquiry_form.customer_phone }}
+                        {% if inquiry_form.customer_phone.errors %}
+                            <div class="text-danger small mt-1">{{ inquiry_form.customer_phone.errors }}</div>
+                        {% endif %}
+                    </div>
+
+                    <div class="mb-3">
+                        <label for="{{ inquiry_form.message.id_for_label }}" class="form-label">Message *</label>
+                        {{ inquiry_form.message }}
+                        {% if inquiry_form.message.errors %}
+                            <div class="text-danger small mt-1">{{ inquiry_form.message.errors }}</div>
+                        {% endif %}
+                    </div>
+
+                    <button type="submit" class="btn btn-primary w-100">
+                        <i class="bi bi-send"></i> Send Inquiry
+                    </button>
+                </form>
+            </div>
+
+            <!-- Order Form -->
+            <div class="form-section">
+                <h4 class="mb-4"><i class="bi bi-cart-check"></i> Place an Order</h4>
+                <form method="post" action="{% url 'cars:order' car.id %}">
+                    {% csrf_token %}
+                    
+                    {% if order_form.non_field_errors %}
+                        <div class="alert alert-danger">
+                            {{ order_form.non_field_errors }}
+                        </div>
+                    {% endif %}
+
+                    <div class="mb-3">
+                        <label for="{{ order_form.customer_name.id_for_label }}" class="form-label">Full Name *</label>
+                        {{ order_form.customer_name }}
+                        {% if order_form.customer_name.errors %}
+                            <div class="text-danger small mt-1">{{ order_form.customer_name.errors }}</div>
+                        {% endif %}
+                    </div>
+
+                    <div class="mb-3">
+                        <label for="{{ order_form.customer_email.id_for_label }}" class="form-label">Email *</label>
+                        {{ order_form.customer_email }}
+                        {% if order_form.customer_email.errors %}
+                            <div class="text-danger small mt-1">{{ order_form.customer_email.errors }}</div>
+                        {% endif %}
+                    </div>
+
+                    <div class="mb-3">
+                        <label for="{{ order_form.customer_phone.id_for_label }}" class="form-label">Phone *</label>
+                        {{ order_form.customer_phone }}
+                        {% if order_form.customer_phone.errors %}
+                            <div class="text-danger small mt-1">{{ order_form.customer_phone.errors }}</div>
+                        {% endif %}
+                    </div>
+
+                    <div class="mb-3">
+                        <label for="{{ order_form.customer_address.id_for_label }}" class="form-label">Delivery Address *</label>
+                        {{ order_form.customer_address }}
+                        {% if order_form.customer_address.errors %}
+                            <div class="text-danger small mt-1">{{ order_form.customer_address.errors }}</div>
+                        {% endif %}
+                    </div>
+
+                    <div class="row">
+                        <div class="col-md-6 mb-3">
+                            <label for="{{ order_form.price.id_for_label }}" class="form-label">Price *</label>
+                            {{ order_form.price }}
+                            {% if order_form.price.errors %}
+                                <div class="text-danger small mt-1">{{ order_form.price.errors }}</div>
+                            {% endif %}
+                        </div>
+
+                        <div class="col-md-6 mb-3">
+                            <label for="{{ order_form.trade_in_value.id_for_label }}" class="form-label">Trade-In Value</label>
+                            {{ order_form.trade_in_value }}
+                            {% if order_form.trade_in_value.errors %}
+                                <div class="text-danger small mt-1">{{ order_form.trade_in_value.errors }}</div>
+                            {% endif %}
+                        </div>
+                    </div>
+
+                    <div class="row">
+                        <div class="col-md-6 mb-3">
+                            <label for="{{ order_form.down_payment.id_for_label }}" class="form-label">Down Payment</label>
+                            {{ order_form.down_payment }}
+                            {% if order_form.down_payment.errors %}
+                                <div class="text-danger small mt-1">{{ order_form.down_payment.errors }}</div>
+                            {% endif %}
+                        </div>
+
+                        <div class="col-md-6 mb-3">
+                            <div class="form-check mt-4">
+                                {{ order_form.financing_needed }}
+                                <label class="form-check-label" for="{{ order_form.financing_needed.id_for_label }}">
+                                    Need Financing?
+                                </label>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="mb-3">
+                        <label for="{{ order_form.notes.id_for_label }}" class="form-label">Additional Notes</label>
+                        {{ order_form.notes }}
+                        {% if order_form.notes.errors %}
+                            <div class="text-danger small mt-1">{{ order_form.notes.errors }}</div>
+                        {% endif %}
+                    </div>
+
+                    <button type="submit" class="btn btn-success w-100">
+                        <i class="bi bi-check-circle"></i> Place Order
+                    </button>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+(function () {
+    var priceInput = document.getElementById('calc-price');
+    var downInput = document.getElementById('calc-down');
+    var rateInput = document.getElementById('calc-rate');
+    var termInput = document.getElementById('calc-term');
+    var result = document.getElementById('calc-result');
+
+    function fmt(value) {
+        return '$' + value.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+    }
+
+    function calculate() {
+        var price = parseFloat(priceInput.value) || 0;
+        var down = parseFloat(downInput.value) || 0;
+        var annualRate = parseFloat(rateInput.value) || 0;
+        var term = parseInt(termInput.value, 10) || 0;
+
+        var principal = price - down;
+        if (principal <= 0 || term <= 0) {
+            result.textContent = fmt(0);
+            return;
+        }
+
+        var monthlyRate = (annualRate / 100) / 12;
+        var payment;
+        if (monthlyRate === 0) {
+            payment = principal / term;
+        } else {
+            var factor = Math.pow(1 + monthlyRate, term);
+            payment = principal * (monthlyRate * factor) / (factor - 1);
+        }
+        result.textContent = fmt(Math.max(0, payment));
+    }
+
+    [priceInput, downInput, rateInput, termInput].forEach(function (input) {
+        input.addEventListener('input', calculate);
+    });
+    calculate();
+})();
+</script>
+{% endblock %}
