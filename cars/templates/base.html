@@ -291,12 +291,75 @@
                 grid-template-columns: 1fr;
             }
         }
+
+        /* ------------------------------------------------------------------
+           Responsive, full-width enhancements
+           ------------------------------------------------------------------ */
+
+        :root {
+            --page-gutter: clamp(0.75rem, 2.5vw, 2.5rem);
+        }
+
+        html {
+            height: 100%;
+        }
+
+        body {
+            min-height: 100dvh;
+            display: flex;
+            flex-direction: column;
+        }
+
+        main {
+            flex: 1 0 auto;
+            width: 100%;
+        }
+
+        /* Every page uses .container-lg; let it fill the viewport instead of
+           Bootstrap's fixed 960px+ cap so the site occupies the whole page. */
+        .container-lg {
+            max-width: 100%;
+            padding-left: var(--page-gutter);
+            padding-right: var(--page-gutter);
+        }
+
+        /* Fluid media so images never overflow their container */
+        img {
+            max-width: 100%;
+            height: auto;
+        }
+
+        .card-img-top {
+            aspect-ratio: 16 / 10;
+            object-fit: cover;
+        }
+
+        /* Fluid typography: scales smoothly from phone to ultrawide */
+        h2 {
+            font-size: clamp(1.35rem, 1.05rem + 1.1vw, 1.9rem);
+        }
+
+        .page-header h1 {
+            font-size: clamp(1.6rem, 1.1rem + 2vw, 2.75rem);
+        }
+
+        .price-tag {
+            font-size: clamp(1.15rem, 0.95rem + 0.8vw, 1.75rem);
+        }
+
+        .stat-card h3 {
+            font-size: clamp(1.5rem, 1.1rem + 1.2vw, 2.25rem);
+        }
+
+        .featured-section {
+            padding: clamp(1.5rem, 3vw, 3rem) 0;
+        }
     </style>
     {% block extra_css %}{% endblock %}
 </head>
 <body>
     <!-- Navigation -->
-    <nav class="navbar navbar-expand-lg navbar-dark">
+    <nav class="navbar navbar-expand-xl navbar-dark">
         <div class="container-lg">
             <a class="navbar-brand" href="{% url 'cars:home' %}">
                 <i class="bi bi-car-front-fill"></i> Car Dealership
@@ -337,90 +400,44 @@
                         </a>
                     </li>
                     {% if request.user.is_staff %}
-                        <li class="nav-item">
-                            <a class="nav-link {% if request.resolver_match.url_name == 'dashboard' %}active{% endif %}" href="{% url 'cars:dashboard' %}">
-                                <i class="bi bi-speedometer2"></i> Dashboard
+                        <li class="nav-item dropdown">
+                            <a class="nav-link dropdown-toggle" href="#" role="button" data-bs-toggle="dropdown" aria-expanded="false">
+                                <i class="bi bi-speedometer2"></i> Staff
                             </a>
-                        </li>
-                        <li class="nav-item">
-                            <a class="nav-link {% if request.resolver_match.url_name == 'car_create' or request.resolver_match.url_name == 'car_edit' %}active{% endif %}" href="{% url 'cars:car_create' %}">
-                                <i class="bi bi-car-front"></i> Add Car
-                            </a>
-                        </li>
-                        <li class="nav-item">
-                            <a class="nav-link {% if request.resolver_match.url_name == 'inquiries_list' %}active{% endif %}" href="{% url 'cars:inquiries_list' %}">
-                                <i class="bi bi-chat-dots"></i> Inquiries
-                            </a>
-                        </li>
-                        <li class="nav-item">
-                            <a class="nav-link {% if request.resolver_match.url_name == 'orders_list' %}active{% endif %}" href="{% url 'cars:orders_list' %}">
-                                <i class="bi bi-cart-check"></i> Orders
-                            </a>
-                        </li>
-                        <li class="nav-item">
-                            <a class="nav-link {% if request.resolver_match.url_name == 'appointments_list' %}active{% endif %}" href="{% url 'cars:appointments_list' %}">
-                                <i class="bi bi-calendar-check"></i> Test Drives
-                            </a>
-                        </li>
-                        <li class="nav-item">
-                            <a class="nav-link {% if request.resolver_match.url_name == 'customer_list' %}active{% endif %}" href="{% url 'cars:customer_list' %}">
-                                <i class="bi bi-people"></i> Customers
-                            </a>
-                        </li>
-                        <li class="nav-item">
-                            <a class="nav-link {% if request.resolver_match.url_name == 'sales_list' %}active{% endif %}" href="{% url 'cars:sales_list' %}">
-                                <i class="bi bi-graph-up"></i> Sales
-                            </a>
-                        </li>
-                        <li class="nav-item">
-                            <a class="nav-link {% if request.resolver_match.url_name == 'reports' %}active{% endif %}" href="{% url 'cars:reports' %}">
-                                <i class="bi bi-bar-chart"></i> Reports
-                            </a>
-                        </li>
-                        <li class="nav-item">
-                            <a class="nav-link {% if request.resolver_match.url_name == 'testimonial_list' or request.resolver_match.url_name == 'testimonial_visibility_update' %}active{% endif %}" href="{% url 'cars:testimonial_list' %}">
-                                <i class="bi bi-star-half"></i> Reviews
-                            </a>
-                        </li>
-                        <li class="nav-item">
-                            <a class="nav-link {% if request.resolver_match.url_name == 'contact_info_edit' %}active{% endif %}" href="{% url 'cars:contact_info_edit' %}">
-                                <i class="bi bi-geo-alt"></i> Contact Info
-                            </a>
-                        </li>
-                        <li class="nav-item">
-                            <a class="nav-link {% if request.resolver_match.url_name == 'about_info_edit' %}active{% endif %}" href="{% url 'cars:about_info_edit' %}">
-                                <i class="bi bi-building"></i> About Page
-                            </a>
-                        </li>
-                        <li class="nav-item">
-                            <a class="nav-link {% if request.resolver_match.url_name == 'staff_list' or request.resolver_match.url_name == 'staff_create' %}active{% endif %}" href="{% url 'accounts:staff_list' %}">
-                                <i class="bi bi-person-gear"></i> Staff Accounts
-                            </a>
-                        </li>
-                        <li class="nav-item">
-                            <a class="nav-link" href="{% url 'admin:index' %}" target="_blank">
-                                <i class="bi bi-gear"></i> Admin
-                            </a>
+                            <ul class="dropdown-menu dropdown-menu-end">
+                                <li><a class="dropdown-item {% if request.resolver_match.url_name == 'dashboard' %}active{% endif %}" href="{% url 'cars:dashboard' %}"><i class="bi bi-speedometer2"></i> Dashboard</a></li>
+                                <li><a class="dropdown-item {% if request.resolver_match.url_name == 'car_create' or request.resolver_match.url_name == 'car_edit' %}active{% endif %}" href="{% url 'cars:car_create' %}"><i class="bi bi-car-front"></i> Add Car</a></li>
+                                <li><a class="dropdown-item {% if request.resolver_match.url_name == 'inquiries_list' %}active{% endif %}" href="{% url 'cars:inquiries_list' %}"><i class="bi bi-chat-dots"></i> Inquiries</a></li>
+                                <li><a class="dropdown-item {% if request.resolver_match.url_name == 'orders_list' %}active{% endif %}" href="{% url 'cars:orders_list' %}"><i class="bi bi-cart-check"></i> Orders</a></li>
+                                <li><a class="dropdown-item {% if request.resolver_match.url_name == 'appointments_list' %}active{% endif %}" href="{% url 'cars:appointments_list' %}"><i class="bi bi-calendar-check"></i> Test Drives</a></li>
+                                <li><a class="dropdown-item {% if request.resolver_match.url_name == 'customer_list' %}active{% endif %}" href="{% url 'cars:customer_list' %}"><i class="bi bi-people"></i> Customers</a></li>
+                                <li><a class="dropdown-item {% if request.resolver_match.url_name == 'sales_list' %}active{% endif %}" href="{% url 'cars:sales_list' %}"><i class="bi bi-graph-up"></i> Sales</a></li>
+                                <li><a class="dropdown-item {% if request.resolver_match.url_name == 'reports' %}active{% endif %}" href="{% url 'cars:reports' %}"><i class="bi bi-bar-chart"></i> Reports</a></li>
+                                <li><a class="dropdown-item {% if request.resolver_match.url_name == 'testimonial_list' or request.resolver_match.url_name == 'testimonial_visibility_update' %}active{% endif %}" href="{% url 'cars:testimonial_list' %}"><i class="bi bi-star-half"></i> Review Moderation</a></li>
+                                <li><a class="dropdown-item {% if request.resolver_match.url_name == 'contact_info_edit' %}active{% endif %}" href="{% url 'cars:contact_info_edit' %}"><i class="bi bi-geo-alt"></i> Contact Info</a></li>
+                                <li><a class="dropdown-item {% if request.resolver_match.url_name == 'about_info_edit' %}active{% endif %}" href="{% url 'cars:about_info_edit' %}"><i class="bi bi-building"></i> About Page</a></li>
+                                <li><a class="dropdown-item {% if request.resolver_match.url_name == 'staff_list' or request.resolver_match.url_name == 'staff_create' %}active{% endif %}" href="{% url 'accounts:staff_list' %}"><i class="bi bi-person-gear"></i> Staff Accounts</a></li>
+                                <li><hr class="dropdown-divider"></li>
+                                <li><a class="dropdown-item" href="{% url 'admin:index' %}" target="_blank"><i class="bi bi-gear"></i> Django Admin</a></li>
+                            </ul>
                         </li>
                     {% endif %}
                     {% if user.is_authenticated %}
-                        <li class="nav-item">
-                            <a class="nav-link {% if request.resolver_match.url_name == 'my_activity' %}active{% endif %}" href="{% url 'cars:my_activity' %}">
-                                <i class="bi bi-person-circle"></i> My Account
+                        <li class="nav-item dropdown">
+                            <a class="nav-link dropdown-toggle" href="#" role="button" data-bs-toggle="dropdown" aria-expanded="false">
+                                <i class="bi bi-person-circle"></i> {{ user.username }}
                             </a>
-                        </li>
-                        <li class="nav-item">
-                            <a class="nav-link {% if request.resolver_match.url_name == 'favorites' %}active{% endif %}" href="{% url 'accounts:favorites' %}">
-                                <i class="bi bi-heart"></i> Favorites
-                            </a>
-                        </li>
-                        <li class="nav-item">
-                            <form method="post" action="{% url 'accounts:logout' %}" class="d-inline">
-                                {% csrf_token %}
-                                <button type="submit" class="btn nav-link" style="border: none; background: none; cursor: pointer;">
-                                    <i class="bi bi-box-arrow-right"></i> Logout ({{ user.username }})
-                                </button>
-                            </form>
+                            <ul class="dropdown-menu dropdown-menu-end">
+                                <li><a class="dropdown-item {% if request.resolver_match.url_name == 'my_activity' %}active{% endif %}" href="{% url 'cars:my_activity' %}"><i class="bi bi-person-circle"></i> My Activity</a></li>
+                                <li><a class="dropdown-item {% if request.resolver_match.url_name == 'favorites' %}active{% endif %}" href="{% url 'accounts:favorites' %}"><i class="bi bi-heart"></i> Favorites</a></li>
+                                <li><hr class="dropdown-divider"></li>
+                                <li>
+                                    <form method="post" action="{% url 'accounts:logout' %}">
+                                        {% csrf_token %}
+                                        <button type="submit" class="dropdown-item"><i class="bi bi-box-arrow-right"></i> Logout</button>
+                                    </form>
+                                </li>
+                            </ul>
                         </li>
                     {% else %}
                         <li class="nav-item">
