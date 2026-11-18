@@ -1,0 +1,8 @@
+{% comment %}
+Renders every pre-serialised JSON-LD block the view put in ``structured_data``.
+The strings are escaped by ``cars.structured_data.json_ld``; never build them
+by hand in a template.
+{% endcomment %}
+{% for block in structured_data %}
+<script type="application/ld+json">{{ block|safe }}</script>
+{% endfor %}

@@ -1,0 +1,22 @@
+{% comment %}
+Anti-spam fields shared by every public form.
+
+The wrapping div is off-screen, so a real person never sees or fills it while
+naive bots that complete every input will. The optional captcha widget only
+renders when a site key is configured (captcha is off by default).
+{% endcomment %}
+<div class="antispam-honeypot" aria-hidden="true"
+     style="position:absolute;left:-9999px;top:auto;width:1px;height:1px;overflow:hidden;">
+    <label for="antispam-website">Website</label>
+    <input type="text" name="website" id="antispam-website"
+           tabindex="-1" autocomplete="off" value="">
+</div>
+{% if captcha_site_key %}
+    {% if captcha_provider == 'hcaptcha' %}
+        <div class="h-captcha mb-3" data-sitekey="{{ captcha_site_key }}"></div>
+        <script src="https://js.hcaptcha.com/1/api.js" async defer></script>
+    {% elif captcha_provider == 'recaptcha' %}
+        <div class="g-recaptcha mb-3" data-sitekey="{{ captcha_site_key }}"></div>
+        <script src="https://www.google.com/recaptcha/api.js" async defer></script>
+    {% endif %}
+{% endif %}

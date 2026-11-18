@@ -1,0 +1,45 @@
+with open('templates/cars/trade_in_valuation.html') as f:
+    c = f.read()
+new = """{% extends 'base.html' %}
+{% block title %}Trade-In Valuation{% endblock %}
+{% block content %}
+<div class="container py-4">
+  <div class="row justify-content-center">
+    <div class="col-lg-8">
+      <div class="card">
+        <div class="card-header bg-primary text-white"><h4 class="mb-0">Get Trade-In Valuation</h4></div>
+        <div class="card-body">
+          <form method="post">
+            {% csrf_token %}
+            <div class="row mb-3">
+              <div class="col-md-6"><label class="form-label">First Name</label><input type="text" name="first_name" class="form-control" required></div>
+              <div class="col-md-6"><label class="form-label">Last Name</label><input type="text" name="last_name" class="form-control" required></div>
+            </div>
+            <div class="row mb-3">
+              <div class="col-md-6"><label class="form-label">Email</label><input type="email" name="email" class="form-control" required></div>
+              <div class="col-md-6"><label class="form-label">Phone</label><input type="text" name="phone" class="form-control" required></div>
+            </div>
+            <div class="row mb-3">
+              <div class="col-md-6"><label class="form-label">Car Make</label><input type="text" name="make" class="form-control" required></div>
+              <div class="col-md-6"><label class="form-label">Car Model</label><input type="text" name="model" class="form-control" required></div>
+            </div>
+            <div class="row mb-3">
+              <div class="col-md-6"><label class="form-label">Year</label><input type="number" name="year" class="form-control" required></div>
+              <div class="col-md-6"><label class="form-label">Mileage</label><input type="number" name="mileage" class="form-control" required></div>
+            </div>
+            <div class="mb-3">
+              <label class="form-label">Additional Details</label>
+              <textarea name="description" class="form-control" rows="3"></textarea>
+            </div>
+            <button class="btn btn-primary">Request Valuation</button>
+          </form>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+{% endblock %}
+"""
+with open('templates/cars/trade_in_valuation.html', 'w') as f:
+    f.write(new)
+print('done')

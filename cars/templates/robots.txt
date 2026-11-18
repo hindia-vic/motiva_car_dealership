@@ -1,12 +1,30 @@
 User-agent: *
-Disallow: /admin/
+Allow: /
+# Development-only preview and the health probe generate no useful search
+# result, so keep them out of the index as well.
+Disallow: /404-preview/
+Disallow: /health
+Disallow: /payments/
+Disallow: /notifications/
+# The admin lives at a configurable path and is intentionally not listed here:
+# publishing it would defeat the point of hiding it. Admin responses carry a
+# noindex header instead.
 Disallow: /dashboard/
 Disallow: /accounts/
 Disallow: /my-activity/
+Disallow: /my-hires/
+Disallow: /my-financing/
+Disallow: /my-services/
+Disallow: /my-listings/
+Disallow: /my-saved-searches/
 Disallow: /inquiries/
 Disallow: /orders/
 Disallow: /customers/
 Disallow: /sales/
 Disallow: /export/
+Disallow: /hire-fleet/
+Disallow: /hire-bookings/
+Disallow: /chatbot/
+Disallow: /livechat/
 
 Sitemap: {{ request.scheme }}://{{ request.get_host }}/sitemap.xml

@@ -1,0 +1,131 @@
+{% extends "base.html" %}
+{% load currency %}
+
+{% block title %}{{ application.reference }} - Car Dealership{% endblock %}
+
+{% block content %}
+<div class="page-header">
+    <div class="container-lg">
+        <h1><i class="bi bi-credit-card"></i> Financing Application</h1>
+        <p>
+            <code>{{ application.reference }}</code> &bull;
+            submitted {{ application.created_at|date:"M d, Y H:i" }}
+        </p>
+    </div>
+</div>
+
+<div class="container-lg py-4">
+    <div class="d-flex flex-wrap gap-2 mb-4">
+        <a href="{% url 'cars:my_financing_applications' %}" class="btn btn-outline-secondary">
+            <i class="bi bi-arrow-left"></i> Back to My Applications
+        </a>
+        {% if user.is_staff %}
+            <a href="{% url 'cars:financing_application_review' application.pk %}" class="btn btn-outline-primary">
+                <i class="bi bi-clipboard-check"></i> Review (staff)
+            </a>
+        {% endif %}
+    </div>
+
+    <div class="row g-4">
+        <div class="col-lg-7">
+            <div class="card mb-4">
+                <div class="card-body">
+                    <div class="d-flex justify-content-between align-items-start mb-3">
+                        <h5 class="mb-0">{{ application.vehicle_label|default:"Vehicle" }}</h5>
+                        <span class="badge {{ application.status_badge_class }}">
+                            {{ application.get_status_display }}
+                        </span>
+                    </div>
+
+                    {% if application.status == 'declined' %}
+                        <div class="alert alert-danger">
+                            <strong>This application was not approved.</strong>
+                            {% if application.decline_reason %}
+                                <p class="mb-0 mt-2">{{ application.decline_reason|linebreaksbr }}</p>
+                            {% endif %}
+                        </div>
+                    {% elif application.status == 'approved' %}
+                        <div class="alert alert-success">
+                            <strong>Approved.</strong>
+                            We can finance {{ application.approved_amount|default:application.requested_amount|money }}
+                            over {{ application.approved_term_months|default:application.loan_term_months }} months.
+                            Reply to our email to arrange a time to come in.
+                        </div>
+                    {% elif application.status == 'withdrawn' %}
+                        <div class="alert alert-secondary">
+                            This application was withdrawn.
+                        </div>
+                    {% else %}
+                        <div class="alert alert-info">
+                            <i class="bi bi-hourglass-split"></i>
+                            Our finance team is reviewing this application. We will email
+                            you as soon as there is a decision.
+                        </div>
+                    {% endif %}
+
+                    <h6 class="mt-4">The quote</h6>
+                    <table class="table table-sm">
+                        <tbody>
+                            <tr><th class="text-muted">Vehicle price</th><td class="text-end">{{ application.price|money }}</td></tr>
+                            <tr><th class="text-muted">Deposit</th><td class="text-end">{{ application.deposit_amount|money }}</td></tr>
+                            <tr><th class="text-muted">Trade-in</th><td class="text-end">{{ application.trade_in_value|money }}</td></tr>
+                            <tr><th class="text-muted">Amount financed</th><td class="text-end"><strong>{{ application.requested_amount|money }}</strong></td></tr>
+                            <tr><th class="text-muted">Term</th><td class="text-end">{{ application.loan_term_months }} months</td></tr>
+                            <tr><th class="text-muted">Interest rate</th><td class="text-end">{{ application.interest_rate }}% p.a.</td></tr>
+                            <tr><th class="text-muted">Estimated monthly</th><td class="text-end"><strong>{{ application.estimated_monthly|money }}</strong></td></tr>
+                        </tbody>
+                    </table>
+                    <p class="text-muted small mb-0">
+                        This was the estimate when you applied. The final agreement is
+                        signed at the dealership.
+                    </p>
+                </div>
+            </div>
+        </div>
+
+        <div class="col-lg-5">
+            <div class="card mb-4">
+                <div class="card-header bg-light">
+                    <h5 class="mb-0"><i class="bi bi-person"></i> Your details</h5>
+                </div>
+                <div class="card-body">
+                    <p class="mb-1"><strong>{{ application.customer_name }}</strong></p>
+                    <p class="mb-1"><a href="mailto:{{ application.customer_email }}">{{ application.customer_email }}</a></p>
+                    <p class="mb-3"><a href="tel:{{ application.customer_phone }}">{{ application.customer_phone }}</a></p>
+                    <hr>
+                    <div class="d-flex justify-content-between">
+                        <span class="text-muted">Employment</span>
+                        <strong>{{ application.get_employment_status_display }}</strong>
+                    </div>
+                    <div class="d-flex justify-content-between">
+                        <span class="text-muted">Net monthly income</span>
+                        <strong>{{ application.monthly_income|money }}</strong>
+                    </div>
+                    <div class="d-flex justify-content-between">
+                        <span class="text-muted">Monthly commitments</span>
+                        <strong>{{ application.monthly_expenses|money }}</strong>
+                    </div>
+                </div>
+            </div>
+
+            {% if user.is_staff %}
+                <div class="card">
+                    <div class="card-header bg-light">
+                        <h5 class="mb-0"><i class="bi bi-lock"></i> Internal</h5>
+                    </div>
+                    <div class="card-body">
+                        <p class="mb-1"><span class="text-muted">Reviewed by:</span>
+                            {{ application.reviewed_by|default:"not yet" }}</p>
+                        <p class="mb-1"><span class="text-muted">Reviewed at:</span>
+                            {{ application.reviewed_at|date:"M d, Y H:i"|default:"not yet" }}</p>
+                        {% if application.decision_notes %}
+                            <hr>
+                            <p class="mb-0">{{ application.decision_notes|linebreaksbr }}</p>
+                        {% endif %}
+                    </div>
+                </div>
+            {% endif %}
+        </div>
+    </div>
+</div>
+{% endblock %}

@@ -1,0 +1,28 @@
+{% extends 'base.html' %}
+{% block title %}My Saved Searches{% endblock %}
+{% block content %}
+<div class="container py-4">
+  <h2><i class="bi bi-search"></i> My Saved Searches</h2>
+  <div class="table-responsive mt-3">
+    <table class="table table-hover">
+      <thead><tr><th>Make/Model</th><th>Filters</th><th>Created</th><th></th></tr></thead>
+      <tbody>
+        {% for search in searches %}
+        <tr>
+          <td>{{ search.make }} {{ search.model }}</td>
+          <td>
+            {% if search.body_type %}Body: {{ search.body_type }} {% endif %}
+            {% if search.fuel_type %}Fuel: {{ search.fuel_type }} {% endif %}
+            {% if search.transmission %}Trans: {{ search.transmission }} {% endif %}
+          </td>
+          <td>{{ search.created_at|date:"M d, Y" }}</td>
+          <td><a href="{% url 'cars:delete_saved_search' search.pk %}" class="btn btn-sm btn-danger">Delete</a></td>
+        </tr>
+        {% empty %}
+        <tr><td colspan="4" class="text-center text-muted">No saved searches</td></tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+</div>
+{% endblock %}

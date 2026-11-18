@@ -1,0 +1,224 @@
+{% extends "base.html" %}
+{% load currency %}
+
+{% block title %}{% if tours_only %}Tours & Travel{% else %}Car Hire{% endif %} - {{ dealership.name|default:"Car Dealership" }}{% endblock %}
+
+{% block meta_description %}{% if tours_only %}Tours and travel with an experienced driver. Choose your dates and send a request - we confirm it for you.{% else %}Hire a car by the day, with or without a driver. Browse the fleet, choose your dates, and send a booking request.{% endif %}{% endblock %}
+{% block og_title %}Car hire and tours & travel{% endblock %}
+{% block og_description %}Hire a car by the day, or travel with one of our experienced drivers. Choose your dates and send a request - we confirm it for you.{% endblock %}
+
+{% block content %}
+<div class="page-header">
+    <div class="container-lg">
+        <h1><i class="bi bi-airplane"></i> {% if tours_only %}Tours & Travel{% else %}Car Hire{% endif %}</h1>
+        <p>
+            {% if tours_only %}
+                Hire the car and one of our drivers, and let us do the driving.
+            {% else %}
+                Hire a car by the day, with or without a driver. Choose your dates and send us a request.
+            {% endif %}
+        </p>
+    </div>
+</div>
+
+<div class="container-lg py-4">
+    <div class="row">
+        <!-- Filters -->
+        <div class="col-lg-3 mb-4">
+            <div class="filter-panel">
+                <h5><i class="bi bi-funnel"></i> Narrow it down</h5>
+                <form method="get" action="{% url 'hiring:hire_car_list' %}">
+                    {% if tours_only %}
+                        <input type="hidden" name="service" value="tour">
+                    {% endif %}
+
+                    <div class="mb-3">
+                        <label for="filter-search" class="form-label">Make or model</label>
+                        <input type="text" name="search" id="filter-search" class="form-control form-control-sm"
+                               value="{{ search }}" placeholder="e.g. Toyota">
+                    </div>
+
+                    <div class="mb-3">
+                        <label for="filter-body" class="form-label">Body type</label>
+                        <select name="body_type" id="filter-body" class="form-select form-select-sm">
+                            <option value="">Any</option>
+                            {% for value in body_types %}
+                                <option value="{{ value }}" {% if body_type == value %}selected{% endif %}>
+                                    {{ value|capfirst }}
+                                </option>
+                            {% endfor %}
+                        </select>
+                    </div>
+
+                    <div class="mb-3">
+                        <label for="filter-transmission" class="form-label">Transmission</label>
+                        <select name="transmission" id="filter-transmission" class="form-select form-select-sm">
+                            <option value="">Any</option>
+                            {% for value in transmissions %}
+                                <option value="{{ value }}" {% if transmission == value %}selected{% endif %}>
+                                    {{ value|capfirst }}
+                                </option>
+                            {% endfor %}
+                        </select>
+                    </div>
+
+                    <div class="mb-3">
+                        <label for="filter-seats" class="form-label">Seats (at least)</label>
+                        <input type="number" name="seats" id="filter-seats" min="1" max="60"
+                               class="form-control form-control-sm" value="{{ seats }}">
+                    </div>
+
+                    <div class="mb-3">
+                        <label for="filter-max-rate" class="form-label">
+                            Max per day ({% if service == 'tour' %}with driver{% else %}self-drive{% endif %})
+                        </label>
+                        <input type="number" name="max_rate" id="filter-max-rate" min="0" step="500"
+                               class="form-control form-control-sm" value="{{ max_rate }}" placeholder="e.g. 10000">
+                    </div>
+
+                    <hr>
+
+                    <h6 class="text-uppercase text-muted small">Your dates</h6>
+                    <p class="small text-muted">Cars already out for these dates are hidden.</p>
+
+                    <div class="mb-3">
+                        <label for="filter-start" class="form-label">Pick-up</label>
+                        <input type="date" name="start_date" id="filter-start" class="form-control form-control-sm"
+                               value="{{ start_date }}">
+                    </div>
+
+                    <div class="mb-3">
+                        <label for="filter-end" class="form-label">Return</label>
+                        <input type="date" name="end_date" id="filter-end" class="form-control form-control-sm"
+                               value="{{ end_date }}">
+                    </div>
+
+                    <button type="submit" class="btn btn-primary btn-sm w-100">
+                        <i class="bi bi-search"></i> Show these cars
+                    </button>
+                    <a href="{% url 'hiring:hire_car_list' %}" class="btn btn-outline-secondary btn-sm w-100 mt-2">
+                        Clear
+                    </a>
+                </form>
+            </div>
+
+            {% if tours_only %}
+                <div class="alert alert-info small">
+                    <i class="bi bi-info-circle"></i>
+                    Every tour car goes out with one of our drivers. Tell us where you are
+                    going and we will plan the route with you.
+                </div>
+            {% else %}
+                <div class="alert alert-info small">
+                    <i class="bi bi-info-circle"></i>
+                    Every car can be hired with a driver or without one. The price shown is
+                    for self-drive; the tour price is on the car's own page.
+                </div>
+            {% endif %}
+        </div>
+
+        <!-- Results -->
+        <div class="col-lg-9">
+            <div class="d-flex justify-content-between align-items-center flex-wrap mb-3">
+                <p class="text-muted mb-0">
+                    {{ page_obj.paginator.count }} car{{ page_obj.paginator.count|pluralize }} available
+                </p>
+                <div class="d-flex align-items-center gap-2">
+                    <label for="sort" class="form-label mb-0 small text-muted">Sort</label>
+                    <select id="sort" class="form-select form-select-sm" style="width: auto;"
+                            onchange="window.location.href = this.value;">
+                        {% for key, label in sort_options %}
+                            <option value="?{% if search %}search={{ search|urlencode }}&amp;{% endif %}{% if body_type %}body_type={{ body_type|urlencode }}&amp;{% endif %}{% if transmission %}transmission={{ transmission|urlencode }}&amp;{% endif %}{% if seats %}seats={{ seats|urlencode }}&amp;{% endif %}{% if max_rate %}max_rate={{ max_rate|urlencode }}&amp;{% endif %}{% if start_date %}start_date={{ start_date|urlencode }}&amp;{% endif %}{% if end_date %}end_date={{ end_date|urlencode }}&amp;{% endif %}{% if service %}service={{ service|urlencode }}&amp;{% endif %}sort={{ key }}"
+                                {% if current_sort == key %}selected{% endif %}>
+                                {{ label }}
+                            </option>
+                        {% endfor %}
+                    </select>
+                </div>
+            </div>
+
+            {% if hire_cars %}
+                <div class="row g-4">
+                    {% for car in hire_cars %}
+                        <div class="col-md-6 col-xl-4">
+                            <div class="card h-100">
+                                {% with photo=car.primary_photo %}
+                                    {% if photo %}
+                                        <a href="{% url 'hiring:hire_car_detail' car.pk %}">
+                                            <img src="{{ photo.thumbnail_url }}" class="card-img-top" alt="{{ car }}">
+                                        </a>
+                                    {% else %}
+                                        <div class="card-img-top d-flex align-items-center justify-content-center bg-light">
+                                            <i class="bi bi-car-front fs-1 text-muted"></i>
+                                        </div>
+                                    {% endif %}
+                                {% endwith %}
+                                <div class="card-body d-flex flex-column">
+                                    <h5 class="card-title mb-1">{{ car.year }} {{ car.make }} {{ car.model }}</h5>
+                                    <p class="text-muted small mb-2">
+                                        <i class="bi bi-people"></i> {{ car.seats }} seats
+                                        <span class="mx-1">|</span>
+                                        <i class="bi bi-gear"></i> {{ car.transmission|capfirst }}
+                                        <span class="mx-1">|</span>
+                                        <i class="bi bi-fuel-pump"></i> {{ car.fuel_type|capfirst }}
+                                    </p>
+
+                                    <div class="mt-auto">
+                                        <div class="d-flex justify-content-between align-items-end">
+                                            <div>
+                                                <small class="text-muted d-block">Self-drive</small>
+                                                <span class="fw-bold">{{ car.hire_daily_rate|money }}/day</span>
+                                            </div>
+                                            {% if car.allows_tours %}
+                                                <div class="text-end">
+                                                    <small class="text-muted d-block">With driver</small>
+                                                    <span class="fw-bold">{{ car.tour_daily_rate|money }}/day</span>
+                                                </div>
+                                            {% endif %}
+                                        </div>
+                                        <a href="{% url 'hiring:hire_car_detail' car.pk %}"
+                                           class="btn btn-primary btn-sm w-100 mt-3">
+                                            Check dates &amp; request
+                                        </a>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    {% endfor %}
+                </div>
+
+                {% if page_obj.has_other_pages %}
+                    <nav class="mt-4" aria-label="Page navigation">
+                        <ul class="pagination justify-content-center">
+                            {% if page_obj.has_previous %}
+                                <li class="page-item">
+                                    <a class="page-link" href="?page={{ page_obj.previous_page_number }}">Previous</a>
+                                </li>
+                            {% endif %}
+                            {% for num in page_obj.paginator.page_range %}
+                                <li class="page-item {% if num == page_obj.number %}active{% endif %}">
+                                    <a class="page-link" href="?page={{ num }}">{{ num }}</a>
+                                </li>
+                            {% endfor %}
+                            {% if page_obj.has_next %}
+                                <li class="page-item">
+                                    <a class="page-link" href="?page={{ page_obj.next_page_number }}">Next</a>
+                                </li>
+                            {% endif %}
+                        </ul>
+                    </nav>
+                {% endif %}
+            {% else %}
+                <div class="card">
+                    <div class="card-body text-center py-5">
+                        <i class="bi bi-car-front fs-1 text-muted"></i>
+                        <h4 class="mt-3">No cars match those filters</h4>
+                        <p class="text-muted">Try widening the dates or clearing a filter.</p>
+                        <a href="{% url 'hiring:hire_car_list' %}" class="btn btn-primary">Show all cars</a>
+                    </div>
+                </div>
+            {% endif %}
+        </div>
+    </div>
+</div>
+{% endblock %}

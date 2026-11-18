@@ -1,4 +1,5 @@
 {% extends "base.html" %}
+{% load currency %}
 
 {% block title %}{{ customer.first_name }} {{ customer.last_name }} - Car Dealership{% endblock %}
 
@@ -162,7 +163,7 @@
                                         </td>
                                         <td>{{ purchase.car.year }} {{ purchase.car.make }} {{ purchase.car.model }}</td>
                                         <td>{{ purchase.sale_date|date:"M d, Y" }}</td>
-                                        <td class="price-tag">${{ purchase.sale_price }}</td>
+                                        <td class="price-tag">{{ purchase.sale_price|money }}</td>
                                         <td>
                                             {% if purchase.status == 'completed' %}
                                                 <span class="badge badge-available">Completed</span>

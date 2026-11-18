@@ -1,0 +1,398 @@
+{% extends "base.html" %}
+{% load currency %}
+
+{% block title %}Booking {{ booking.reference }} - Staff{% endblock %}
+
+{% block content %}
+<div class="page-header">
+    <div class="container-lg">
+        <h1><i class="bi bi-calendar-check"></i> Booking {{ booking.reference }}</h1>
+        <p>
+            {{ booking.hire_car.year }} {{ booking.hire_car.make }} {{ booking.hire_car.model }} &middot;
+            {{ booking.start_date|date:"d M Y" }} to {{ booking.end_date|date:"d M Y" }} &middot;
+            {{ booking.days }} day{{ booking.days|pluralize }}
+        </p>
+    </div>
+</div>
+
+<div class="container-lg py-4">
+    <div class="row g-4">
+        <!-- What the customer asked for -->
+        <div class="col-lg-5">
+            <div class="card mb-3">
+                <div class="card-body">
+                    <h5 class="mb-3"><i class="bi bi-person"></i> The customer</h5>
+                    <dl class="row mb-0">
+                        <dt class="col-sm-4">Name</dt>
+                        <dd class="col-sm-8">{{ booking.customer_name }}</dd>
+
+                        <dt class="col-sm-4">Email</dt>
+                        <dd class="col-sm-8">
+                            <a href="mailto:{{ booking.customer_email }}">{{ booking.customer_email }}</a>
+                        </dd>
+
+                        <dt class="col-sm-4">Phone</dt>
+                        <dd class="col-sm-8">{{ booking.customer_phone }}</dd>
+
+                        <dt class="col-sm-4">Service</dt>
+                        <dd class="col-sm-8">{{ booking.service_label }}</dd>
+
+                        <dt class="col-sm-4">Passengers</dt>
+                        <dd class="col-sm-8">{{ booking.passengers }}</dd>
+
+                        {% if booking.pickup_location %}
+                            <dt class="col-sm-4">Pick-up</dt>
+                            <dd class="col-sm-8">{{ booking.pickup_location }}</dd>
+                        {% endif %}
+
+                        {% if booking.destination %}
+                            <dt class="col-sm-4">Going to</dt>
+                            <dd class="col-sm-8">{{ booking.destination }}</dd>
+                        {% endif %}
+
+                        {% if booking.notes %}
+                            <dt class="col-sm-4">Notes</dt>
+                            <dd class="col-sm-8">{{ booking.notes|linebreaksbr }}</dd>
+                        {% endif %}
+                    </dl>
+                </div>
+            </div>
+
+            <div class="card mb-3">
+                <div class="card-body">
+                    <h5 class="mb-3"><i class="bi bi-shield-check"></i> Licence and ID</h5>
+                    <dl class="row mb-0">
+                        <dt class="col-sm-5">Licence number</dt>
+                        <dd class="col-sm-7"><strong>{{ booking.licence_number }}</strong></dd>
+
+                        <dt class="col-sm-5">ID / passport</dt>
+                        <dd class="col-sm-7"><strong>{{ booking.id_number }}</strong></dd>
+                    </dl>
+                    <p class="text-muted small mt-2 mb-0">
+                        Check both against the original documents before the car goes out.
+                        A tour booking does not need a licence from the customer.
+                    </p>
+                </div>
+            </div>
+
+            <div class="card mb-3">
+                <div class="card-body">
+                    <h5 class="mb-3"><i class="bi bi-clock-history"></i> Status</h5>
+                    <dl class="row mb-0">
+                        <dt class="col-sm-5">Booking</dt>
+                        <dd class="col-sm-7">{{ booking.get_status_display }}</dd>
+
+                        <dt class="col-sm-5">Payment</dt>
+                        <dd class="col-sm-7">{{ booking.get_payment_status_display }}</dd>
+
+                        {% if booking.payment_reference %}
+                            <dt class="col-sm-5">Reference</dt>
+                            <dd class="col-sm-7">{{ booking.payment_reference }}</dd>
+                        {% endif %}
+
+                        {% if booking.payment_received_at %}
+                            <dt class="col-sm-5">Received</dt>
+                            <dd class="col-sm-7">{{ booking.payment_received_at|date:"d M Y H:i" }}</dd>
+                        {% endif %}
+
+                        <dt class="col-sm-5">Requested</dt>
+                        <dd class="col-sm-7">{{ booking.created_at|date:"d M Y H:i" }}</dd>
+
+                        {% if booking.reviewed_by %}
+                            <dt class="col-sm-5">Last handled by</dt>
+                            <dd class="col-sm-7">{{ booking.reviewed_by }}</dd>
+                        {% endif %}
+                    </dl>
+                </div>
+            </div>
+
+            {% if clashes %}
+                <div class="alert alert-warning">
+                    <strong><i class="bi bi-exclamation-triangle"></i> Other bookings on these dates</strong>
+                    <ul class="mb-0 mt-2">
+                        {% for clash in clashes %}
+                            <li>
+                                <a href="{% url 'hiring:staff_hire_booking_review' clash.pk %}">{{ clash.reference }}</a>
+                                &mdash; {{ clash.get_status_display }},
+                                {{ clash.start_date|date:"d M" }} to {{ clash.end_date|date:"d M Y" }}
+                                ({{ clash.customer_name }})
+                            </li>
+                        {% endfor %}
+                    </ul>
+                </div>
+            {% endif %}
+        </div>
+
+        <!-- What staff do with it -->
+        <div class="col-lg-7">
+            <div class="card">
+                <div class="card-body p-4">
+                    <h4 class="mb-3"><i class="bi bi-pencil-square"></i> Work through this booking</h4>
+
+                    <div class="alert alert-info small">
+                        <i class="bi bi-calculator"></i>
+                        The standard price for {{ booking.days }} day{{ booking.days|pluralize }} at the
+                        car's {{ booking.service_type|lower }} rate is
+                        <strong>{{ standard_quote|money }}</strong>.
+                        Change the amount below if the trip works out differently.
+                    </div>
+
+                    {% if review_form.non_field_errors %}
+                        <div class="alert alert-danger">{{ review_form.non_field_errors }}</div>
+                    {% endif %}
+
+                    <form method="post">
+                        {% csrf_token %}
+
+                        <div class="row g-3">
+                            <div class="col-md-6">
+                                <label for="{{ review_form.start_date.id_for_label }}" class="form-label">
+                                    Pick-up date *
+                                </label>
+                                {{ review_form.start_date }}
+                                {% if review_form.start_date.errors %}
+                                    <div class="text-danger small mt-1">
+                                        {% for e in review_form.start_date.errors %}{{ e }}<br>{% endfor %}
+                                    </div>
+                                {% endif %}
+                            </div>
+                            <div class="col-md-6">
+                                <label for="{{ review_form.end_date.id_for_label }}" class="form-label">
+                                    Return date *
+                                </label>
+                                {{ review_form.end_date }}
+                                {% if review_form.end_date.errors %}
+                                    <div class="text-danger small mt-1">
+                                        {% for e in review_form.end_date.errors %}{{ e }}<br>{% endfor %}
+                                    </div>
+                                {% endif %}
+                            </div>
+                            <div class="col-md-6">
+                                <label for="{{ review_form.quoted_price.id_for_label }}" class="form-label">
+                                    What the customer owes *
+                                </label>
+                                {{ review_form.quoted_price }}
+                                {% if review_form.quoted_price.errors %}
+                                    <div class="text-danger small mt-1">
+                                        {% for e in review_form.quoted_price.errors %}{{ e }}<br>{% endfor %}
+                                    </div>
+                                {% endif %}
+                            </div>
+                            <div class="col-md-6">
+                                <label for="{{ review_form.status.id_for_label }}" class="form-label">
+                                    Where is the booking?
+                                </label>
+                                {{ review_form.status }}
+                                {% if review_form.status.errors %}
+                                    <div class="text-danger small mt-1">
+                                        {% for e in review_form.status.errors %}{{ e }}<br>{% endfor %}
+                                    </div>
+                                {% endif %}
+                                <small class="form-text text-muted">{{ review_form.status.help_text }}</small>
+                            </div>
+                        </div>
+
+                        <hr class="my-4">
+
+                        <h5 class="mb-3"><i class="bi bi-cash-coin"></i> Payment</h5>
+                        <div class="row g-3">
+                            <div class="col-md-6">
+                                <label for="{{ review_form.payment_status.id_for_label }}" class="form-label">
+                                    Payment *
+                                </label>
+                                {{ review_form.payment_status }}
+                                {% if review_form.payment_status.errors %}
+                                    <div class="text-danger small mt-1">
+                                        {% for e in review_form.payment_status.errors %}{{ e }}<br>{% endfor %}
+                                    </div>
+                                {% endif %}
+                            </div>
+                            <div class="col-md-6">
+                                <label for="{{ review_form.payment_reference.id_for_label }}" class="form-label">
+                                    Payment reference
+                                </label>
+                                {{ review_form.payment_reference }}
+                                {% if review_form.payment_reference.errors %}
+                                    <div class="text-danger small mt-1">
+                                        {% for e in review_form.payment_reference.errors %}{{ e }}<br>{% endfor %}
+                                    </div>
+                                {% endif %}
+                            </div>
+                        </div>
+
+                        <hr class="my-4">
+
+                        <h5 class="mb-3"><i class="bi bi-shield-lock"></i> Security deposit</h5>
+                        <div class="row g-3">
+                            <div class="col-md-6">
+                                <label for="{{ review_form.security_deposit.id_for_label }}" class="form-label">
+                                    {{ review_form.security_deposit.label }}
+                                </label>
+                                {{ review_form.security_deposit }}
+                                {% if review_form.security_deposit.errors %}
+                                    <div class="text-danger small mt-1">
+                                        {% for e in review_form.security_deposit.errors %}{{ e }}<br>{% endfor %}
+                                    </div>
+                                {% endif %}
+                                <small class="form-text text-muted">{{ review_form.security_deposit.help_text }}</small>
+                            </div>
+                            <div class="col-md-6">
+                                <label for="{{ review_form.deposit_retained.id_for_label }}" class="form-label">
+                                    {{ review_form.deposit_retained.label }}
+                                </label>
+                                {{ review_form.deposit_retained }}
+                                {% if review_form.deposit_retained.errors %}
+                                    <div class="text-danger small mt-1">
+                                        {% for e in review_form.deposit_retained.errors %}{{ e }}<br>{% endfor %}
+                                    </div>
+                                {% endif %}
+                                <small class="form-text text-muted">
+                                    Leave at zero to refund the whole deposit.
+                                </small>
+                            </div>
+                            <div class="col-md-6">
+                                <div class="form-check">
+                                    {{ review_form.deposit_received }}
+                                    <label class="form-check-label" for="{{ review_form.deposit_received.id_for_label }}">
+                                        {{ review_form.deposit_received.label }}
+                                    </label>
+                                </div>
+                                {% if review_form.deposit_received.errors %}
+                                    <div class="text-danger small mt-1">
+                                        {% for e in review_form.deposit_received.errors %}{{ e }}<br>{% endfor %}
+                                    </div>
+                                {% endif %}
+                            </div>
+                            <div class="col-md-6">
+                                <div class="form-check">
+                                    {{ review_form.deposit_refunded }}
+                                    <label class="form-check-label" for="{{ review_form.deposit_refunded.id_for_label }}">
+                                        {{ review_form.deposit_refunded.label }}
+                                    </label>
+                                </div>
+                            </div>
+                        </div>
+                        <p class="small text-muted mb-0 mt-2">
+                            Hire <strong>{{ booking.hire_total|money }}</strong>
+                            {% if booking.security_deposit %}
+                                plus a refundable deposit of
+                                <strong>{{ booking.security_deposit|money }}</strong>.
+                                The customer hands over
+                                <strong>{{ booking.total_due|money }}</strong>.
+                            {% endif %}
+                        </p>
+
+                        <hr class="my-4">
+
+                        <h5 class="mb-3"><i class="bi bi-plus-square"></i> Extras</h5>
+                        <p class="text-muted small">
+                            Add or change what the customer ordered. The price on a line is the
+                            price it was quoted at.
+                        </p>
+                        {{ extras_formset.management_form }}
+                        {% if extras_formset.non_form_errors %}
+                            <div class="alert alert-danger">{{ extras_formset.non_form_errors }}</div>
+                        {% endif %}
+                        <div class="table-responsive">
+                            <table class="table table-sm align-middle">
+                                <thead class="table-light">
+                                    <tr>
+                                        <th>Add-on</th>
+                                        <th style="width: 100px;">Qty</th>
+                                        <th class="text-end">Line</th>
+                                        <th style="width: 70px;">Remove</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    {% for extra_form in extras_formset %}
+                                        <tr>
+                                            <td>
+                                                {{ extra_form.id }}
+                                                {{ extra_form.add_on }}
+                                                {% if extra_form.add_on.errors %}
+                                                    <div class="text-danger small">
+                                                        {% for e in extra_form.add_on.errors %}{{ e }}<br>{% endfor %}
+                                                    </div>
+                                                {% endif %}
+                                            </td>
+                                            <td>
+                                                {{ extra_form.quantity }}
+                                                {% if extra_form.quantity.errors %}
+                                                    <div class="text-danger small">
+                                                        {% for e in extra_form.quantity.errors %}{{ e }}<br>{% endfor %}
+                                                    </div>
+                                                {% endif %}
+                                            </td>
+                                            <td class="text-end">
+                                                {{ extra_form.instance.line_total|money }}
+                                            </td>
+                                            <td>
+                                                {% if extra_form.instance.pk %}
+                                                    {{ extra_form.DELETE }}
+                                                {% endif %}
+                                            </td>
+                                        </tr>
+                                    {% endfor %}
+                                </tbody>
+                            </table>
+                        </div>
+
+                        <hr class="my-4">
+
+                        <div class="row g-3">
+                            <div class="col-12">
+                                <label for="{{ review_form.driver_name.id_for_label }}" class="form-label">
+                                    Driver (for tours)
+                                </label>
+                                {{ review_form.driver_name }}
+                                {% if review_form.driver_name.errors %}
+                                    <div class="text-danger small mt-1">
+                                        {% for e in review_form.driver_name.errors %}{{ e }}<br>{% endfor %}
+                                    </div>
+                                {% endif %}
+                            </div>
+                            <div class="col-12">
+                                <label for="{{ review_form.staff_notes.id_for_label }}" class="form-label">
+                                    Internal notes
+                                </label>
+                                {{ review_form.staff_notes }}
+                                {% if review_form.staff_notes.errors %}
+                                    <div class="text-danger small mt-1">
+                                        {% for e in review_form.staff_notes.errors %}{{ e }}<br>{% endfor %}
+                                    </div>
+                                {% endif %}
+                            </div>
+                            <div class="col-12">
+                                <label for="{{ review_form.rejection_reason.id_for_label }}" class="form-label">
+                                    Reason for turning it down
+                                </label>
+                                {{ review_form.rejection_reason }}
+                                {% if review_form.rejection_reason.errors %}
+                                    <div class="text-danger small mt-1">
+                                        {% for e in review_form.rejection_reason.errors %}{{ e }}<br>{% endfor %}
+                                    </div>
+                                {% endif %}
+                            </div>
+                        </div>
+
+                        <div class="d-flex gap-2 mt-4">
+                            <button type="submit" class="btn btn-primary">
+                                <i class="bi bi-check-lg"></i> Save
+                            </button>
+                            <a href="{% url 'hiring:staff_hire_bookings' %}" class="btn btn-outline-secondary">
+                                Back to the list
+                            </a>
+                        </div>
+                    </form>
+                </div>
+            </div>
+
+            <div class="alert alert-warning small mt-3">
+                <i class="bi bi-shield-exclamation"></i>
+                Confirming a booking blocks those dates for every other request on the same
+                car. The customer is emailed when you change the status.
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

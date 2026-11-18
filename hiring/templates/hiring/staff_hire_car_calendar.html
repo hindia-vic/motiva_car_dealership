@@ -1,0 +1,76 @@
+{% extends "base.html" %}
+{% load currency %}
+
+{% block title %}{{ hire_car.year }} {{ hire_car.make }} {{ hire_car.model }} - Hire Calendar - {{ dealership.name|default:"Car Dealership" }}{% endblock %}
+
+{% block content %}
+<div class="page-header">
+    <div class="container-lg d-flex justify-content-between align-items-center flex-wrap">
+        <div>
+            <h1><i class="bi bi-calendar3"></i> {{ hire_car.year }} {{ hire_car.make }} {{ hire_car.model }} Calendar</h1>
+            <p>Bookings from {{ start_date }} to {{ end_date }}</p>
+        </div>
+        <div>
+            <a href="{% url 'hiring:staff_hire_calendar' %}" class="btn btn-light"><i class="bi bi-calendar-range"></i> All Calendars</a>
+            <a href="{% url 'hiring:staff_hire_bookings' %}" class="btn btn-light"><i class="bi bi-list-check"></i> Bookings</a>
+        </div>
+    </div>
+</div>
+
+<div class="container-lg py-4">
+    <div class="card shadow-sm mb-3">
+        <div class="card-header">
+            <h5 class="mb-0">Car Details</h5>
+        </div>
+        <div class="card-body">
+            <div class="row">
+                <div class="col-md-6">
+                    <p class="mb-1"><strong>Make/Model:</strong> {{ hire_car.year }} {{ hire_car.make }} {{ hire_car.model }}</p>
+                    <p class="mb-1"><strong>Registration:</strong> {{ hire_car.registration_number }}</p>
+                    <p class="mb-1"><strong>Status:</strong> <span class="badge {{ hire_car.status_badge_class }}">{{ hire_car.get_status_display }}</span></p>
+                </div>
+                <div class="col-md-6">
+                    <p class="mb-1"><strong>Daily Rate:</strong> {{ hire_car.daily_rate|currency }}</p>
+                    <p class="mb-1"><strong>Deposit:</strong> {{ hire_car.deposit_amount|currency }}</p>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="card shadow-sm">
+        <div class="card-header">
+            <h5 class="mb-0">Booked Periods</h5>
+        </div>
+        <div class="card-body p-0">
+            <div class="table-responsive">
+                <table class="table table-striped mb-0">
+                    <thead>
+                        <tr>
+                            <th>Booking</th>
+                            <th>Customer</th>
+                            <th>Start</th>
+                            <th>End</th>
+                            <th>Status</th>
+                            <th>Action</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for booking in bookings %}
+                        <tr>
+                            <td><a href="{% url 'hiring:staff_hire_booking_review' booking.pk %}">#{{ booking.pk }}</a></td>
+                            <td>{{ booking.customer_name }}</td>
+                            <td>{{ booking.start_date }}</td>
+                            <td>{{ booking.end_date }}</td>
+                            <td><span class="badge bg-secondary">{{ booking.get_status_display }}</span></td>
+                            <td><a href="{% url 'hiring:staff_hire_booking_review' booking.pk %}" class="btn btn-sm btn-outline-primary">Review</a></td>
+                        </tr>
+                        {% empty %}
+                        <tr><td colspan="6" class="text-center text-muted">No bookings in this period</td></tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

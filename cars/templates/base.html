@@ -1,435 +1,823 @@
-<!DOCTYPE html>
+{% load static %}<!DOCTYPE html>
 <html lang="en">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>{% block title %}Car Dealership{% endblock %}</title>
+    <title>{% block title %}{{ dealership.name|default:"Premier Car Dealership" }}{% endblock %}</title>
+    {% if google_site_verification %}
+        <meta name="google-site-verification" content="{{ google_site_verification }}">
+    {% endif %}
+    {% if bing_site_verification %}
+        <meta name="msvalidate.01" content="{{ bing_site_verification }}">
+    {% endif %}
     {% block meta %}
-        <meta name="description" content="Find new and used cars at our dealership. Browse our inventory, book a test drive, inquire about financing, and read customer reviews.">
+        <meta name="description" content="{% block meta_description %}Find new and used cars at our dealership. Browse our inventory, book a test drive, inquire about financing, and read customer reviews.{% endblock %}">
         <meta name="keywords" content="car dealership, new cars, used cars, certified pre-owned, test drive, financing, car dealer">
-        <link rel="canonical" href="{{ request.scheme }}://{{ request.get_host }}{{ request.path }}">
-        <meta property="og:type" content="website">
-        <meta property="og:site_name" content="Car Dealership">
-        <meta property="og:title" content="{% block og_title %}Car Dealership{% endblock %}">
-        <meta property="og:url" content="{{ request.scheme }}://{{ request.get_host }}{{ request.path }}">
-        <meta property="og:description" content="{% block og_description %}Find new and used cars at our dealership.{% endblock %}">
+        <link rel="canonical" href="{% block canonical %}{{ request.scheme }}://{{ request.get_host }}{{ request.path }}{% endblock %}">
+        <meta property="og:type" content="{% block og_type %}website{% endblock %}">
+        <meta property="og:site_name" content="{{ dealership.name|default:'Premier Car Dealership' }}">
+        <meta property="og:title" content="{% block og_title %}{{ dealership.name|default:'Premier Car Dealership' }}{% endblock %}">
+        <meta property="og:url" content="{% block og_url %}{{ request.scheme }}://{{ request.get_host }}{{ request.path }}{% endblock %}">
+        <meta property="og:description" content="{% block og_description %}Quality new and used cars with flexible financing and trusted service.{% endblock %}">
+        {% if default_og_image %}
+            <meta property="og:image" content="{{ default_og_image }}">
+            <meta name="twitter:card" content="summary_large_image">
+        {% endif %}
     {% endblock %}
-    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
-    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.0/font/bootstrap-icons.css">
+    
+    {% block structured_data %}{% endblock %}
+    
+    <!-- Vehicle feeds: one JSON for integrations, one XML for crawlers -->
+    <link rel="alternate" type="application/json" title="Vehicle feed (JSON)"
+          href="{% url 'cars:vehicle_feed_json' %}">
+    <link rel="alternate" type="application/xml" title="Vehicle feed (XML)"
+          href="{% url 'cars:vehicle_feed_xml' %}">
+    
+    <!-- Google Fonts: start the stylesheet fetch during HTML parsing, and
+         reuse the already-open connection for the font files. -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link rel="preload" as="style" href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+    
+    <!-- Bootstrap & Icons (served locally so the UI does not depend on a CDN) -->
+    <link href="{% static 'vendor/bootstrap/css/bootstrap.min.css' %}" rel="stylesheet">
+    <link rel="stylesheet" href="{% static 'vendor/bootstrap-icons/bootstrap-icons.css' %}">
+    
     <style>
         :root {
-            --primary-color: #1a5f7a;
-            --secondary-color: #f39c12;
+            --primary-50: #eff6ff;
+            --primary-100: #dbeafe;
+            --primary-200: #bfdbfe;
+            --primary-300: #93c5fd;
+            --primary-400: #60a5fa;
+            --primary-500: #3b82f6;
+            --primary-600: #2563eb;
+            --primary-700: #1d4ed8;
+            --primary-800: #1e40af;
+            --primary-900: #1e3a8a;
+            
+            --secondary-50: #fef3c7;
+            --secondary-100: #fde68a;
+            --secondary-200: #fcd34d;
+            --secondary-300: #fbbf24;
+            --secondary-400: #f59e0b;
+            --secondary-500: #d97706;
+            --secondary-600: #b45309;
+            
+            --success-500: #10b981;
+            --warning-500: #f59e0b;
+            --danger-500: #ef4444;
+            --info-500: #06b6d4;
+            
+            --gray-50: #f9fafb;
+            --gray-100: #f3f4f6;
+            --gray-200: #e5e7eb;
+            --gray-300: #d1d5db;
+            --gray-400: #9ca3af;
+            --gray-500: #6b7280;
+            --gray-600: #4b5563;
+            --gray-700: #374151;
+            --gray-800: #1f2937;
+            --gray-900: #111827;
+            
+            --shadow-sm: 0 1px 2px 0 rgb(0 0 0 / 0.05);
+            --shadow: 0 1px 3px 0 rgb(0 0 0 / 0.1), 0 1px 2px -1px rgb(0 0 0 / 0.1);
+            --shadow-md: 0 4px 6px -1px rgb(0 0 0 / 0.1), 0 2px 4px -2px rgb(0 0 0 / 0.1);
+            --shadow-lg: 0 10px 15px -3px rgb(0 0 0 / 0.1), 0 4px 6px -4px rgb(0 0 0 / 0.1);
+            --shadow-xl: 0 20px 25px -5px rgb(0 0 0 / 0.1), 0 8px 10px -6px rgb(0 0 0 / 0.1);
+            
+            --radius-sm: 0.375rem;
+            --radius: 0.5rem;
+            --radius-md: 0.75rem;
+            --radius-lg: 1rem;
+            --radius-xl: 1.5rem;
+        }
+        
+        * {
+            font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', 'Oxygen',
+                'Ubuntu', 'Cantarell', 'Fira Sans', 'Droid Sans', 'Helvetica Neue',
+                sans-serif;
         }
         
         body {
-            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-            background-color: #f8f9fa;
+            background-color: var(--gray-50);
+            color: var(--gray-900);
+            line-height: 1.6;
+            -webkit-font-smoothing: antialiased;
+            -moz-osx-font-smoothing: grayscale;
         }
         
-        .navbar {
-            background: linear-gradient(135deg, var(--primary-color) 0%, #0f3d50 100%);
-            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+        h1, h2, h3, h4, h5, h6 {
+            font-family: 'Plus Jakarta Sans', 'Inter', sans-serif;
+            font-weight: 700;
+            line-height: 1.2;
+            color: var(--gray-900);
+        }
+        
+        /* Modern Navbar */
+        .navbar-modern {
+            background: rgba(255, 255, 255, 0.98);
+            backdrop-filter: blur(10px);
+            -webkit-backdrop-filter: blur(10px);
+            border-bottom: 1px solid var(--gray-200);
+            box-shadow: var(--shadow-sm);
+            padding: 0.75rem 0;
+            transition: all 0.3s ease;
         }
         
         .navbar-brand {
-            font-weight: 700;
+            font-family: 'Plus Jakarta Sans', sans-serif;
+            font-weight: 800;
             font-size: 1.5rem;
-            color: white !important;
+            color: var(--primary-700) !important;
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+        
+        .navbar-brand i {
+            font-size: 1.75rem;
+            color: var(--primary-600);
+        }
+        
+        .navbar-logo {
+            max-height: 42px;
+            width: auto;
+            max-width: 180px;
+        }
+        
+        .navbar-brand-text {
+            white-space: nowrap;
+        }
+        
+        .navbar-cta {
+            flex-shrink: 0;
+            white-space: nowrap;
+            margin-left: 0.75rem;
+        }
+        
+        /* Notification bell */
+        .notification-bell {
+            position: relative;
+        }
+        
+        .notification-badge {
+            position: absolute;
+            top: 0.1rem;
+            right: -0.15rem;
+            font-size: 0.6rem;
+            padding: 0.2em 0.4em;
+        }
+        
+        .notification-menu {
+            min-width: 320px;
+            max-width: 90vw;
+        }
+        
+        .notification-item {
+            white-space: normal;
+        }
+        
+        .footer-logo {
+            max-height: 48px;
+            width: auto;
+            max-width: 200px;
         }
         
         .nav-link {
-            color: rgba(255, 255, 255, 0.8) !important;
-            margin: 0 5px;
-            transition: color 0.3s ease;
+            color: var(--gray-700) !important;
+            font-weight: 500;
+            padding: 0.5rem 1rem !important;
+            margin: 0 0.25rem;
+            border-radius: var(--radius);
+            transition: all 0.2s ease;
+            position: relative;
         }
         
         .nav-link:hover {
-            color: var(--secondary-color) !important;
+            color: var(--primary-700) !important;
+            background-color: var(--primary-50);
         }
         
         .nav-link.active {
-            color: var(--secondary-color) !important;
+            color: var(--primary-700) !important;
+            background-color: var(--primary-50);
             font-weight: 600;
         }
         
-        .card {
+        .dropdown-menu {
+            border: 1px solid var(--gray-200);
+            border-radius: var(--radius-lg);
+            box-shadow: var(--shadow-xl);
+            padding: 0.5rem;
+            margin-top: 0.5rem;
+        }
+        
+        .dropdown-item {
+            padding: 0.625rem 0.875rem;
+            border-radius: var(--radius);
+            font-weight: 500;
+            color: var(--gray-700);
+            transition: all 0.15s ease;
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+        
+        .dropdown-item:hover {
+            background-color: var(--primary-50);
+            color: var(--primary-700);
+        }
+        
+        .dropdown-item.active {
+            background-color: var(--primary-100);
+            color: var(--primary-700);
+            font-weight: 600;
+        }
+        
+        .dropdown-divider {
+            border-color: var(--gray-200);
+            margin: 0.5rem 0;
+        }
+        
+        /* Modern Buttons */
+        .btn {
+            font-weight: 600;
+            padding: 0.625rem 1.25rem;
+            border-radius: var(--radius);
             border: none;
-            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
-            transition: transform 0.3s ease, box-shadow 0.3s ease;
-            border-radius: 10px;
-        }
-        
-        .card:hover {
-            transform: translateY(-5px);
-            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
-        }
-        
-        .page-header {
-            background: linear-gradient(135deg, var(--primary-color) 0%, #0f3d50 100%);
-            color: white;
-            padding: 2rem 0;
-            margin-bottom: 2rem;
-            border-radius: 0 0 15px 15px;
-        }
-        
-        .page-header h1 {
-            font-weight: 700;
-            margin-bottom: 0.5rem;
-        }
-        
-        .page-header p {
-            opacity: 0.9;
-            margin-bottom: 0;
+            transition: all 0.2s ease;
+            font-size: 0.9375rem;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            gap: 0.375rem;
+            line-height: 1.5;
         }
         
         .btn-primary {
-            background-color: var(--primary-color);
-            border-color: var(--primary-color);
+            background: linear-gradient(135deg, var(--primary-600) 0%, var(--primary-700) 100%);
+            color: white;
+            box-shadow: 0 1px 2px 0 rgb(37 99 235 / 0.05), 0 1px 3px 0 rgb(37 99 235 / 0.1);
         }
         
         .btn-primary:hover {
-            background-color: #0f3d50;
-            border-color: #0f3d50;
+            background: linear-gradient(135deg, var(--primary-700) 0%, var(--primary-800) 100%);
+            color: white;
+            box-shadow: 0 4px 6px -1px rgb(37 99 235 / 0.4), 0 2px 4px -2px rgb(37 99 235 / 0.4);
+            transform: translateY(-1px);
+        }
+        
+        .btn-primary:focus {
+            box-shadow: 0 0 0 0.2rem rgb(59 130 246 / 0.5);
         }
         
         .btn-secondary {
-            background-color: var(--secondary-color);
-            border-color: var(--secondary-color);
+            background: linear-gradient(135deg, var(--secondary-500) 0%, var(--secondary-600) 100%);
+            color: white;
+            box-shadow: 0 1px 2px 0 rgb(217 119 6 / 0.05), 0 1px 3px 0 rgb(217 119 6 / 0.1);
         }
         
         .btn-secondary:hover {
-            background-color: #e67e22;
-            border-color: #e67e22;
+            background: linear-gradient(135deg, var(--secondary-600) 0%, #92400e 100%);
+            color: white;
+            box-shadow: 0 4px 6px -1px rgb(217 119 6 / 0.4), 0 2px 4px -2px rgb(217 119 6 / 0.4);
+            transform: translateY(-1px);
         }
         
-        .badge-status {
-            font-size: 0.85rem;
-            padding: 0.4rem 0.8rem;
-            border-radius: 20px;
+        .btn-outline-primary {
+            background: transparent;
+            color: var(--primary-700);
+            border: 2px solid var(--primary-600);
+        }
+        
+        .btn-outline-primary:hover {
+            background: var(--primary-600);
+            color: white;
+            border-color: var(--primary-600);
+            transform: translateY(-1px);
+        }
+        
+        .btn-outline-secondary {
+            background: transparent;
+            color: var(--gray-700);
+            border: 2px solid var(--gray-300);
+        }
+        
+        .btn-outline-secondary:hover {
+            background: var(--gray-100);
+            color: var(--gray-900);
+            border-color: var(--gray-400);
+        }
+        
+        .btn-light {
+            background: white;
+            color: var(--gray-700);
+            border: 1px solid var(--gray-300);
+            box-shadow: var(--shadow-sm);
+        }
+        
+        .btn-light:hover {
+            background: var(--gray-50);
+            color: var(--gray-900);
+            border-color: var(--gray-400);
+        }
+        
+        .btn-sm {
+            padding: 0.375rem 0.875rem;
+            font-size: 0.875rem;
+        }
+        
+        .btn-lg {
+            padding: 0.875rem 2rem;
+            font-size: 1rem;
+        }
+        
+        /* Modern Cards */
+        .card {
+            border: 1px solid var(--gray-200);
+            border-radius: var(--radius-xl);
+            box-shadow: var(--shadow);
+            transition: all 0.3s ease;
+            overflow: hidden;
+            background: white;
+        }
+        
+        .card:hover {
+            box-shadow: var(--shadow-xl);
+            transform: translateY(-4px);
+            border-color: var(--primary-200);
+        }
+        
+        .card-img-top {
+            height: 220px;
+            object-fit: cover;
+            transition: transform 0.3s ease;
+        }
+        
+        .card:hover .card-img-top {
+            transform: scale(1.05);
+        }
+        
+        .card-body {
+            padding: 1.25rem;
+        }
+        
+        .card-title {
+            font-size: 1.125rem;
+            font-weight: 700;
+            margin-bottom: 0.75rem;
+            color: var(--gray-900);
+        }
+        
+        .card-footer {
+            background: var(--gray-50);
+            border-top: 1px solid var(--gray-200);
+            padding: 0.875rem 1.25rem;
+        }
+        
+        /* Badges */
+        .badge {
+            padding: 0.375rem 0.75rem;
+            border-radius: 9999px;
+            font-weight: 600;
+            font-size: 0.75rem;
+            letter-spacing: 0.025em;
         }
         
         .badge-available {
-            background-color: #28a745;
+            background: linear-gradient(135deg, var(--success-500) 0%, #059669 100%);
             color: white;
         }
         
         .badge-sold {
-            background-color: #dc3545;
+            background: linear-gradient(135deg, var(--danger-500) 0%, #dc2626 100%);
             color: white;
         }
         
-        .badge-reserved {
-            background-color: #ffc107;
-            color: #333;
-        }
-        
-        .badge-maintenance {
-            background-color: #6c757d;
+        .badge-pending {
+            background: linear-gradient(135deg, var(--warning-500) 0%, #d97706 100%);
             color: white;
         }
         
+        /* Page Header */
+        .page-header {
+            background: linear-gradient(135deg, var(--primary-700) 0%, var(--primary-900) 100%);
+            color: white;
+            padding: 3rem 0 2rem;
+            margin-bottom: 2rem;
+            position: relative;
+            overflow: hidden;
+        }
+        
+        .page-header::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: url("data:image/svg+xml,%3Csvg width='60' height='60' viewBox='0 0 60 60' xmlns='http://www.w3.org/2000/svg'%3E%3Cg fill='none' fill-rule='evenodd'%3E%3Cg fill='%23ffffff' fill-opacity='0.05'%3E%3Ccircle cx='30' cy='30' r='2'/%3E%3C/g%3E%3C/g%3E%3C/svg%3E");
+        }
+        
+        .page-header .container {
+            position: relative;
+            z-index: 1;
+        }
+        
+        .page-header h1 {
+            color: white;
+            font-size: 2.5rem;
+            font-weight: 800;
+            margin-bottom: 0.5rem;
+        }
+        
+        .page-header p {
+            color: rgba(255, 255, 255, 0.9);
+            font-size: 1.125rem;
+            margin-bottom: 0;
+        }
+        
+        /* Stats Cards */
+        .stat-card {
+            background: white;
+            padding: 1.5rem;
+            border-radius: var(--radius-xl);
+            border: 1px solid var(--gray-200);
+            text-align: center;
+            box-shadow: var(--shadow);
+            transition: all 0.3s ease;
+            height: 100%;
+        }
+        
+        .stat-card:hover {
+            box-shadow: var(--shadow-lg);
+            transform: translateY(-2px);
+            border-color: var(--primary-200);
+        }
+        
+        .stat-card h3 {
+            font-size: 2rem;
+            font-weight: 800;
+            color: var(--primary-700);
+            margin-bottom: 0.5rem;
+        }
+        
+        .stat-card p {
+            color: var(--gray-600);
+            margin-bottom: 0;
+            font-weight: 500;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 0.375rem;
+        }
+        
+        /* Price Tag */
         .price-tag {
-            font-size: 1.75rem;
-            font-weight: 700;
-            color: var(--secondary-color);
+            font-size: 1.25rem;
+            font-weight: 800;
+            color: var(--primary-700);
+            font-family: 'Plus Jakarta Sans', sans-serif;
+        }
+        
+        /* Responsive data grids and long content */
+        .featured-cars-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(min(300px, 100%), 1fr));
+            gap: 1.5rem;
+        }
+        
+        .pagination {
+            display: flex;
+            flex-wrap: wrap;
+            justify-content: center;
+            gap: 0.5rem;
         }
         
         .table .price-tag {
             font-size: 1rem;
         }
         
+        .text-break-safe {
+            overflow-wrap: anywhere;
+        }
+        
+        /* Vehicle Specs */
         .vehicle-specs {
             display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
-            gap: 1rem;
-            margin: 1rem 0;
+            grid-template-columns: 1fr 1fr;
+            gap: 0.5rem;
+            margin-top: 0.75rem;
         }
         
         .spec-item {
-            padding: 0.75rem;
-            background-color: #f8f9fa;
-            border-radius: 5px;
-            border-left: 3px solid var(--primary-color);
+            background: var(--gray-50);
+            padding: 0.5rem;
+            border-radius: var(--radius);
+            text-align: center;
         }
         
         .spec-label {
-            font-size: 0.85rem;
-            color: #666;
-            font-weight: 600;
+            font-size: 0.75rem;
+            color: var(--gray-500);
             text-transform: uppercase;
+            letter-spacing: 0.05em;
+            font-weight: 600;
         }
         
         .spec-value {
-            font-size: 1.1rem;
+            font-size: 0.875rem;
+            color: var(--gray-900);
             font-weight: 600;
-            color: var(--primary-color);
-            margin-top: 0.25rem;
+            margin-top: 0.125rem;
         }
         
-        .table-hover tbody tr:hover {
-            background-color: rgba(26, 95, 122, 0.1);
-        }
-        
-        .pagination {
-            flex-wrap: wrap;
-        }
-        
-        .pagination .page-link {
-            color: var(--primary-color);
-        }
-        
-        .pagination .page-link:hover {
+        /* Footer */
+        footer {
+            background: linear-gradient(135deg, var(--gray-900) 0%, #000000 100%);
             color: white;
-            background-color: var(--primary-color);
-            border-color: var(--primary-color);
+            margin-top: 4rem;
+            padding: 3rem 0 2rem;
         }
         
-        .pagination .page-item.active .page-link {
-            background-color: var(--primary-color);
-            border-color: var(--primary-color);
-        }
-        
-        .filter-panel {
-            background-color: white;
-            padding: 1.5rem;
-            border-radius: 10px;
-            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
-            margin-bottom: 2rem;
-        }
-        
-        .filter-panel h5 {
-            color: var(--primary-color);
+        footer h6 {
+            color: white;
             font-weight: 700;
             margin-bottom: 1rem;
-            border-bottom: 2px solid var(--primary-color);
-            padding-bottom: 0.5rem;
+            font-size: 0.875rem;
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
         }
         
+        footer a {
+            color: rgba(255, 255, 255, 0.8) !important;
+            text-decoration: none;
+            transition: color 0.2s ease;
+        }
+        
+        footer a:hover {
+            color: var(--secondary-400) !important;
+        }
+        
+        footer .list-inline-item {
+            margin-right: 1rem !important;
+            margin-bottom: 0.5rem;
+        }
+        
+        /* Forms */
         .form-control, .form-select {
-            border-radius: 5px;
-            border: 1px solid #ddd;
+            border: 1px solid var(--gray-300);
+            border-radius: var(--radius);
+            padding: 0.625rem 0.875rem;
+            font-size: 0.9375rem;
+            transition: all 0.2s ease;
         }
         
         .form-control:focus, .form-select:focus {
-            border-color: var(--primary-color);
-            box-shadow: 0 0 0 0.2rem rgba(26, 95, 122, 0.25);
+            border-color: var(--primary-500);
+            box-shadow: 0 0 0 0.2rem rgb(59 130 246 / 0.25);
         }
         
-        footer {
-            background-color: var(--primary-color);
-            color: white;
-            padding: 2rem 0;
-            margin-top: 3rem;
-            text-align: center;
-        }
-        
-        .stat-card {
-            background: white;
-            border-radius: 10px;
-            padding: 1.5rem;
-            text-align: center;
-            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
-        }
-        
-        .stat-card h3 {
-            font-size: 2rem;
-            font-weight: 700;
-            color: var(--secondary-color);
-        }
-        
-        .stat-card p {
-            color: #666;
-            margin-bottom: 0;
-            font-size: 0.95rem;
-        }
-        
-        .breadcrumb {
-            background-color: transparent;
-            padding: 0;
-        }
-        
-        .breadcrumb-item.active {
-            color: var(--primary-color);
+        .form-label {
             font-weight: 600;
+            color: var(--gray-700);
+            margin-bottom: 0.5rem;
+            font-size: 0.875rem;
         }
         
-        .breadcrumb-item a {
-            color: var(--primary-color);
-            text-decoration: none;
+        /* Alerts */
+        .alert {
+            border: none;
+            border-radius: var(--radius-lg);
+            padding: 1rem 1.25rem;
+            border-left: 4px solid;
         }
         
-        .breadcrumb-item a:hover {
-            color: var(--secondary-color);
+        .alert-success {
+            background: #dcfce7;
+            color: #166534;
+            border-left-color: var(--success-500);
         }
         
-        .featured-section {
-            padding: 2rem 0;
+        .alert-danger {
+            background: #fee2e2;
+            color: #991b1b;
+            border-left-color: var(--danger-500);
         }
         
-        .featured-cars-grid {
-            display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(min(300px, 100%), 1fr));
-            gap: 2rem;
-            margin: 2rem 0;
+        .alert-warning {
+            background: #fef3c7;
+            color: #92400e;
+            border-left-color: var(--warning-500);
         }
         
-        .spec-value,
-        td a,
-        .card-body a {
-            overflow-wrap: anywhere;
-        }
-
-        .car-photo-thumb {
-            width: 120px;
-            height: 90px;
-            object-fit: cover;
+        .alert-info {
+            background: #e0f2fe;
+            color: #075985;
+            border-left-color: var(--info-500);
         }
         
-        @media (max-width: 400px) {
-            .vehicle-specs {
-                grid-template-columns: 1fr;
+        /* Responsive */
+        @media (min-width: 992px) {
+            .navbar-modern .navbar-collapse {
+                flex-grow: 1;
             }
         }
-
-        /* ------------------------------------------------------------------
-           Responsive, full-width enhancements
-           ------------------------------------------------------------------ */
-
-        :root {
-            --page-gutter: clamp(0.75rem, 2.5vw, 2.5rem);
+        
+        @media (max-width: 991.98px) {
+            .navbar-modern .navbar-toggler {
+                margin-left: auto;
+            }
+            
+            .navbar-cta-text {
+                display: none;
+            }
+            
+            .navbar-cta {
+                padding: 0.5rem 0.75rem;
+                margin-left: 0.5rem;
+            }
         }
-
+        
+        @media (max-width: 768px) {
+            .page-header h1 {
+                font-size: 2rem;
+            }
+            
+            .page-header p {
+                font-size: 1rem;
+            }
+            
+            .navbar-brand {
+                font-size: 1.25rem;
+            }
+            
+            .navbar-logo {
+                max-height: 34px;
+                max-width: 120px;
+            }
+            
+            .card:hover {
+                transform: none;
+            }
+        }
+        
+        /* Smooth scrolling */
         html {
-            height: 100%;
-        }
-
-        body {
-            min-height: 100dvh;
-            display: flex;
-            flex-direction: column;
-        }
-
-        main {
-            flex: 1 0 auto;
-            width: 100%;
-        }
-
-        /* Every page uses .container-lg; let it fill the viewport instead of
-           Bootstrap's fixed 960px+ cap so the site occupies the whole page. */
-        .container-lg {
-            max-width: 100%;
-            padding-left: var(--page-gutter);
-            padding-right: var(--page-gutter);
-        }
-
-        /* Fluid media so images never overflow their container */
-        img {
-            max-width: 100%;
-            height: auto;
-        }
-
-        .card-img-top {
-            aspect-ratio: 16 / 10;
-            object-fit: cover;
-        }
-
-        /* Fluid typography: scales smoothly from phone to ultrawide */
-        h2 {
-            font-size: clamp(1.35rem, 1.05rem + 1.1vw, 1.9rem);
-        }
-
-        .page-header h1 {
-            font-size: clamp(1.6rem, 1.1rem + 2vw, 2.75rem);
-        }
-
-        .price-tag {
-            font-size: clamp(1.15rem, 0.95rem + 0.8vw, 1.75rem);
-        }
-
-        .stat-card h3 {
-            font-size: clamp(1.5rem, 1.1rem + 1.2vw, 2.25rem);
-        }
-
-        .featured-section {
-            padding: clamp(1.5rem, 3vw, 3rem) 0;
+            scroll-behavior: smooth;
         }
     </style>
+    
     {% block extra_css %}{% endblock %}
+
+    {% include "cars/_analytics.html" %}
 </head>
 <body>
-    <!-- Navigation -->
-    <nav class="navbar navbar-expand-xl navbar-dark">
+    <!-- Modern Navbar -->
+    <nav class="navbar navbar-expand-lg navbar-modern sticky-top">
         <div class="container-lg">
             <a class="navbar-brand" href="{% url 'cars:home' %}">
-                <i class="bi bi-car-front-fill"></i> Car Dealership
+                {% if dealership.logo %}
+                    <img src="{{ dealership.logo.url }}"
+                         alt="{{ dealership.name|default:'Premier Auto' }} logo"
+                         class="navbar-logo">
+                {% else %}
+                    <i class="bi bi-car-front-fill"></i>
+                {% endif %}
+                <span class="navbar-brand-text">{{ dealership.name|default:"Premier Auto" }}</span>
             </a>
-            <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav">
+            <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav" 
+                    aria-controls="navbarNav" aria-expanded="false" aria-label="Toggle navigation">
                 <span class="navbar-toggler-icon"></span>
             </button>
             <div class="collapse navbar-collapse" id="navbarNav">
-                <ul class="navbar-nav ms-auto">
+                <ul class="navbar-nav me-auto">
                     <li class="nav-item">
-                        <a class="nav-link {% if request.resolver_match.url_name == 'home' %}active{% endif %}" href="{% url 'cars:home' %}">
-                            <i class="bi bi-house"></i> Home
+                        <a class="nav-link {% if request.resolver_match.url_name == 'home' %}active{% endif %}" 
+                           href="{% url 'cars:home' %}">
+                            <i class="bi bi-house-door"></i> Home
                         </a>
                     </li>
                     <li class="nav-item">
-                        <a class="nav-link {% if request.resolver_match.url_name == 'browse_cars' %}active{% endif %}" href="{% url 'cars:browse_cars' %}">
-                            <i class="bi bi-car-front"></i> Browse Cars
+                        <a class="nav-link {% if request.resolver_match.url_name == 'browse_cars' or request.resolver_match.url_name == 'car_detail' %}active{% endif %}" 
+                           href="{% url 'cars:browse_cars' %}">
+                            <i class="bi bi-grid"></i> Browse Cars
                         </a>
                     </li>
                     <li class="nav-item">
-                        <a class="nav-link {% if request.resolver_match.url_name == 'about' %}active{% endif %}" href="{% url 'cars:about' %}">
-                            <i class="bi bi-building"></i> About
+                        <a class="nav-link {% if request.resolver_match.url_name == 'advanced_search' %}active{% endif %}" 
+                           href="{% url 'cars:advanced_search' %}">
+                            <i class="bi bi-search"></i> Advanced Search
                         </a>
                     </li>
                     <li class="nav-item">
-                        <a class="nav-link {% if request.resolver_match.url_name == 'reviews' %}active{% endif %}" href="{% url 'cars:reviews' %}">
-                            <i class="bi bi-star"></i> Reviews
+                        <a class="nav-link {% if 'hire' in request.resolver_match.url_name %}active{% endif %}" 
+                           href="{% url 'hiring:hire_car_list' %}">
+                            <i class="bi bi-key"></i> Car Hire
                         </a>
                     </li>
                     <li class="nav-item">
-                        <a class="nav-link {% if request.resolver_match.url_name == 'blog_list' or request.resolver_match.url_name == 'blog_detail' %}active{% endif %}" href="{% url 'cars:blog_list' %}">
-                            <i class="bi bi-newspaper"></i> News
+                        <a class="nav-link {% if request.resolver_match.url_name == 'financing' %}active{% endif %}" 
+                           href="{% url 'cars:financing' %}">
+                            <i class="bi bi-calculator"></i> Financing
                         </a>
                     </li>
                     <li class="nav-item">
-                        <a class="nav-link {% if request.resolver_match.url_name == 'contact' %}active{% endif %}" href="{% url 'cars:contact' %}">
+                        <a class="nav-link {% if request.resolver_match.url_name == 'service_booking' %}active{% endif %}" 
+                           href="{% url 'cars:service_booking' %}">
+                            <i class="bi bi-wrench"></i> Service
+                        </a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link {% if request.resolver_match.url_name == 'about' %}active{% endif %}" 
+                           href="{% url 'cars:about' %}">
+                            <i class="bi bi-info-circle"></i> About
+                        </a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link {% if request.resolver_match.url_name == 'contact' %}active{% endif %}" 
+                           href="{% url 'cars:contact' %}">
                             <i class="bi bi-envelope"></i> Contact
                         </a>
                     </li>
-                    {% if request.user.is_staff %}
+                </ul>
+                <ul class="navbar-nav">
+                    {% if user.is_staff %}
                         <li class="nav-item dropdown">
                             <a class="nav-link dropdown-toggle" href="#" role="button" data-bs-toggle="dropdown" aria-expanded="false">
-                                <i class="bi bi-speedometer2"></i> Staff
+                                <i class="bi bi-shield-check"></i> Staff
                             </a>
                             <ul class="dropdown-menu dropdown-menu-end">
-                                <li><a class="dropdown-item {% if request.resolver_match.url_name == 'dashboard' %}active{% endif %}" href="{% url 'cars:dashboard' %}"><i class="bi bi-speedometer2"></i> Dashboard</a></li>
-                                <li><a class="dropdown-item {% if request.resolver_match.url_name == 'car_create' or request.resolver_match.url_name == 'car_edit' %}active{% endif %}" href="{% url 'cars:car_create' %}"><i class="bi bi-car-front"></i> Add Car</a></li>
-                                <li><a class="dropdown-item {% if request.resolver_match.url_name == 'inquiries_list' %}active{% endif %}" href="{% url 'cars:inquiries_list' %}"><i class="bi bi-chat-dots"></i> Inquiries</a></li>
-                                <li><a class="dropdown-item {% if request.resolver_match.url_name == 'orders_list' %}active{% endif %}" href="{% url 'cars:orders_list' %}"><i class="bi bi-cart-check"></i> Orders</a></li>
-                                <li><a class="dropdown-item {% if request.resolver_match.url_name == 'appointments_list' %}active{% endif %}" href="{% url 'cars:appointments_list' %}"><i class="bi bi-calendar-check"></i> Test Drives</a></li>
-                                <li><a class="dropdown-item {% if request.resolver_match.url_name == 'customer_list' %}active{% endif %}" href="{% url 'cars:customer_list' %}"><i class="bi bi-people"></i> Customers</a></li>
-                                <li><a class="dropdown-item {% if request.resolver_match.url_name == 'sales_list' %}active{% endif %}" href="{% url 'cars:sales_list' %}"><i class="bi bi-graph-up"></i> Sales</a></li>
-                                <li><a class="dropdown-item {% if request.resolver_match.url_name == 'reports' %}active{% endif %}" href="{% url 'cars:reports' %}"><i class="bi bi-bar-chart"></i> Reports</a></li>
-                                <li><a class="dropdown-item {% if request.resolver_match.url_name == 'testimonial_list' or request.resolver_match.url_name == 'testimonial_visibility_update' %}active{% endif %}" href="{% url 'cars:testimonial_list' %}"><i class="bi bi-star-half"></i> Review Moderation</a></li>
-                                <li><a class="dropdown-item {% if request.resolver_match.url_name == 'contact_info_edit' %}active{% endif %}" href="{% url 'cars:contact_info_edit' %}"><i class="bi bi-geo-alt"></i> Contact Info</a></li>
-                                <li><a class="dropdown-item {% if request.resolver_match.url_name == 'about_info_edit' %}active{% endif %}" href="{% url 'cars:about_info_edit' %}"><i class="bi bi-building"></i> About Page</a></li>
-                                <li><a class="dropdown-item {% if request.resolver_match.url_name == 'staff_list' or request.resolver_match.url_name == 'staff_create' %}active{% endif %}" href="{% url 'accounts:staff_list' %}"><i class="bi bi-person-gear"></i> Staff Accounts</a></li>
-                                <li><hr class="dropdown-divider"></li>
-                                <li><a class="dropdown-item" href="{% url 'admin:index' %}" target="_blank"><i class="bi bi-gear"></i> Django Admin</a></li>
+                                <li><a class="dropdown-item" href="{% url 'cars:dashboard' %}"><i class="bi bi-speedometer2"></i> Dashboard</a></li>
+                                <li><a class="dropdown-item" href="{% url 'cars:analytics_dashboard' %}"><i class="bi bi-graph-up"></i> Analytics</a></li>
+                                <li><a class="dropdown-item" href="{% url 'cars:inquiries_list' %}"><i class="bi bi-chat-dots"></i> Inquiries</a></li>
+                                <li><a class="dropdown-item" href="{% url 'cars:orders_list' %}"><i class="bi bi-cart-check"></i> Orders</a></li>
+                                <li><a class="dropdown-item" href="{% url 'cars:car_create' %}"><i class="bi bi-plus-lg"></i> Add Car</a></li>
+                                <li><a class="dropdown-item" href="{% url 'cars:about_info_edit' %}"><i class="bi bi-info-circle"></i> Edit About Page</a></li>
+                                <li><a class="dropdown-item" href="{% url 'cars:contact_info_edit' %}"><i class="bi bi-telephone"></i> Edit Contact Info</a></li>
+                                <li><a class="dropdown-item" href="{% url 'cars:testimonial_list' %}"><i class="bi bi-star"></i> Reviews</a></li>
+                                <li><a class="dropdown-item" href="{% url 'cars:chatbot_sessions' %}"><i class="bi bi-chat-dots"></i> Chat Transcripts</a></li>
+                                <li><a class="dropdown-item" href="{% url 'hiring:staff_hire_cars' %}"><i class="bi bi-truck"></i> Hire Fleet</a></li>
+                                <li><a class="dropdown-item" href="{% url 'hiring:staff_hire_bookings' %}"><i class="bi bi-key"></i> Hire Bookings</a></li>
+                                <li><a class="dropdown-item" href="{% url 'cars:livechat_inbox' %}"><i class="bi bi-chat-dots"></i> Live Chat</a></li>
+                                <li><a class="dropdown-item" href="{% url 'payments:transactions_list' %}"><i class="bi bi-phone"></i> Payments</a></li>
+                                <li><a class="dropdown-item" href="{% url 'cars:audit_log' %}"><i class="bi bi-clock-history"></i> Audit Log</a></li>
+                                {% if user.is_superuser %}
+                                    <li><hr class="dropdown-divider"></li>
+                                    <li><a class="dropdown-item" href="{% url 'admin:index' %}" target="_blank"><i class="bi bi-gear"></i> Admin</a></li>
+                                {% endif %}
                             </ul>
                         </li>
                     {% endif %}
                     {% if user.is_authenticated %}
                         <li class="nav-item dropdown">
-                            <a class="nav-link dropdown-toggle" href="#" role="button" data-bs-toggle="dropdown" aria-expanded="false">
-                                <i class="bi bi-person-circle"></i> {{ user.username }}
+                            <a class="nav-link notification-bell" href="#" role="button"
+                               data-bs-toggle="dropdown" aria-expanded="false"
+                               aria-label="Notifications">
+                                <i class="bi bi-bell"></i>
+                                {% if unread_notification_count %}
+                                    <span class="badge rounded-pill bg-danger notification-badge">{{ unread_notification_count }}</span>
+                                {% endif %}
+                            </a>
+                            <ul class="dropdown-menu dropdown-menu-end notification-menu">
+                                <li><h6 class="dropdown-header">Notifications</h6></li>
+                                {% for notification in recent_notifications %}
+                                    <li>
+                                        <a class="dropdown-item notification-item {% if not notification.is_read %}fw-semibold{% endif %}"
+                                           href="{% url 'notifications:open' notification.pk %}">
+                                            <i class="bi
+                                                {% if notification.level == 'error' %}bi-exclamation-octagon text-danger
+                                                {% elif notification.level == 'warning' %}bi-exclamation-triangle text-warning
+                                                {% else %}bi-info-circle text-primary{% endif %}"></i>
+                                            <span class="d-block text-truncate">{{ notification.title }}</span>
+                                            <small class="text-muted">{{ notification.created_at|timesince }} ago</small>
+                                        </a>
+                                    </li>
+                                {% empty %}
+                                    <li><span class="dropdown-item-text text-muted">No notifications yet.</span></li>
+                                {% endfor %}
+                                <li><hr class="dropdown-divider"></li>
+                                <li>
+                                    <a class="dropdown-item text-center" href="{% url 'notifications:list' %}">
+                                        View all notifications
+                                    </a>
+                                </li>
+                            </ul>
+                        </li>
+                        <li class="nav-item dropdown">
+                            <a class="nav-link dropdown-toggle d-flex align-items-center" href="#" role="button" data-bs-toggle="dropdown" aria-expanded="false">
+                                <i class="bi bi-person-circle me-1"></i>
+                                {{ user.first_name|default:user.username }}
                             </a>
                             <ul class="dropdown-menu dropdown-menu-end">
-                                <li><a class="dropdown-item {% if request.resolver_match.url_name == 'my_activity' %}active{% endif %}" href="{% url 'cars:my_activity' %}"><i class="bi bi-person-circle"></i> My Activity</a></li>
-                                <li><a class="dropdown-item {% if request.resolver_match.url_name == 'favorites' %}active{% endif %}" href="{% url 'accounts:favorites' %}"><i class="bi bi-heart"></i> Favorites</a></li>
+                                <li><a class="dropdown-item" href="{% url 'accounts:profile' %}"><i class="bi bi-person-badge"></i> Profile</a></li>
+                                <li><a class="dropdown-item" href="{% url 'cars:my_activity' %}"><i class="bi bi-activity"></i> My Activity</a></li>
+                                <li><a class="dropdown-item" href="{% url 'cars:my_service_bookings' %}"><i class="bi bi-wrench"></i> My Services</a></li>
+                                <li><a class="dropdown-item" href="{% url 'hiring:my_hire_bookings' %}"><i class="bi bi-key"></i> My Hires</a></li>
+                                <li><a class="dropdown-item" href="{% url 'accounts:favorites' %}"><i class="bi bi-heart"></i> Favorites</a></li>
+                                <li><a class="dropdown-item" href="{% url 'cars:my_saved_searches' %}"><i class="bi bi-bookmark"></i> Saved Searches</a></li>
                                 <li><hr class="dropdown-divider"></li>
                                 <li>
                                     <form method="post" action="{% url 'accounts:logout' %}">
@@ -441,85 +829,123 @@
                         </li>
                     {% else %}
                         <li class="nav-item">
-                            <a class="nav-link {% if request.resolver_match.url_name == 'login' %}active{% endif %}" href="{% url 'accounts:login' %}">
+                            <a class="nav-link" href="{% url 'accounts:login' %}">
                                 <i class="bi bi-box-arrow-in-right"></i> Login
                             </a>
                         </li>
                         <li class="nav-item">
-                            <a class="nav-link {% if request.resolver_match.url_name == 'register' %}active{% endif %}" href="{% url 'accounts:register' %}">
-                                <i class="bi bi-person-plus"></i> Register
+                            <a class="btn btn-outline-primary btn-sm ms-2" href="{% url 'accounts:register' %}">
+                                <i class="bi bi-person-plus"></i> Sign Up
                             </a>
                         </li>
                     {% endif %}
                 </ul>
             </div>
+            <a href="{% url 'cars:browse_cars' %}" class="btn btn-primary navbar-cta">
+                <i class="bi bi-search"></i>
+                <span class="navbar-cta-text">Find Your Car</span>
+            </a>
         </div>
     </nav>
 
+    <!-- Messages -->
+    {% if messages %}
+        <div class="container-lg mt-3">
+            {% for message in messages %}
+                <div class="alert alert-{{ message.tags|default:'info' }} alert-dismissible fade show" role="alert">
+                    <i class="bi bi-{% if message.tags == 'success' %}check-circle{% elif message.tags == 'error' or message.tags == 'danger' %}exclamation-circle{% elif message.tags == 'warning' %}exclamation-triangle{% else %}info-circle{% endif %}"></i>
+                    {{ message }}
+                    <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+                </div>
+            {% endfor %}
+        </div>
+    {% endif %}
+
     <!-- Main Content -->
     <main>
-        {% if messages %}
-            <div class="container-lg mt-3">
-                {% for message in messages %}
-                    <div class="alert alert-{{ message.tags|default:'info' }} alert-dismissible fade show" role="alert">
-                        <i class="bi bi-info-circle"></i> {{ message }}
-                        <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
-                    </div>
-                {% endfor %}
-            </div>
-        {% endif %}
-
         {% block content %}{% endblock %}
     </main>
 
-    <!-- Footer -->
+    <!-- Modern Footer -->
     <footer>
         <div class="container-lg">
             <div class="row mb-4">
-                <div class="col-md-6 mb-3 mb-md-0">
-                    <h6 class="text-uppercase"><i class="bi bi-car-front-fill"></i> Car Dealership</h6>
-                    <p class="mb-0 small">Quality vehicles, honest service, and flexible financing.</p>
+                <div class="col-lg-4 mb-4 mb-lg-0">
+                    <h5 class="text-white mb-3 d-flex align-items-center gap-2">
+                        {% if dealership.logo %}
+                            <img src="{{ dealership.logo.url }}"
+                                 alt="{{ dealership.name|default:'Premier Auto' }} logo"
+                                 class="footer-logo">
+                        {% else %}
+                            <i class="bi bi-car-front-fill text-primary-400"></i>
+                        {% endif %}
+                        {{ dealership.name|default:"Premier Auto" }}
+                    </h5>
+                    <p class="text-white-50 mb-3">Your trusted partner for quality vehicles, exceptional service, and flexible financing solutions.</p>
+                    <div class="d-flex gap-2">
+                        <a href="#" class="btn btn-light btn-sm rounded-circle p-2"><i class="bi bi-facebook"></i></a>
+                        <a href="#" class="btn btn-light btn-sm rounded-circle p-2"><i class="bi bi-twitter"></i></a>
+                        <a href="#" class="btn btn-light btn-sm rounded-circle p-2"><i class="bi bi-instagram"></i></a>
+                        <a href="#" class="btn btn-light btn-sm rounded-circle p-2"><i class="bi bi-linkedin"></i></a>
+                    </div>
                 </div>
-                <div class="col-md-6">
-                    <h6 class="text-uppercase">Quick Links</h6>
-                    <ul class="list-inline mb-0">
-                        <li class="list-inline-item me-3">
-                            <a class="text-white text-decoration-none" href="{% url 'cars:browse_cars' %}">Browse Cars</a>
-                        </li>
-                        <li class="list-inline-item me-3">
-                            <a class="text-white text-decoration-none" href="{% url 'cars:financing' %}">Financing</a>
-                        </li>
-                        <li class="list-inline-item me-3">
-                            <a class="text-white text-decoration-none" href="{% url 'cars:faq' %}">FAQ</a>
-                        </li>
-                        <li class="list-inline-item me-3">
-                            <a class="text-white text-decoration-none" href="{% url 'cars:blog_list' %}">News</a>
-                        </li>
-                        <li class="list-inline-item me-3">
-                            <a class="text-white text-decoration-none" href="{% url 'cars:reviews' %}">Reviews</a>
-                        </li>
-                        <li class="list-inline-item">
-                            <a class="text-white text-decoration-none" href="{% url 'cars:contact' %}">Contact</a>
-                        </li>
+                <div class="col-lg-2 col-md-4 mb-4 mb-md-0">
+                    <h6>Inventory</h6>
+                    <ul class="list-unstyled">
+                        <li class="mb-2"><a href="{% url 'cars:browse_cars' %}">Browse Cars</a></li>
+                        <li class="mb-2"><a href="{% url 'cars:advanced_search' %}">Advanced Search</a></li>
+                        <li class="mb-2"><a href="{% url 'cars:compare' %}">Compare Cars</a></li>
+                        <li class="mb-2"><a href="{% url 'cars:trade_in' %}">Trade-In</a></li>
+                    </ul>
+                </div>
+                <div class="col-lg-2 col-md-4 mb-4 mb-md-0">
+                    <h6>Services</h6>
+                    <ul class="list-unstyled">
+                        <li class="mb-2"><a href="{% url 'hiring:hire_car_list' %}">Car Hire</a></li>
+                        <li class="mb-2"><a href="{% url 'hiring:hire_tours' %}">Tours & Travel</a></li>
+                        <li class="mb-2"><a href="{% url 'cars:financing' %}">Financing</a></li>
+                        <li class="mb-2"><a href="{% url 'cars:service_booking' %}">Service Booking</a></li>
+                    </ul>
+                </div>
+                <div class="col-lg-2 col-md-4 mb-4 mb-md-0">
+                    <h6>Company</h6>
+                    <ul class="list-unstyled">
+                        <li class="mb-2"><a href="{% url 'cars:about' %}">About Us</a></li>
+                        <li class="mb-2"><a href="{% url 'cars:reviews' %}">Reviews</a></li>
+                        <li class="mb-2"><a href="{% url 'cars:blog_list' %}">News & Blog</a></li>
+                        <li class="mb-2"><a href="{% url 'cars:contact' %}">Contact</a></li>
+                    </ul>
+                </div>
+                <div class="col-lg-2">
+                    <h6>Support</h6>
+                    <ul class="list-unstyled">
+                        <li class="mb-2"><a href="{% url 'cars:faq' %}">FAQ</a></li>
+                        <li class="mb-2"><a href="{% url 'cars:privacy_policy' %}">Privacy Policy</a></li>
+                        <li class="mb-2"><a href="{% url 'cars:terms_of_service' %}">Terms of Service</a></li>
+                        {% if analytics_configured and analytics_consent_required %}
+                            <li class="mb-2"><a href="#" id="cookie-settings-link">Cookie Settings</a></li>
+                        {% endif %}
+                        {% if user.is_authenticated %}<li class="mb-2"><a href="{% url 'cars:gdpr_data_request' %}">Data Request</a></li>{% endif %}
                     </ul>
                 </div>
             </div>
+            <hr class="my-4" style="border-color: rgba(255,255,255,0.1);">
             <div class="row align-items-center">
                 <div class="col-md-6 mb-3 mb-md-0">
-                    <p class="mb-0">&copy; {% now "Y" %} Car Dealership Management System. All rights reserved.</p>
+                    <p class="mb-0 text-white-50">&copy; {% now "Y" %} {{ dealership.name|default:"Premier Auto" }}. All rights reserved.</p>
                 </div>
                 <div class="col-md-6">
                     <form method="post" action="{% url 'cars:newsletter_subscribe' %}" class="row g-2 justify-content-md-end">
                         {% csrf_token %}
+                        {% include "cars/_antispam_fields.html" %}
                         <input type="hidden" name="next" value="{{ request.get_full_path }}">
                         <div class="col-auto">
-                            <label for="newsletter-email" class="visually-hidden">Email address</label>
-                            <input type="email" name="email" id="newsletter-email" class="form-control form-control-sm"
-                                   placeholder="Email for news & offers" required>
+                            <input type="email" name="email" class="form-control form-control-sm" 
+                                   placeholder="Subscribe to newsletter" required style="min-width: 200px;">
                         </div>
                         <div class="col-auto">
-                            <button type="submit" class="btn btn-sm btn-secondary">
-                                <i class="bi bi-envelope-paper"></i> Subscribe
+                            <button type="submit" class="btn btn-secondary btn-sm">
+                                <i class="bi bi-envelope"></i> Subscribe
                             </button>
                         </div>
                     </form>
@@ -528,7 +954,50 @@
         </div>
     </footer>
 
-    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+    {% include "cars/_cookie_consent.html" %}
+
+    {% if chatbot_enabled %}
+        {% include "cars/_chatbot.html" %}
+    {% endif %}
+
+    <script src="{% static 'vendor/bootstrap/js/bootstrap.bundle.min.js' %}"></script>
+    <script>
+    // Password toggle
+    (function () {
+        document.querySelectorAll('input[type="password"]').forEach(function (input) {
+            if (input.dataset.passwordToggle) return;
+            input.dataset.passwordToggle = '1';
+            var wrapper = document.createElement('div');
+            wrapper.className = 'position-relative';
+            input.parentNode.insertBefore(wrapper, input);
+            wrapper.appendChild(input);
+            input.style.paddingRight = '2.5rem';
+            var button = document.createElement('button');
+            button.type = 'button';
+            button.className = 'btn btn-link position-absolute end-0 top-50 translate-middle-y text-muted';
+            button.style.zIndex = '10';
+            button.tabIndex = -1;
+            button.innerHTML = '<i class="bi bi-eye"></i>';
+            button.addEventListener('click', function () {
+                var revealing = input.type === 'password';
+                input.type = revealing ? 'text' : 'password';
+                button.innerHTML = revealing ? '<i class="bi bi-eye-slash"></i>' : '<i class="bi bi-eye"></i>';
+            });
+            wrapper.appendChild(button);
+        });
+    })();
+    
+    // Smooth scroll for anchor links
+    document.querySelectorAll('a[href^="#"]').forEach(anchor => {
+        anchor.addEventListener('click', function (e) {
+            e.preventDefault();
+            const target = document.querySelector(this.getAttribute('href'));
+            if (target) {
+                target.scrollIntoView({ behavior: 'smooth', block: 'start' });
+            }
+        });
+    });
+    </script>
     {% block extra_js %}{% endblock %}
 </body>
 </html>

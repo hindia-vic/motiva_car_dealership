@@ -1,0 +1,32 @@
+{% extends 'base.html' %}
+{% block title %}Terms of Service{% endblock %}
+
+{% block meta_description %}The terms that apply when you browse our inventory, request a vehicle, book a service or hire a car through this website.{% endblock %}
+{% block og_title %}Terms of Service{% endblock %}
+{% block og_description %}The terms that apply when you use this website and our services.{% endblock %}
+{% block content %}
+<div class="container py-4">
+  <div class="row justify-content-center">
+    <div class="col-lg-10">
+      <div class="card shadow-sm">
+        <div class="card-header bg-primary text-white">
+          <h4 class="mb-0">Terms of Service</h4>
+        </div>
+        <div class="card-body">
+          <p>Last updated: {{ now|date:"F d, Y" }}</p>
+          <h5>Acceptance of Terms</h5>
+          <p>By accessing and using this website, you accept and agree to be bound by the terms and provision of this agreement.</p>
+          <h5>Use License</h5>
+          <p>Permission is granted to temporarily use this website for personal, non-commercial transitory viewing only.</p>
+          <h5>Disclaimer</h5>
+          <p>The materials on this website are provided on an 'as is' basis. We make no warranties, expressed or implied.</p>
+          <h5>Limitations</h5>
+          <p>In no event shall the dealership or its suppliers be liable for any damages arising out of the use or inability to use the materials on this website.</p>
+          <h5>Governing Law</h5>
+          <p>These terms and conditions are governed by and construed in accordance with applicable laws.</p>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+{% endblock %}

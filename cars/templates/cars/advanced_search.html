@@ -1,0 +1,120 @@
+{% extends "base.html" %}
+{% load currency %}
+
+{% block title %}Advanced Search - {{ dealership.name|default:"Car Dealership" }}{% endblock %}
+
+{% block meta_description %}Search our inventory by make, model, body type, price, year, mileage, fuel type and transmission to find the right used or new car.{% endblock %}
+{% block og_title %}Advanced Vehicle Search - {{ dealership.name|default:"Car Dealership" }}{% endblock %}
+{% block og_description %}Filter our inventory by make, price, year, mileage and more.{% endblock %}
+
+{% block content %}
+<div class="page-header">
+    <div class="container-lg">
+        <h1><i class="bi bi-sliders"></i> Advanced Search</h1>
+        <p>Find your perfect vehicle with detailed filters</p>
+    </div>
+</div>
+
+<div class="container-lg py-4">
+    <div class="card mb-4">
+        <div class="card-body">
+            <form method="get">
+                <div class="row g-3">
+                    <div class="col-md-4">
+                        <label class="form-label">Keyword</label>
+                        <input type="text" name="q" class="form-control" value="{{ request.GET.q }}" placeholder="Make, model, description...">
+                    </div>
+                    <div class="col-md-4">
+                        <label class="form-label">Make</label>
+                        <select name="make" class="form-select">
+                            <option value="">All Makes</option>
+                            {% for make in makes %}
+                                <option value="{{ make }}" {% if request.GET.make == make %}selected{% endif %}>{{ make }}</option>
+                            {% endfor %}
+                        </select>
+                    </div>
+                    <div class="col-md-4">
+                        <label class="form-label">Model</label>
+                        <input type="text" name="model" class="form-control" value="{{ request.GET.model }}">
+                    </div>
+                    <div class="col-md-3">
+                        <label class="form-label">Body Type</label>
+                        <input type="text" name="body_type" class="form-control" value="{{ request.GET.body_type }}">
+                    </div>
+                    <div class="col-md-3">
+                        <label class="form-label">Fuel Type</label>
+                        <input type="text" name="fuel_type" class="form-control" value="{{ request.GET.fuel_type }}">
+                    </div>
+                    <div class="col-md-3">
+                        <label class="form-label">Transmission</label>
+                        <input type="text" name="transmission" class="form-control" value="{{ request.GET.transmission }}">
+                    </div>
+                    <div class="col-md-3">
+                        <label class="form-label">Min Price</label>
+                        <input type="number" name="min_price" class="form-control" value="{{ request.GET.min_price }}">
+                    </div>
+                    <div class="col-md-3">
+                        <label class="form-label">Max Price</label>
+                        <input type="number" name="max_price" class="form-control" value="{{ request.GET.max_price }}">
+                    </div>
+                    <div class="col-md-3">
+                        <label class="form-label">Min Year</label>
+                        <input type="number" name="min_year" class="form-control" value="{{ request.GET.min_year }}">
+                    </div>
+                    <div class="col-md-3">
+                        <label class="form-label">Max Year</label>
+                        <input type="number" name="max_year" class="form-control" value="{{ request.GET.max_year }}">
+                    </div>
+                    <div class="col-12">
+                        <button type="submit" class="btn btn-primary"><i class="bi bi-search"></i> Search</button>
+                        <a href="{% url 'cars:advanced_search' %}" class="btn btn-outline-secondary">Clear</a>
+                        <a href="{% url 'cars:browse_cars' %}" class="btn btn-outline-secondary">Simple Search</a>
+                    </div>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    {% if cars %}
+        <div class="row g-4">
+            {% for car in cars %}
+                <div class="col-md-6 col-lg-4">
+                    <div class="card h-100">
+                        {% with first_image=car.images.first %}
+                            {% if first_image %}
+                                <img src="{{ first_image.thumbnail_url|default:first_image.image.url }}"
+                                     srcset="{{ first_image.srcset }}"
+                                     sizes="(min-width: 992px) 33vw, (min-width: 768px) 50vw, 100vw"
+                                     loading="lazy" decoding="async"
+                                     class="card-img-top" style="height: 200px; object-fit: cover;" alt="{{ car }}">
+                            {% endif %}
+                        {% endwith %}
+                        <div class="card-body">
+                            <h5 class="card-title">{{ car.year }} {{ car.make }} {{ car.model }}</h5>
+                            <p class="text-muted small">{{ car.mileage|floatformat:0 }} mi • {{ car.transmission|title }} • {{ car.fuel_type|title }}</p>
+                            <p class="fw-bold text-primary">{{ car.asking_price|money }}</p>
+                        </div>
+                        <div class="card-footer bg-light">
+                            <a href="{% url 'cars:car_detail' car.id %}" class="btn btn-primary btn-sm w-100">View Details</a>
+                        </div>
+                    </div>
+                </div>
+            {% endfor %}
+        </div>
+        {% if is_paginated %}
+            <nav class="mt-4">
+                <ul class="pagination justify-content-center">
+                    {% if page_obj.has_previous %}
+                        <li class="page-item"><a class="page-link" href="?{% for k,v in request.GET.items %}{% if k != 'page' %}{{ k }}={{ v }}&{% endif %}{% endfor %}page={{ page_obj.previous_page_number }}">Previous</a></li>
+                    {% endif %}
+                    {% if page_obj.has_next %}
+                        <li class="page-item"><a class="page-link" href="?{% for k,v in request.GET.items %}{% if k != 'page' %}{{ k }}={{ v }}&{% endif %}{% endfor %}page={{ page_obj.next_page_number }}">Next</a></li>
+                    {% endif %}
+                </ul>
+            </nav>
+        {% endif %}
+    {% else %}
+        <div class="alert alert-info">No vehicles found matching your criteria.</div>
+    {% endif %}
+</div>
+{% endblock %}

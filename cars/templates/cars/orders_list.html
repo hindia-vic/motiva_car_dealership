@@ -1,4 +1,5 @@
 {% extends "base.html" %}
+{% load currency %}
 
 {% block title %}Manage Orders - Staff Panel{% endblock %}
 
@@ -16,26 +17,55 @@
         </div>
     </div>
 
+    <!-- Attention counters -->
+    <div class="row g-2 mb-3">
+        <div class="col-6 col-lg-6">
+            <a href="?filter=awaiting_deposit" class="text-decoration-none">
+                <div class="card border-warning h-100">
+                    <div class="card-body py-2 d-flex justify-content-between align-items-center">
+                        <span><i class="bi bi-hourglass-split text-warning"></i> Awaiting deposit</span>
+                        <span class="badge bg-warning text-dark rounded-pill">{{ awaiting_deposit_count }}</span>
+                    </div>
+                </div>
+            </a>
+        </div>
+        <div class="col-6 col-lg-6">
+            <a href="?filter=stale" class="text-decoration-none">
+                <div class="card border-danger h-100">
+                    <div class="card-body py-2 d-flex justify-content-between align-items-center">
+                        <span><i class="bi bi-exclamation-triangle text-danger"></i> Stale ({{ stale_after_days }}+ days)</span>
+                        <span class="badge bg-danger rounded-pill">{{ stale_count }}</span>
+                    </div>
+                </div>
+            </a>
+        </div>
+    </div>
+
     <!-- Filter Panel -->
     <div class="card mb-4">
         <div class="card-body">
             <h5 class="card-title mb-3"><i class="bi bi-funnel"></i> Filter Orders</h5>
             <form method="get" class="row g-3">
-                <div class="col-md-4">
+                <div class="col-md-3">
                     <input type="text" name="search" class="form-control" placeholder="Search by customer or car..." 
                            value="{{ request.GET.search }}">
                 </div>
-                <div class="col-md-4">
+                <div class="col-md-3">
                     <select name="status" class="form-select">
                         <option value="">All Statuses</option>
-                        {% for status_choice in statuses %}
-                            <option value="{{ status_choice }}" {% if request.GET.status == status_choice %}selected{% endif %}>
-                                {{ status_choice|title }}
-                            </option>
+                        {% for value, label in statuses %}
+                            <option value="{{ value }}" {% if request.GET.status == value %}selected{% endif %}>{{ label }}</option>
                         {% endfor %}
                     </select>
                 </div>
-                <div class="col-md-4">
+                <div class="col-md-3">
+                    <select name="filter" class="form-select">
+                        <option value="">All orders</option>
+                        <option value="awaiting_deposit" {% if request.GET.filter == 'awaiting_deposit' %}selected{% endif %}>Awaiting deposit</option>
+                        <option value="stale" {% if request.GET.filter == 'stale' %}selected{% endif %}>Stale ({{ stale_after_days }}+ days)</option>
+                    </select>
+                </div>
+                <div class="col-md-3">
                     <button type="submit" class="btn btn-primary w-100">
                         <i class="bi bi-search"></i> Filter
                     </button>
@@ -55,21 +85,51 @@
                         <th>Vehicle</th>
                         <th>Email</th>
                         <th>Phone</th>
+                        <th>Source</th>
                         <th>Price</th>
+                        <th>Payment</th>
                         <th>Status</th>
                         <th>Date</th>
                         <th>Financing</th>
+                        <th>Action</th>
                     </tr>
                 </thead>
                 <tbody>
                     {% for order in orders %}
-                        <tr>
+                        <tr id="order-{{ order.id }}"
+                            class="{% if order.pk in stale_ids %}table-warning{% endif %}">
                             <td><strong>#{{ order.id }}</strong></td>
                             <td><strong>{{ order.customer_name }}</strong></td>
                             <td>{{ order.car.year }} {{ order.car.make }} {{ order.car.model }}</td>
                             <td><small>{{ order.customer_email }}</small></td>
                             <td><small>{{ order.customer_phone }}</small></td>
-                            <td><span class="badge bg-success">${{ order.price }}</span></td>
+                            <td>
+                                {% if order.source %}
+                                    <span class="badge bg-secondary">{{ order.source }}</span>
+                                {% else %}
+                                    <small class="text-muted">-</small>
+                                {% endif %}
+                            </td>
+                            <td>
+                                <span class="badge bg-success">{{ order.price|money }}</span>
+                                {% if order.trade_in_value %}
+                                    <br><small class="text-muted">trade-in {{ order.trade_in_value|money }}</small>
+                                {% endif %}
+                            </td>
+                            <td>
+                                {% if order.payment_status == 'paid' %}
+                                    <span class="badge bg-success">Paid</span>
+                                {% elif order.payment_status == 'partial' %}
+                                    <span class="badge bg-warning text-dark">Deposit paid</span>
+                                {% elif order.payment_status == 'refunded' %}
+                                    <span class="badge bg-secondary">Refunded</span>
+                                {% else %}
+                                    <span class="badge bg-light text-dark">Not paid</span>
+                                {% endif %}
+                                <br><small class="text-muted">
+                                    {{ order.amount_paid|money }} of {{ order.amount_payable|money }}
+                                </small>
+                            </td>
                             <td>
                                 <form method="post" action="{% url 'cars:order_status_update' order.id %}">
                                     {% csrf_token %}
@@ -86,12 +146,36 @@
                                     </div>
                                 </form>
                             </td>
-                            <td><small>{{ order.order_date|date:"M d, Y" }}</small></td>
+                            <td>
+                                <small>{{ order.order_date|date:"M d, Y" }}</small>
+                                {% if order.pk in stale_ids %}
+                                    <div><span class="badge bg-danger">Stale</span></div>
+                                {% endif %}
+                                {% if order.deposit_reminder_sent_at %}
+                                    <div><small class="text-muted">Reminded {{ order.deposit_reminder_sent_at|date:"M d" }}</small></div>
+                                {% endif %}
+                            </td>
                             <td>
                                 {% if order.financing_needed %}
                                     <span class="badge bg-warning">Yes</span>
                                 {% else %}
                                     <span class="badge bg-secondary">No</span>
+                                {% endif %}
+                            </td>
+                            <td>
+                                {% if order.is_awaiting_deposit %}
+                                    <form method="post" action="{% url 'cars:order_release' order.id %}"
+                                          onsubmit="return confirm('Release order #{{ order.id }}? This cancels it and puts the vehicle back on the lot.');">
+                                        {% csrf_token %}
+                                        <input type="hidden" name="next" value="{{ request.get_full_path }}">
+                                        <input type="text" name="reason" class="form-control form-control-sm mb-1"
+                                               placeholder="Reason (optional)" aria-label="Release reason">
+                                        <button type="submit" class="btn btn-sm btn-outline-danger w-100">
+                                            <i class="bi bi-x-circle"></i> Release
+                                        </button>
+                                    </form>
+                                {% else %}
+                                    <small class="text-muted">-</small>
                                 {% endif %}
                             </td>
                         </tr>
@@ -106,29 +190,23 @@
                 <ul class="pagination justify-content-center">
                     {% if page_obj.has_previous %}
                         <li class="page-item">
-                            <a class="page-link" href="?page=1{% if request.GET.urlencode %}&{{ request.GET.urlencode }}{% endif %}">First</a>
+                            <a class="page-link" href="{% querystring page=1 %}">First</a>
                         </li>
                         <li class="page-item">
-                            <a class="page-link" href="?page={{ page_obj.previous_page_number }}{% if request.GET.urlencode %}&{{ request.GET.urlencode }}{% endif %}">Previous</a>
+                            <a class="page-link" href="{% querystring page=page_obj.previous_page_number %}">Previous</a>
                         </li>
                     {% endif %}
 
-                    {% for num in page_obj.paginator.page_range %}
-                        {% if page_obj.number == num %}
-                            <li class="page-item active"><span class="page-link">{{ num }}</span></li>
-                        {% elif num > page_obj.number|add:'-3' and num < page_obj.number|add:'3' %}
-                            <li class="page-item">
-                                <a class="page-link" href="?page={{ num }}{% if request.GET.urlencode %}&{{ request.GET.urlencode }}{% endif %}">{{ num }}</a>
-                            </li>
-                        {% endif %}
-                    {% endfor %}
+                    <li class="page-item disabled">
+                        <span class="page-link">Page {{ page_obj.number }} of {{ paginator.num_pages }}</span>
+                    </li>
 
                     {% if page_obj.has_next %}
                         <li class="page-item">
-                            <a class="page-link" href="?page={{ page_obj.next_page_number }}{% if request.GET.urlencode %}&{{ request.GET.urlencode }}{% endif %}">Next</a>
+                            <a class="page-link" href="{% querystring page=page_obj.next_page_number %}">Next</a>
                         </li>
                         <li class="page-item">
-                            <a class="page-link" href="?page={{ page_obj.paginator.num_pages }}{% if request.GET.urlencode %}&{{ request.GET.urlencode }}{% endif %}">Last</a>
+                            <a class="page-link" href="{% querystring page=paginator.num_pages %}">Last</a>
                         </li>
                     {% endif %}
                 </ul>

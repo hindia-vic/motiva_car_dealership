@@ -1,0 +1,49 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Receipt {{ sale.invoice_number }}</title>
+    <style>
+        body { font-family: Arial, sans-serif; font-size: 12px; }
+        .header { text-align: center; margin-bottom: 20px; }
+        .details { margin-bottom: 15px; }
+        table { width: 100%; border-collapse: collapse; }
+        th, td { padding: 8px; border: 1px solid #ddd; }
+        .total { font-weight: bold; }
+    </style>
+</head>
+<body>
+    <div class="header">
+        <h2>{{ dealership.name|default:"Car Dealership" }}</h2>
+        <p>Receipt / Invoice</p>
+    </div>
+    <div class="details">
+        <p><strong>Invoice #:</strong> {{ sale.invoice_number }}</p>
+        <p><strong>Date:</strong> {{ sale.sale_date|date:"Y-m-d H:i" }}</p>
+        <p><strong>Customer:</strong> {{ sale.customer.first_name }} {{ sale.customer.last_name }}</p>
+        <p><strong>Email:</strong> {{ sale.customer.email }}</p>
+    </div>
+    <table>
+        <thead>
+            <tr>
+                <th>Vehicle</th>
+                <th>VIN</th>
+                <th>Amount</th>
+            </tr>
+        </thead>
+        <tbody>
+            <tr>
+                <td>{{ sale.car.year }} {{ sale.car.make }} {{ sale.car.model }}</td>
+                <td>{{ sale.car.vin }}</td>
+                <td>{{ sale.total_amount }}</td>
+            </tr>
+        </tbody>
+        <tfoot>
+            <tr>
+                <td colspan="2" class="total">Total</td>
+                <td class="total">{{ sale.total_amount }}</td>
+            </tr>
+        </tfoot>
+    </table>
+</body>
+</html>

@@ -1,0 +1,270 @@
+{% extends "base.html" %}
+{% load currency %}
+
+{% block title %}List Your Car - Car Dealership{% endblock %}
+
+{% block meta_description %}List your car with us. Send the details and photos, and our team will review it and get back to you about selling it through the dealership.{% endblock %}
+{% block og_title %}List Your Car With Us{% endblock %}
+{% block og_description %}Send your car details and photos for review.{% endblock %}
+
+{% block content %}
+<div class="container-lg py-4">
+    <div class="row justify-content-center">
+        <div class="col-lg-8">
+            <div class="card">
+                <div class="card-body p-4">
+                    <h2 class="mb-2"><i class="bi bi-camera"></i> List Your Car</h2>
+                    <p class="text-muted mb-4">
+                        We advertise customer-owned cars for a fee of
+                        <strong class="text-primary">{{ fee|money }}</strong>.
+                        We inspect the car and check the logbook first, then publish
+                        the listing on your behalf.
+                    </p>
+
+                    <div class="alert alert-info">
+                        <strong>What we need from you:</strong>
+                        <ul class="mb-0 mt-2">
+                            <li>The details of the car and the price you want it advertised at.</li>
+                            <li>At least one clear photo of the car.</li>
+                            <li>A photo of the front page of the logbook, showing your name and the logbook number.</li>
+                        </ul>
+                    </div>
+
+                    {% if form.non_field_errors %}
+                        <div class="alert alert-danger">
+                            {{ form.non_field_errors }}
+                        </div>
+                    {% endif %}
+
+                    <form method="post" enctype="multipart/form-data">
+                        {% csrf_token %}
+                        {% include "cars/_antispam_fields.html" %}
+
+                        <h5 class="mb-3 mt-4"><i class="bi bi-person"></i> Your details</h5>
+
+                        <div class="row g-3">
+                            <div class="col-md-6">
+                                <label for="{{ form.owner_name.id_for_label }}" class="form-label">Your name *</label>
+                                {{ form.owner_name }}
+                                {% if form.owner_name.errors %}
+                                    <div class="text-danger small mt-1">
+                                        {% for error in form.owner_name.errors %}{{ error }}<br>{% endfor %}
+                                    </div>
+                                {% endif %}
+                            </div>
+                            <div class="col-md-6">
+                                <label for="{{ form.owner_email.id_for_label }}" class="form-label">Email address *</label>
+                                {{ form.owner_email }}
+                                {% if form.owner_email.errors %}
+                                    <div class="text-danger small mt-1">
+                                        {% for error in form.owner_email.errors %}{{ error }}<br>{% endfor %}
+                                    </div>
+                                {% endif %}
+                            </div>
+                            <div class="col-md-6">
+                                <label for="{{ form.owner_phone.id_for_label }}" class="form-label">Phone number *</label>
+                                {{ form.owner_phone }}
+                                {% if form.owner_phone.errors %}
+                                    <div class="text-danger small mt-1">
+                                        {% for error in form.owner_phone.errors %}{{ error }}<br>{% endfor %}
+                                    </div>
+                                {% endif %}
+                            </div>
+                        </div>
+
+                        <h5 class="mb-3 mt-4"><i class="bi bi-car-front"></i> The car</h5>
+
+                        <div class="row g-3">
+                            <div class="col-md-6">
+                                <label for="{{ form.make.id_for_label }}" class="form-label">Make *</label>
+                                {{ form.make }}
+                                {% if form.make.errors %}
+                                    <div class="text-danger small mt-1">
+                                        {% for error in form.make.errors %}{{ error }}<br>{% endfor %}
+                                    </div>
+                                {% endif %}
+                            </div>
+                            <div class="col-md-6">
+                                <label for="{{ form.model.id_for_label }}" class="form-label">Model *</label>
+                                {{ form.model }}
+                                {% if form.model.errors %}
+                                    <div class="text-danger small mt-1">
+                                        {% for error in form.model.errors %}{{ error }}<br>{% endfor %}
+                                    </div>
+                                {% endif %}
+                            </div>
+                            <div class="col-md-6">
+                                <label for="{{ form.year.id_for_label }}" class="form-label">Year *</label>
+                                {{ form.year }}
+                                {% if form.year.errors %}
+                                    <div class="text-danger small mt-1">
+                                        {% for error in form.year.errors %}{{ error }}<br>{% endfor %}
+                                    </div>
+                                {% endif %}
+                            </div>
+                            <div class="col-md-6">
+                                <label for="{{ form.vin.id_for_label }}" class="form-label">VIN *</label>
+                                {{ form.vin }}
+                                {% if form.vin.errors %}
+                                    <div class="text-danger small mt-1">
+                                        {% for error in form.vin.errors %}{{ error }}<br>{% endfor %}
+                                    </div>
+                                {% endif %}
+                            </div>
+                            <div class="col-md-4">
+                                <label for="{{ form.color.id_for_label }}" class="form-label">Colour</label>
+                                {{ form.color }}
+                                {% if form.color.errors %}
+                                    <div class="text-danger small mt-1">
+                                        {% for error in form.color.errors %}{{ error }}<br>{% endfor %}
+                                    </div>
+                                {% endif %}
+                            </div>
+                            <div class="col-md-4">
+                                <label for="{{ form.body_type.id_for_label }}" class="form-label">Body type</label>
+                                {{ form.body_type }}
+                                {% if form.body_type.errors %}
+                                    <div class="text-danger small mt-1">
+                                        {% for error in form.body_type.errors %}{{ error }}<br>{% endfor %}
+                                    </div>
+                                {% endif %}
+                            </div>
+                            <div class="col-md-4">
+                                <label for="{{ form.transmission.id_for_label }}" class="form-label">Transmission</label>
+                                {{ form.transmission }}
+                                {% if form.transmission.errors %}
+                                    <div class="text-danger small mt-1">
+                                        {% for error in form.transmission.errors %}{{ error }}<br>{% endfor %}
+                                    </div>
+                                {% endif %}
+                            </div>
+                            <div class="col-md-4">
+                                <label for="{{ form.fuel_type.id_for_label }}" class="form-label">Fuel type</label>
+                                {{ form.fuel_type }}
+                                {% if form.fuel_type.errors %}
+                                    <div class="text-danger small mt-1">
+                                        {% for error in form.fuel_type.errors %}{{ error }}<br>{% endfor %}
+                                    </div>
+                                {% endif %}
+                            </div>
+                            <div class="col-md-4">
+                                <label for="{{ form.mileage.id_for_label }}" class="form-label">Mileage (km)</label>
+                                {{ form.mileage }}
+                                {% if form.mileage.errors %}
+                                    <div class="text-danger small mt-1">
+                                        {% for error in form.mileage.errors %}{{ error }}<br>{% endfor %}
+                                    </div>
+                                {% endif %}
+                            </div>
+                            <div class="col-md-4">
+                                <label for="{{ form.engine_size.id_for_label }}" class="form-label">Engine size</label>
+                                {{ form.engine_size }}
+                                {% if form.engine_size.errors %}
+                                    <div class="text-danger small mt-1">
+                                        {% for error in form.engine_size.errors %}{{ error }}<br>{% endfor %}
+                                    </div>
+                                {% endif %}
+                            </div>
+                        </div>
+
+                        <h5 class="mb-3 mt-4"><i class="bi bi-journal-text"></i> The logbook</h5>
+
+                        <div class="row g-3">
+                            <div class="col-md-6">
+                                <label for="{{ form.logbook_number.id_for_label }}" class="form-label">
+                                    Logbook number
+                                </label>
+                                {{ form.logbook_number }}
+                                {% if form.logbook_number.errors %}
+                                    <div class="text-danger small mt-1">
+                                        {% for error in form.logbook_number.errors %}{{ error }}<br>{% endfor %}
+                                    </div>
+                                {% endif %}
+                            </div>
+                            <div class="col-md-6">
+                                <label for="{{ form.logbook_owner_name.id_for_label }}" class="form-label">
+                                    Name on the logbook
+                                </label>
+                                {{ form.logbook_owner_name }}
+                                {% if form.logbook_owner_name.errors %}
+                                    <div class="text-danger small mt-1">
+                                        {% for error in form.logbook_owner_name.errors %}{{ error }}<br>{% endfor %}
+                                    </div>
+                                {% endif %}
+                            </div>
+                            <div class="col-12">
+                                <label for="{{ form.logbook_photo.id_for_label }}" class="form-label">
+                                    Photo of the logbook *
+                                </label>
+                                {{ form.logbook_photo }}
+                                {% if form.logbook_photo.errors %}
+                                    <div class="text-danger small mt-1">
+                                        {% for error in form.logbook_photo.errors %}{{ error }}<br>{% endfor %}
+                                    </div>
+                                {% endif %}
+                                <small class="form-text text-muted">{{ form.logbook_photo.help_text }}</small>
+                            </div>
+                        </div>
+
+                        <h5 class="mb-3 mt-4"><i class="bi bi-camera"></i> Photos of the car</h5>
+
+                        <div class="mb-3">
+                            <label for="{{ form.photos.id_for_label }}" class="form-label">
+                                Photos of the car *
+                            </label>
+                            {{ form.photos }}
+                            {% if form.photos.errors %}
+                                <div class="text-danger small mt-1">
+                                    {% for error in form.photos.errors %}{{ error }}<br>{% endfor %}
+                                </div>
+                            {% endif %}
+                            <small class="form-text text-muted">{{ form.photos.help_text }}</small>
+                        </div>
+
+                        <h5 class="mb-3 mt-4"><i class="bi bi-tag"></i> Price and details</h5>
+
+                        <div class="row g-3">
+                            <div class="col-md-6">
+                                <label for="{{ form.asking_price.id_for_label }}" class="form-label">
+                                    Price you want it advertised at *
+                                </label>
+                                {{ form.asking_price }}
+                                {% if form.asking_price.errors %}
+                                    <div class="text-danger small mt-1">
+                                        {% for error in form.asking_price.errors %}{{ error }}<br>{% endfor %}
+                                    </div>
+                                {% endif %}
+                            </div>
+                            <div class="col-12">
+                                <label for="{{ form.description.id_for_label }}" class="form-label">
+                                    About the car
+                                </label>
+                                {{ form.description }}
+                                {% if form.description.errors %}
+                                    <div class="text-danger small mt-1">
+                                        {% for error in form.description.errors %}{{ error }}<br>{% endfor %}
+                                    </div>
+                                {% endif %}
+                            </div>
+                        </div>
+
+                        <button type="submit" class="btn btn-primary w-100 btn-lg mt-4">
+                            <i class="bi bi-send"></i> Send My Request
+                        </button>
+                    </form>
+
+                    <hr class="my-4">
+
+                    <p class="text-muted text-center mb-0">
+                        <small>
+                            The listing fee is {{ fee|money }}. It is payable by M-Pesa or bank
+                            transfer, and we will ask for the reference once your car and logbook
+                            have been checked. Nothing is published until you have paid.
+                        </small>
+                    </p>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

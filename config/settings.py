@@ -10,8 +10,15 @@ For the full list of settings and their values, see
 https://docs.djangoproject.com/en/6.1/ref/settings/
 """
 
+import logging
 import os
+import sys
+from decimal import Decimal, InvalidOperation
 from pathlib import Path
+from urllib.parse import urlsplit
+
+from celery.schedules import crontab
+from django.core.exceptions import ImproperlyConfigured
 
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
 BASE_DIR = Path(__file__).resolve().parent.parent
@@ -19,6 +26,24 @@ BASE_DIR = Path(__file__).resolve().parent.parent
 # Load KEY=VALUE pairs from a local .env file (if present) into the process
 # environment. This keeps SMTP credentials and other secrets out of version
 # control. Real environment variables always win.
+def _strip_inline_comment(value):
+    """Remove an unquoted trailing ``# comment`` from a .env value.
+
+    Passwords and tokens can legitimately contain ``#``, so only treat it as
+    a comment when it starts a token (preceded by whitespace).
+    """
+    quote = None
+    for index, char in enumerate(value):
+        if quote:
+            if char == quote:
+                quote = None
+        elif char in ('"', "'"):
+            quote = char
+        elif char == '#' and (index == 0 or value[index - 1].isspace()):
+            return value[:index].rstrip()
+    return value
+
+
 def _load_dotenv(path):
     path = Path(path)
     if not path.exists():
@@ -29,7 +54,7 @@ def _load_dotenv(path):
             continue
         key, _, value = line.partition('=')
         key = key.strip().removeprefix('export ').strip()
-        value = value.strip()
+        value = _strip_inline_comment(value.strip()).strip()
         if len(value) >= 2 and value[0] == value[-1] and value[0] in ('"', "'"):
             value = value[1:-1]
         os.environ.setdefault(key, value)
@@ -42,53 +67,110 @@ _load_dotenv(BASE_DIR / '.env')
 # See https://docs.djangoproject.com/en/6.1/howto/deployment/checklist/
 
 # SECURITY WARNING: keep the secret key used in production secret!
-SECRET_KEY = 'django-insecure-5047^2r4m59l@9lwjefu=2%ka0w@$l$--ll1%(v*&uq09affe='
+SECRET_KEY = os.environ.get('SECRET_KEY', 'django-insecure-5047^2r4m59l@9lwjefu=2%ka0w@$l$--ll1%(v*&uq09affe=')
 
 # SECURITY WARNING: don't run with debug turned on in production!
-DEBUG = True
+# Default to off: a missing DEBUG variable in production must never expose
+# tracebacks and settings. Local development sets DEBUG=true in .env.
+DEBUG = os.environ.get('DEBUG', 'False').lower() == 'true'
 
-ALLOWED_HOSTS = []
+# Hosts supplied by the platform at runtime. Render exposes the public hostname
+# and URL; Fly and Railway use their own variables. Adding them automatically
+# means the platform health check and generated URL work without duplicating
+# configuration. A custom domain still needs to be added to ALLOWED_HOSTS.
+_PLATFORM_HOSTS = []
+for _host_env in ('RENDER_EXTERNAL_HOSTNAME', 'RAILWAY_PUBLIC_DOMAIN'):
+    _platform_host = os.environ.get(_host_env, '').strip()
+    if _platform_host:
+        _PLATFORM_HOSTS.append(_platform_host)
+for _url_env in ('RENDER_EXTERNAL_URL',):
+    _platform_url = os.environ.get(_url_env, '').strip()
+    if _platform_url:
+        _platform_host = urlsplit(_platform_url).hostname
+        if _platform_host:
+            _PLATFORM_HOSTS.append(_platform_host)
+_fly_app = os.environ.get('FLY_APP_NAME', '').strip()
+if _fly_app:
+    _PLATFORM_HOSTS.append(f'{_fly_app}.fly.dev')
+
+ALLOWED_HOSTS = [h.strip() for h in os.environ.get('ALLOWED_HOSTS', '').split(',') if h.strip()]
+for _platform_host in _PLATFORM_HOSTS:
+    if _platform_host not in ALLOWED_HOSTS:
+        ALLOWED_HOSTS.append(_platform_host)
+
+# The test runner passes "test" in argv. Several settings below (chatbot,
+# traffic tracking, rate limits, environment validation) behave differently
+# while the suite runs, so this is computed once, before anything uses it.
+_TESTING = 'test' in sys.argv
+
+
+def _env_bool(name, default):
+    """Read a boolean env var, falling back to a Python default."""
+    return os.environ.get(name, 'true' if default else 'false').lower() == 'true'
 
 
 # Application definition
 
 INSTALLED_APPS = [
-    'django.contrib.admin',
+    # Custom admin site: only superusers may access the admin (see config/admin.py)
+    'config.apps.SuperuserAdminConfig',
     'django.contrib.auth',
     'django.contrib.contenttypes',
     'django.contrib.sessions',
     'django.contrib.messages',
     'django.contrib.staticfiles',
     'django.contrib.sitemaps',
+    'axes',
+    'simple_history',
     'accounts.apps.AccountsConfig',
     'cars.apps.CarsConfig',
     'inquiries.apps.InquiriesConfig',
     'sales.apps.SalesConfig',
+    'traffic.apps.TrafficConfig',
+    'hiring.apps.HiringConfig',
+    'payments.apps.PaymentsConfig',
+    'notifications.apps.NotificationsConfig',
 ]
+
 
 MIDDLEWARE = [
     'django.middleware.security.SecurityMiddleware',
+    'config.security_middleware.CorsMiddleware',
+    'whitenoise.middleware.WhiteNoiseMiddleware',
+    'config.security_middleware.ContentSecurityPolicyMiddleware',
     'django.contrib.sessions.middleware.SessionMiddleware',
     'django.middleware.common.CommonMiddleware',
     'django.middleware.csrf.CsrfViewMiddleware',
     'django.contrib.auth.middleware.AuthenticationMiddleware',
+    'axes.middleware.AxesMiddleware',
     'django.contrib.messages.middleware.MessageMiddleware',
     'django.middleware.clickjacking.XFrameOptionsMiddleware',
     'accounts.middleware.MustChangePasswordMiddleware',
+    # After AuthenticationMiddleware: it needs request.user to skip staff.
+    'traffic.middleware.TrafficTrackingMiddleware',
+    'simple_history.middleware.HistoryRequestMiddleware',
 ]
+
 
 ROOT_URLCONF = 'config.urls'
 
 TEMPLATES = [
     {
         'BACKEND': 'django.template.backends.django.DjangoTemplates',
-        'DIRS': [BASE_DIR / 'cars' / 'templates'],
+        'DIRS': [BASE_DIR / 'templates', BASE_DIR / 'cars' / 'templates'],
         'APP_DIRS': True,
         'OPTIONS': {
             'context_processors': [
                 'django.template.context_processors.request',
                 'django.contrib.auth.context_processors.auth',
                 'django.contrib.messages.context_processors.messages',
+                'config.context_processors.google_oauth',
+                'config.context_processors.seo',
+                'config.context_processors.antispam',
+                'config.context_processors.branding',
+                'config.context_processors.chatbot',
+                'config.context_processors.analytics',
+                'notifications.context_processors.notification_center',
             ],
         },
     },
@@ -100,12 +182,43 @@ WSGI_APPLICATION = 'config.wsgi.application'
 # Database
 # https://docs.djangoproject.com/en/6.1/ref/settings/#databases
 
-DATABASES = {
-    'default': {
-        'ENGINE': 'django.db.backends.sqlite3',
-        'NAME': BASE_DIR / 'db.sqlite3',
+DATABASE_URL = os.environ.get('DATABASE_URL', '').strip()
+if DATABASE_URL:
+    # A managed database is the only supported production setup. Never fall
+    # back to SQLite here: doing so silently ignores the platform's database
+    # and would split data across ephemeral instances.
+    try:
+        import dj_database_url
+    except ImportError as exc:  # pragma: no cover - deployment guard
+        raise ImproperlyConfigured(
+            'DATABASE_URL is set but dj-database-url is not installed. '
+            'Add dj-database-url and psycopg[binary] to the deployment '
+            'dependencies.'
+        ) from exc
+
+    try:
+        _db_config = dj_database_url.parse(
+            DATABASE_URL, conn_max_age=600, conn_health_checks=True,
+        )
+    except Exception as exc:
+        raise ImproperlyConfigured(
+            'DATABASE_URL is set but could not be parsed. Expected a URL like '
+            'postgres://user:password@host:5432/database.'
+        ) from exc
+
+    if not _db_config.get('ENGINE'):
+        raise ImproperlyConfigured(
+            'DATABASE_URL did not resolve to a database engine.'
+        )
+    DATABASES = {'default': _db_config}
+else:
+    DATABASES = {
+        'default': {
+            'ENGINE': 'django.db.backends.sqlite3',
+            'NAME': BASE_DIR / 'db.sqlite3',
+        }
     }
-}
+
 
 
 # Password validation
@@ -126,6 +239,17 @@ AUTH_PASSWORD_VALIDATORS = [
     },
 ]
 
+AUTHENTICATION_BACKENDS = [
+    'axes.backends.AxesStandaloneBackend',
+    'django.contrib.auth.backends.ModelBackend',
+]
+
+AXES_FAILURE_LIMIT = int(os.environ.get('AXES_FAILURE_LIMIT', '5'))
+AXES_COOLOFF_TIME = 1  # hours
+AXES_LOCKOUT_PARAMETERS = ['username', 'ip_address']
+AXES_RESET_ON_SUCCESS = True
+
+
 
 # Internationalization
 # https://docs.djangoproject.com/en/6.1/topics/i18n/
@@ -143,12 +267,144 @@ USE_TZ = True
 # https://docs.djangoproject.com/en/6.1/howto/static-files/
 
 STATIC_URL = 'static/'
+STATIC_ROOT = BASE_DIR / 'staticfiles'
+_static_dir = BASE_DIR / 'cars' / 'static'
+if _static_dir.exists():
+    STATICFILES_DIRS = [_static_dir]
+else:
+    STATICFILES_DIRS = []
+
+INSTALLED_APPS.append('django.contrib.humanize')
+
+
+
 
 
 # Media files (user/staff uploads)
 
 MEDIA_URL = '/media/'
 MEDIA_ROOT = BASE_DIR / 'media'
+
+# Object storage (S3/R2) via django-storages.
+#
+# Uploaded media (car photos, avatars, documents) must live outside the app
+# container on a PaaS: the local filesystem is wiped on every deploy. Static
+# files stay on Whitenoise unless USE_S3_FOR_STATIC is explicitly enabled.
+USE_S3 = _env_bool('USE_S3', False)
+USE_S3_FOR_STATIC = _env_bool('USE_S3_FOR_STATIC', False)
+
+# Storage backends. Django 5.1+ reads STORAGES and ignores the old
+# DEFAULT_FILE_STORAGE / STATICFILES_STORAGE settings, so both are configured
+# here and nowhere else.
+_PLAIN_FILE_STORAGE = 'django.core.files.storage.FileSystemStorage'
+_PLAIN_STATIC_STORAGE = 'django.contrib.staticfiles.storage.StaticFilesStorage'
+_WHITENOISE_STORAGE = 'whitenoise.storage.CompressedManifestStaticFilesStorage'
+
+if USE_S3:
+    INSTALLED_APPS.append('storages')
+    AWS_ACCESS_KEY_ID = os.environ.get('AWS_ACCESS_KEY_ID', '')
+    AWS_SECRET_ACCESS_KEY = os.environ.get('AWS_SECRET_ACCESS_KEY', '')
+    AWS_STORAGE_BUCKET_NAME = os.environ.get('AWS_STORAGE_BUCKET_NAME', '')
+    AWS_S3_REGION_NAME = os.environ.get('AWS_S3_REGION_NAME', '')
+    AWS_S3_ENDPOINT_URL = os.environ.get('AWS_S3_ENDPOINT_URL', '')
+    AWS_S3_CUSTOM_DOMAIN = os.environ.get('AWS_S3_CUSTOM_DOMAIN', '')
+    AWS_DEFAULT_ACL = os.environ.get('AWS_DEFAULT_ACL', '') or None
+    AWS_QUERYSTRING_AUTH = _env_bool('AWS_QUERYSTRING_AUTH', False)
+    AWS_S3_FILE_OVERWRITE = _env_bool('AWS_S3_FILE_OVERWRITE', False)
+    AWS_S3_SIGNATURE_VERSION = os.environ.get('AWS_S3_SIGNATURE_VERSION', 's3v4')
+    _aws_addressing_style = os.environ.get('AWS_S3_ADDRESSING_STYLE', '').strip()
+    if _aws_addressing_style:
+        AWS_S3_ADDRESSING_STYLE = _aws_addressing_style
+
+    if AWS_S3_CUSTOM_DOMAIN:
+        _media_base_url = f'https://{AWS_S3_CUSTOM_DOMAIN}/'
+    elif AWS_STORAGE_BUCKET_NAME:
+        _media_base_url = f'https://{AWS_STORAGE_BUCKET_NAME}.s3.amazonaws.com/'
+    else:
+        _media_base_url = MEDIA_URL
+    MEDIA_URL = _media_base_url
+
+    _s3_common = {
+        'bucket_name': AWS_STORAGE_BUCKET_NAME,
+        'region_name': AWS_S3_REGION_NAME or None,
+        'endpoint_url': AWS_S3_ENDPOINT_URL or None,
+        'custom_domain': AWS_S3_CUSTOM_DOMAIN or None,
+        'default_acl': AWS_DEFAULT_ACL,
+        'querystring_auth': AWS_QUERYSTRING_AUTH,
+        'file_overwrite': AWS_S3_FILE_OVERWRITE,
+        'signature_version': AWS_S3_SIGNATURE_VERSION,
+    }
+    if _aws_addressing_style:
+        _s3_common['addressing_style'] = _aws_addressing_style
+    # Options that are None would override django-storages' own defaults.
+    _s3_common = {k: v for k, v in _s3_common.items() if v is not None}
+
+    if USE_S3_FOR_STATIC:
+        _static_backend = 'storages.backends.s3.S3ManifestStaticStorage'
+        _static_options = {**_s3_common, 'location': 'static'}
+        STATIC_URL = f'{_media_base_url.rstrip("/")}/static/'
+    else:
+        _static_backend = _PLAIN_STATIC_STORAGE if (DEBUG or _TESTING) else _WHITENOISE_STORAGE
+        _static_options = {}
+
+    STORAGES = {
+        'default': {'BACKEND': 'storages.backends.s3.S3Storage', 'OPTIONS': _s3_common},
+        'staticfiles': {'BACKEND': _static_backend, 'OPTIONS': _static_options},
+    }
+else:
+    # Local development and the test suite read static files straight from the
+    # source tree. Production uses Whitenoise's manifest storage so every asset
+    # URL is cache-busted and served compressed.
+    STORAGES = {
+        'default': {'BACKEND': _PLAIN_FILE_STORAGE},
+        'staticfiles': {
+            'BACKEND': _PLAIN_STATIC_STORAGE if (DEBUG or _TESTING) else _WHITENOISE_STORAGE,
+        },
+    }
+
+# Whitenoise only serves files that exist under STATIC_ROOT. Keep the header
+# cache short so a deploy is picked up promptly, and allow the platform's CDN
+# to cache hashed assets for longer.
+WHITENOISE_MAX_AGE = int(os.environ.get('WHITENOISE_MAX_AGE', '31536000' if not DEBUG else '0'))
+WHITENOISE_ALLOW_ALL_ORIGINS = _env_bool('WHITENOISE_ALLOW_ALL_ORIGINS', False)
+
+
+
+# Image uploads
+# Photos are resized, re-encoded and stripped of their EXIF data before
+# they are stored (see cars/images.py), so the site only ever serves
+# copies it made itself.
+CAR_IMAGE_MAX_WIDTH = int(os.environ.get('CAR_IMAGE_MAX_WIDTH', '1600'))
+CAR_IMAGE_THUMBNAIL_WIDTH = int(os.environ.get('CAR_IMAGE_THUMBNAIL_WIDTH', '600'))
+CAR_IMAGE_QUALITY = int(os.environ.get('CAR_IMAGE_QUALITY', '85'))
+MAX_UPLOAD_SIZE_MB = int(os.environ.get('MAX_UPLOAD_SIZE_MB', '10'))
+
+
+# Currency
+# Every price on the site is in Kenyan shillings. These two settings
+# control the symbol and the code shown; nothing else needs to change.
+CURRENCY_SYMBOL = os.environ.get('CURRENCY_SYMBOL', 'KSh')
+CURRENCY_CODE = os.environ.get('CURRENCY_CODE', 'KES')
+
+
+# Listing fee
+# What a customer pays to have their car advertised on the website. The
+# rules for what the fee buys - verifying the car and the logbook before
+# anything goes live - live in cars/listing.py.
+try:
+    LISTING_FEE = Decimal(os.environ.get('LISTING_FEE', '2500'))
+except (InvalidOperation, TypeError, ValueError):
+    LISTING_FEE = Decimal('2500')
+
+
+# Financing
+# The annual interest rate quoted to customers applying for finance. The
+# rest of the arithmetic - the minimum deposit, the terms offered, and the
+# share of income a repayment may take - lives in cars/financing.py.
+try:
+    FINANCING_INTEREST_RATE = Decimal(os.environ.get('FINANCING_INTEREST_RATE', '14.5'))
+except (InvalidOperation, TypeError, ValueError):
+    FINANCING_INTEREST_RATE = Decimal('14.5')
 
 
 # Authentication
@@ -157,6 +413,139 @@ MEDIA_ROOT = BASE_DIR / 'media'
 LOGIN_URL = 'accounts:login'
 LOGIN_REDIRECT_URL = 'cars:home'
 LOGOUT_REDIRECT_URL = 'cars:home'
+
+# Django admin path. Moving it off the well-known /admin/ makes automated
+# scans and credential-stuffing attempts against the admin login far less
+# useful. The value is normalized to exactly one leading and trailing slash.
+_admin_path = os.environ.get('ADMIN_URL', 'admin/').strip('/') or 'admin'
+ADMIN_URL = f'/{_admin_path}/'
+
+# Security headers
+#
+# Development stays usable over plain HTTP, but every protection below flips
+# to its safe value the moment DEBUG is off. A production deployment is
+# therefore hardened even if an operator forgets a flag; each value can still
+# be overridden explicitly through the environment.
+_SECURE_DEFAULTS = not DEBUG
+
+SECURE_SSL_REDIRECT = _env_bool('SECURE_SSL_REDIRECT', _SECURE_DEFAULTS)
+SESSION_COOKIE_SECURE = _env_bool('SESSION_COOKIE_SECURE', _SECURE_DEFAULTS)
+CSRF_COOKIE_SECURE = _env_bool('CSRF_COOKIE_SECURE', _SECURE_DEFAULTS)
+SECURE_HSTS_SECONDS = int(os.environ.get(
+    'SECURE_HSTS_SECONDS', '31536000' if _SECURE_DEFAULTS else '0',
+))
+SECURE_HSTS_INCLUDE_SUBDOMAINS = _env_bool(
+    'SECURE_HSTS_INCLUDE_SUBDOMAINS', _SECURE_DEFAULTS,
+)
+# Preload is hard to undo (browsers ship the list for months) and only safe
+# once every subdomain is HTTPS. Keep it off unless deliberately enabled.
+SECURE_HSTS_PRELOAD = _env_bool('SECURE_HSTS_PRELOAD', False)
+SECURE_CONTENT_TYPE_NOSNIFF = _env_bool('SECURE_CONTENT_TYPE_NOSNIFF', True)
+X_FRAME_OPTIONS = os.environ.get('X_FRAME_OPTIONS', 'DENY')
+SECURE_BROWSER_XSS_FILTER = _env_bool('SECURE_BROWSER_XSS_FILTER', True)
+SECURE_REFERRER_POLICY = os.environ.get('SECURE_REFERRER_POLICY', 'same-origin')
+
+# The platform health probe may speak plain HTTP internally. Exempt it from
+# the HTTPS redirect so the check gets a 200 rather than a 301.
+SECURE_REDIRECT_EXEMPT = [r'^health$']
+
+CSRF_TRUSTED_ORIGINS = [o.strip() for o in os.environ.get('CSRF_TRUSTED_ORIGINS', '').split(',') if o.strip()]
+# The platform-generated hostname is served over HTTPS and must be trusted
+# for form posts, or the first deploy cannot log in until a custom domain is
+# configured.
+for _platform_host in _PLATFORM_HOSTS:
+    _platform_origin = f'https://{_platform_host}'
+    if _platform_origin not in CSRF_TRUSTED_ORIGINS:
+        CSRF_TRUSTED_ORIGINS.append(_platform_origin)
+
+# Cookies are never readable from JavaScript and are not attached to
+# cross-site subrequests. Lax still allows ordinary links into the site while
+# blocking cross-site POSTs, so the CSRF token keeps working.
+SESSION_COOKIE_HTTPONLY = True
+SESSION_COOKIE_SAMESITE = os.environ.get('SESSION_COOKIE_SAMESITE', 'Lax')
+CSRF_COOKIE_SAMESITE = os.environ.get('CSRF_COOKIE_SAMESITE', 'Lax')
+SESSION_COOKIE_AGE = int(os.environ.get('SESSION_COOKIE_AGE', str(60 * 60 * 24 * 14)))
+
+# TLS terminates at a proxy on most platforms. Trust X-Forwarded-Proto only
+# when the deployment explicitly says a proxy is in front of the app.
+SECURE_PROXY_SSL_HEADER = (
+    ('HTTP_X_FORWARDED_PROTO', 'https')
+    if _env_bool('USE_X_FORWARDED_PROTO', False) else None
+)
+
+# Client IP handling. X-Forwarded-For is trivially spoofable unless the app is
+# actually behind a proxy that overwrites it, so reading it is opt-in. When it
+# is on, the app takes the rightmost address that the platform added rather
+# than the first (client-supplied) value. django-axes is told the same number
+# of trusted proxies so lockouts key on the real client.
+TRUST_X_FORWARDED_FOR = _env_bool(
+    'TRUST_X_FORWARDED_FOR', _env_bool('USE_X_FORWARDED_PROTO', False),
+)
+X_FORWARDED_FOR_PROXY_COUNT = int(os.environ.get('X_FORWARDED_FOR_PROXY_COUNT', '1'))
+AXES_IPWARE_PROXY_COUNT = X_FORWARDED_FOR_PROXY_COUNT if TRUST_X_FORWARDED_FOR else None
+AXES_IPWARE_PROXY_ORDER = os.environ.get(
+    'AXES_IPWARE_PROXY_ORDER', 'right-most' if TRUST_X_FORWARDED_FOR else 'left-most',
+)
+_axes_meta_order = os.environ.get('AXES_IPWARE_META_PRECEDENCE_ORDER', '').strip()
+if _axes_meta_order:
+    AXES_IPWARE_META_PRECEDENCE_ORDER = tuple(
+        part.strip() for part in _axes_meta_order.split(',') if part.strip()
+    )
+elif TRUST_X_FORWARDED_FOR:
+    AXES_IPWARE_META_PRECEDENCE_ORDER = ('HTTP_X_FORWARDED_FOR', 'REMOTE_ADDR')
+else:
+    AXES_IPWARE_META_PRECEDENCE_ORDER = ('REMOTE_ADDR',)
+
+# Isolate the site from cross-origin windows (blocks tab-nabbing).
+SECURE_CROSS_ORIGIN_OPENER_POLICY = os.environ.get(
+    'SECURE_CROSS_ORIGIN_OPENER_POLICY', 'same-origin',
+)
+CROSS_ORIGIN_RESOURCE_POLICY = os.environ.get(
+    'CROSS_ORIGIN_RESOURCE_POLICY', 'same-origin',
+)
+
+# Content Security Policy. The middleware in config/security_middleware.py
+# sends this header. Set CONTENT_SECURITY_POLICY to a full policy string to
+# replace the built-in one, or switch the header off entirely.
+CONTENT_SECURITY_POLICY_ENABLED = _env_bool('CONTENT_SECURITY_POLICY_ENABLED', True)
+CONTENT_SECURITY_POLICY_REPORT_ONLY = _env_bool('CONTENT_SECURITY_POLICY_REPORT_ONLY', False)
+CONTENT_SECURITY_POLICY = os.environ.get('CONTENT_SECURITY_POLICY', '')
+
+# CORS is off unless an explicit allowlist is configured. A same-origin
+# deployment (the normal case) needs none of it; a separate frontend gets a
+# narrow, credential-free allowlist instead of a wildcard.
+CORS_ALLOWED_ORIGINS = [
+    o.strip() for o in os.environ.get('CORS_ALLOWED_ORIGINS', '').split(',') if o.strip()
+]
+
+# Staff two-factor authentication. When on, a staff sign-in is only completed
+# after a six-digit code emailed to the account's address is entered. Defaults
+# on outside development so a production panel is protected out of the box.
+# The suite forces it off so tests can opt in with override_settings instead of
+# depending on whatever the developer's .env happens to contain.
+STAFF_2FA_ENABLED = False if _TESTING else _env_bool('STAFF_2FA_ENABLED', not DEBUG)
+STAFF_2FA_TIMEOUT = int(os.environ.get('STAFF_2FA_TIMEOUT', '300'))
+STAFF_2FA_MAX_ATTEMPTS = int(os.environ.get('STAFF_2FA_MAX_ATTEMPTS', '5'))
+STAFF_2FA_RESEND_SECONDS = int(os.environ.get('STAFF_2FA_RESEND_SECONDS', '60'))
+
+# Backups. The daily Celery job writes here and prunes files older than the
+# retention window; the `backup_db` command uses the same settings. Relative
+# paths are resolved against BASE_DIR so a different working directory cannot
+# scatter backup files around the server.
+_backup_dir = os.environ.get('BACKUP_DIR', '').strip()
+BACKUP_DIR = str(
+    Path(_backup_dir).expanduser()
+    if _backup_dir and Path(_backup_dir).expanduser().is_absolute()
+    else BASE_DIR / (_backup_dir or 'backups')
+)
+BACKUP_RETENTION_DAYS = int(os.environ.get('BACKUP_RETENTION_DAYS', '30'))
+
+# On a PaaS the local BACKUP_DIR is ephemeral. When object storage is
+# configured, upload each dump to the bucket as well; the bucket's lifecycle
+# rules handle off-box retention.
+BACKUP_UPLOAD_TO_S3 = _env_bool('BACKUP_UPLOAD_TO_S3', USE_S3)
+BACKUP_S3_PREFIX = os.environ.get('BACKUP_S3_PREFIX', 'backups').strip('/') or 'backups'
+
 
 
 # Email
@@ -178,3 +567,392 @@ DEFAULT_FROM_EMAIL = os.environ.get('DEFAULT_FROM_EMAIL', 'noreply@car-dealershi
 
 # Staff mailbox that receives inquiry/order notifications
 DEALERSHIP_NOTIFY_EMAIL = os.environ.get('DEALERSHIP_NOTIFY_EMAIL', 'sales@car-dealership.local')
+
+# Public base URL used to build links inside emails sent by management commands
+# (where there is no request object). Example: https://www.example-dealer.com
+SITE_BASE_URL = os.environ.get('SITE_BASE_URL', '')
+
+
+# Logging and error reporting
+#
+# A PaaS collects stdout, so a single console handler is all that is needed.
+# Without this, DEBUG=False turns production 500s into silence. Set
+# DJANGO_ADMINS to a comma-separated list ("Name <email>,ops@example.com") or
+# set SENTRY_DSN to ship exceptions to an error tracker.
+LOG_LEVEL = os.environ.get('DJANGO_LOG_LEVEL', 'INFO').upper()
+
+LOGGING = {
+    'version': 1,
+    'disable_existing_loggers': False,
+    'formatters': {
+        'verbose': {
+            'format': '[{asctime}] {levelname} {name}: {message}',
+            'style': '{',
+        },
+    },
+    'handlers': {
+        'console': {
+            'class': 'logging.StreamHandler',
+            'formatter': 'verbose',
+        },
+    },
+    'root': {
+        'handlers': ['console'],
+        'level': LOG_LEVEL,
+    },
+    'loggers': {
+        'django': {
+            'handlers': ['console'],
+            'level': LOG_LEVEL,
+            'propagate': False,
+        },
+        'django.request': {
+            'handlers': ['console'],
+            'level': 'ERROR',
+            'propagate': False,
+        },
+        'django.security': {
+            'handlers': ['console'],
+            'level': 'WARNING',
+            'propagate': False,
+        },
+        'celery': {
+            'handlers': ['console'],
+            'level': LOG_LEVEL,
+            'propagate': False,
+        },
+    },
+}
+
+
+def _parse_admins(value):
+    """Parse ``Name <email>, other@example.com`` into Django's ADMINS shape."""
+    admins = []
+    for entry in (value or '').split(','):
+        entry = entry.strip()
+        if not entry:
+            continue
+        if entry.endswith('>') and '<' in entry:
+            name, _, address = entry.partition('<')
+            admins.append((name.strip() or address.strip(), address.rstrip('>').strip()))
+        else:
+            admins.append(('', entry))
+    return admins
+
+
+ADMINS = _parse_admins(os.environ.get('DJANGO_ADMINS', ''))
+SERVER_EMAIL = os.environ.get('SERVER_EMAIL', DEFAULT_FROM_EMAIL)
+
+SENTRY_DSN = os.environ.get('SENTRY_DSN', '').strip()
+if SENTRY_DSN and not _TESTING:
+    try:
+        import sentry_sdk
+        from sentry_sdk.integrations.celery import CeleryIntegration
+        from sentry_sdk.integrations.django import DjangoIntegration
+
+        sentry_sdk.init(
+            dsn=SENTRY_DSN,
+            integrations=[DjangoIntegration(), CeleryIntegration()],
+            traces_sample_rate=float(os.environ.get('SENTRY_TRACES_SAMPLE_RATE', '0')),
+            send_default_pii=False,
+            environment=os.environ.get(
+                'SENTRY_ENVIRONMENT', 'development' if DEBUG else 'production',
+            ),
+            release=os.environ.get('SENTRY_RELEASE') or None,
+        )
+    except ImportError:
+        logging.getLogger('config.env').warning(
+            'SENTRY_DSN is set but sentry-sdk is not installed; errors will '
+            'only be logged.'
+        )
+
+
+# Google Sign-In (OAuth 2.0)
+# Create an OAuth 2.0 Client ID (type "Web application") in the Google Cloud
+# Console and register the redirect URI <your-site>/accounts/google/callback/.
+# While these are blank the "Sign in with Google" button stays hidden and the
+# start view shows a friendly "not configured" message.
+GOOGLE_OAUTH_CLIENT_ID = os.environ.get('GOOGLE_OAUTH_CLIENT_ID', '')
+GOOGLE_OAUTH_CLIENT_SECRET = os.environ.get('GOOGLE_OAUTH_CLIENT_SECRET', '')
+
+
+# Anti-spam for public forms
+# A hidden honeypot field and a link heuristic are always on. Per-IP rate
+# limiting is backed by Django's cache (LocMemCache by default, which is
+# per-process - configure a shared cache in production, see README).
+#
+# Rate limiting is disabled while running the test suite so the tests don't
+# trip over each other; the anti-spam tests turn it back on explicitly.
+ANTISPAM_RATE_LIMITS_ENABLED = os.environ.get(
+    'ANTISPAM_RATE_LIMITS_ENABLED', 'false' if 'test' in sys.argv else 'true'
+).lower() == 'true'
+
+# Optional captcha. Leave the keys blank (the default) to disable it. Setting a
+# site + secret key pair switches the widget on for public forms.
+HCAPTCHA_SITE_KEY = os.environ.get('HCAPTCHA_SITE_KEY', '')
+HCAPTCHA_SECRET_KEY = os.environ.get('HCAPTCHA_SECRET_KEY', '')
+RECAPTCHA_SITE_KEY = os.environ.get('RECAPTCHA_SITE_KEY', '')
+RECAPTCHA_SECRET_KEY = os.environ.get('RECAPTCHA_SECRET_KEY', '')
+
+
+# Site chatbot. Works out of the box with a built-in, offline FAQ/intent engine.
+# Setting a provider + API key upgrades answers to an LLM; on any error the
+# engine falls back to the built-in rules. See cars/chatbot.py.
+CHATBOT_ENABLED = os.environ.get('CHATBOT_ENABLED', 'true').lower() == 'true'
+# The LLM upgrade is switched off while the test suite runs so tests stay
+# offline and deterministic; the chatbot's LLM tests opt back in explicitly
+# with override_settings.
+CHATBOT_PROVIDER = '' if _TESTING else os.environ.get('CHATBOT_PROVIDER', '')
+CHATBOT_API_KEY = '' if _TESTING else os.environ.get('CHATBOT_API_KEY', '')
+CHATBOT_MODEL = os.environ.get('CHATBOT_MODEL', '')
+CHATBOT_BASE_URL = os.environ.get('CHATBOT_BASE_URL', '')
+CHATBOT_TIMEOUT = int(os.environ.get('CHATBOT_TIMEOUT', '15'))
+
+
+# Google Analytics 4 (optional)
+#
+# Set GOOGLE_ANALYTICS_ID to a GA4 Measurement ID (G-XXXXXXXXXX) to load the
+# gtag.js snippet and send page views/conversion events. Nothing is sent when
+# the ID is blank, and the suite keeps it off so tests stay offline.
+# GOOGLE_ANALYTICS_ENABLED can switch tracking off without deleting the ID.
+GOOGLE_ANALYTICS_ID = os.environ.get('GOOGLE_ANALYTICS_ID', '').strip()
+GOOGLE_ANALYTICS_ENABLED = _env_bool(
+    'GOOGLE_ANALYTICS_ENABLED', bool(GOOGLE_ANALYTICS_ID) and not _TESTING,
+)
+# Tracking is opt-in: gtag.js is not requested until the visitor accepts the
+# cookie banner. Set this to false only where you have a lawful basis for
+# analytics that does not require consent.
+GOOGLE_ANALYTICS_REQUIRE_CONSENT = _env_bool(
+    'GOOGLE_ANALYTICS_REQUIRE_CONSENT', True,
+)
+
+
+# Search console / social sharing verification.
+# Both values are pasted verbatim into a <meta> tag by base.html; both are
+# empty by default so nothing is published until an owner configures it.
+GOOGLE_SITE_VERIFICATION = os.environ.get('GOOGLE_SITE_VERIFICATION', '').strip()
+BING_SITE_VERIFICATION = os.environ.get('BING_SITE_VERIFICATION', '').strip()
+
+
+# Traffic analytics
+# Records one row per public page view so staff can see where visitors come
+# from and what they look at (Staff -> Traffic). Staff browsing the staff
+# panel, bots and redirects are not counted.
+#
+# Recording is switched off while the test suite runs so the tests don't
+# trip over each other; the traffic tests turn it back on explicitly.
+TRAFFIC_TRACKING_ENABLED = os.environ.get(
+    'TRAFFIC_TRACKING_ENABLED', 'false' if 'test' in sys.argv else 'true'
+).lower() == 'true'
+
+# Raw visitor IP addresses are stored, so the table is kept deliberately
+# small. Rows older than this are deleted automatically, at most once a day
+# (TRAFFIC_AUTO_PRUNE); the `purge_traffic_data` command can also be run by
+# hand at any time.
+TRAFFIC_RETENTION_DAYS = int(os.environ.get('TRAFFIC_RETENTION_DAYS', '90'))
+
+# A request for a URL that does not exist is far more often a scanner than
+# a visitor following a broken link, so 404s are not recorded by default.
+TRAFFIC_TRACK_404S = os.environ.get('TRAFFIC_TRACK_404S', 'false').lower() == 'true'
+
+# The same visitor hitting the same path again within this many seconds is
+# not recorded twice. This keeps refreshes and double clicks out of the
+# table without changing any of the reported numbers.
+TRAFFIC_DEDUPE_WINDOW = int(os.environ.get('TRAFFIC_DEDUPE_WINDOW', '60'))
+
+# The app prunes expired rows itself, at most once a day, so the site does
+# not depend on a scheduled job to keep the table small.
+TRAFFIC_AUTO_PRUNE = os.environ.get('TRAFFIC_AUTO_PRUNE', 'true').lower() == 'true'
+
+
+# Cache
+#
+# Axes lockouts, anti-spam rate limits and traffic de-duplication all live in
+# Django's cache. LocMemCache is per-process, so with more than one gunicorn
+# worker (or a restart) those protections are inconsistent. Point CACHES at
+# the platform's Redis instance in production.
+REDIS_URL = os.environ.get('REDIS_URL', '').strip()
+if REDIS_URL:
+    CACHES = {
+        'default': {
+            'BACKEND': 'django.core.cache.backends.redis.RedisCache',
+            'LOCATION': REDIS_URL,
+            'KEY_PREFIX': os.environ.get('CACHE_KEY_PREFIX', 'dealership'),
+            'TIMEOUT': int(os.environ.get('CACHE_TIMEOUT', '300')),
+        }
+    }
+else:
+    CACHES = {
+        'default': {
+            'BACKEND': 'django.core.cache.backends.locmem.LocMemCache',
+            'LOCATION': 'dealership-local',
+            'KEY_PREFIX': os.environ.get('CACHE_KEY_PREFIX', 'dealership'),
+        }
+    }
+
+
+# Celery
+CELERY_BROKER_URL = os.environ.get(
+    'CELERY_BROKER_URL', REDIS_URL or 'redis://localhost:6379/0',
+)
+CELERY_RESULT_BACKEND = os.environ.get(
+    'CELERY_RESULT_BACKEND', REDIS_URL or 'redis://localhost:6379/0',
+)
+CELERY_ACCEPT_CONTENT = ['json']
+CELERY_TASK_SERIALIZER = 'json'
+CELERY_RESULT_SERIALIZER = 'json'
+CELERY_TIMEZONE = TIME_ZONE
+CELERY_TASK_ALWAYS_EAGER = os.environ.get('CELERY_TASK_ALWAYS_EAGER', 'false' if 'test' in sys.argv else 'false').lower() == 'true'
+
+# A hung task must not hold a worker forever. The soft limit raises a catchable
+# exception so a task can clean up; the hard limit kills the worker process.
+CELERY_TASK_TIME_LIMIT = int(os.environ.get('CELERY_TASK_TIME_LIMIT', '900'))
+CELERY_TASK_SOFT_TIME_LIMIT = int(os.environ.get('CELERY_TASK_SOFT_TIME_LIMIT', '840'))
+CELERY_BROKER_CONNECTION_RETRY_ON_STARTUP = True
+CELERY_TASK_ACKS_LATE = True
+CELERY_WORKER_PREFETCH_MULTIPLIER = 1
+
+# Periodic jobs. A worker started with `celery -A config beat` picks these up.
+# crontab() is used instead of an interval so a beat restart does not reset the
+# clock on the daily jobs.
+CELERY_BEAT_SCHEDULE = {
+    'check-mpesa-payments': {
+        'task': 'payments.tasks.check_pending_payments_task',
+        'schedule': crontab(minute='*/10'),
+    },
+    'send-lead-reminders': {
+        'task': 'cars.tasks.send_lead_reminders_task',
+        'schedule': crontab(hour=8, minute=0),
+    },
+    'send-order-deposit-reminders': {
+        'task': 'cars.tasks.send_order_deposit_reminders_task',
+        'schedule': crontab(hour=8, minute=15),
+    },
+    'send-booking-reminders': {
+        'task': 'cars.tasks.send_booking_reminders_task',
+        'schedule': crontab(hour=8, minute=30),
+    },
+    'backup-database': {
+        'task': 'cars.tasks.backup_database_task',
+        # Every day at 02:00 server time, when traffic is lowest.
+        'schedule': crontab(hour=2, minute=0),
+    },
+}
+
+
+
+# M-Pesa Daraja
+MPESA_CONSUMER_KEY = os.environ.get('MPESA_CONSUMER_KEY', '')
+MPESA_CONSUMER_SECRET = os.environ.get('MPESA_CONSUMER_SECRET', '')
+MPESA_SHORTCODE = os.environ.get('MPESA_SHORTCODE', '')
+MPESA_PASSKEY = os.environ.get('MPESA_PASSKEY', '')
+MPESA_CALLBACK_URL = os.environ.get('MPESA_CALLBACK_URL', '')
+MPESA_ENVIRONMENT = os.environ.get('MPESA_ENVIRONMENT', 'sandbox')
+MPESA_TIMEOUT = int(os.environ.get('MPESA_TIMEOUT', '30'))
+
+# How long the signed link in a payment email stays usable (seconds).
+MPESA_STATUS_TOKEN_MAX_AGE = int(os.environ.get('MPESA_STATUS_TOKEN_MAX_AGE', str(60 * 60 * 24 * 30)))
+
+# How old a pending payment must be before the fallback query asks Safaricom
+# what happened to it (minutes). Callbacks normally arrive within seconds.
+MPESA_QUERY_AFTER_MINUTES = int(os.environ.get('MPESA_QUERY_AFTER_MINUTES', '10'))
+
+# Deposit rule for online vehicle orders. Kept as settings so they can be
+# tuned per deployment, but the defaults are the rule as documented.
+ORDER_DEPOSIT_RATIO = os.environ.get('ORDER_DEPOSIT_RATIO', '0.10')
+ORDER_DEPOSIT_MINIMUM = os.environ.get('ORDER_DEPOSIT_MINIMUM', '50000')
+ORDER_DEPOSIT_ROUNDING = os.environ.get('ORDER_DEPOSIT_ROUNDING', '1000')
+
+
+# SMS Notifications (Africa's Talking)
+AT_USERNAME = os.environ.get('AT_USERNAME', 'sandbox')
+AT_API_KEY = os.environ.get('AT_API_KEY', '')
+AT_SENDER_ID = os.environ.get('AT_SENDER_ID', '')
+SMS_ENABLED = os.environ.get('SMS_ENABLED', 'false').lower() == 'true'
+
+
+# Environment validation
+#
+# Development warns. Production refuses to boot with a placeholder secret or
+# an empty ALLOWED_HOSTS, because either one turns into a real vulnerability
+# the moment the site is reachable from the internet.
+def _validate_env_settings():
+    errors = []
+    warnings = []
+
+    if not SECRET_KEY or SECRET_KEY.startswith('django-insecure-'):
+        message = 'SECRET_KEY is insecure or the development default.'
+        (warnings if DEBUG else errors).append(message)
+
+    if not DEBUG and not ALLOWED_HOSTS:
+        errors.append('ALLOWED_HOSTS is empty while DEBUG is off.')
+
+    if not DEBUG and not CSRF_TRUSTED_ORIGINS:
+        warnings.append(
+            'CSRF_TRUSTED_ORIGINS is empty; set it to your https origin(s) '
+            'so forms keep working behind a proxy.'
+        )
+
+    if SMS_ENABLED and not AT_API_KEY:
+        warnings.append('SMS_ENABLED is True but AT_API_KEY not set.')
+    if USE_S3 and not AWS_STORAGE_BUCKET_NAME:
+        warnings.append('USE_S3 is True but AWS_STORAGE_BUCKET_NAME not set.')
+
+    if not DEBUG:
+        if ADMIN_URL.rstrip('/') == '/admin':
+            warnings.append(
+                'ADMIN_URL is still the default /admin/ path; set an '
+                'unguessable value such as /manage-<random>/ in production.'
+            )
+
+        if not SITE_BASE_URL:
+            warnings.append(
+                'SITE_BASE_URL is empty; links in management-command emails '
+                'will be relative. Set it to your public https URL.'
+            )
+        elif not SITE_BASE_URL.startswith('https://'):
+            warnings.append(
+                'SITE_BASE_URL does not use https; set it to your public '
+                'https URL.'
+            )
+
+        if MPESA_ENVIRONMENT.lower() == 'production' and not MPESA_CALLBACK_URL.startswith('https://'):
+            warnings.append(
+                'MPESA_ENVIRONMENT is production but MPESA_CALLBACK_URL is '
+                'not an https:// URL.'
+            )
+
+        if not REDIS_URL:
+            warnings.append(
+                'REDIS_URL is not set; rate limits, axes lockouts and '
+                'traffic de-duplication are per-process. Use a shared Redis '
+                'cache in production.'
+            )
+
+        if not ADMINS and not SENTRY_DSN:
+            warnings.append(
+                'No error reporting configured; set DJANGO_ADMINS or '
+                'SENTRY_DSN so production 500s are visible.'
+            )
+
+        if EMAIL_BACKEND.endswith('console.EmailBackend'):
+            warnings.append(
+                'EMAIL_BACKEND is the console backend; set a real SMTP '
+                'backend so verification and staff 2FA emails are delivered.'
+            )
+
+    return errors, warnings
+
+
+_ENV_ERRORS, _ENV_SETTING_WARNINGS = _validate_env_settings()
+if _ENV_ERRORS and not _TESTING:
+    raise ImproperlyConfigured(
+        'Refusing to start with unsafe production settings: ' + ' '.join(_ENV_ERRORS)
+    )
+
+if _ENV_SETTING_WARNINGS and not _TESTING:
+    _env_logger = logging.getLogger('config.env')
+    for _w in _ENV_SETTING_WARNINGS:
+        _env_logger.warning(_w)
+
+

@@ -16,6 +16,8 @@
             <div class="filter-panel">
                 <h5 class="mb-4">Registration</h5>
 
+                {% include "accounts/_google_button.html" with label="Sign up with Google" %}
+
                 <form method="post">
                     {% csrf_token %}
 

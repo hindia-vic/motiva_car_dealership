@@ -2,6 +2,12 @@
 
 {% block title %}Customer Reviews - Car Dealership{% endblock %}
 
+{% block meta_description %}Read verified customer reviews of {{ dealership.name|default:"our dealership" }} and share your own experience buying a car or hiring from us.{% endblock %}
+{% block og_title %}Customer Reviews - {{ dealership.name|default:"Car Dealership" }}{% endblock %}
+{% block og_description %}See what our customers say about buying, financing, and hiring from us.{% endblock %}
+
+{% block structured_data %}{% include "cars/_structured_data.html" %}{% endblock %}
+
 {% block content %}
 <div class="page-header">
     <div class="container-lg">
@@ -19,6 +25,7 @@
                 {% if user.is_authenticated %}
                     <form method="post" novalidate>
                         {% csrf_token %}
+                        {% include "cars/_antispam_fields.html" %}
 
                         {% if form.non_field_errors %}
                             <div class="alert alert-danger">{{ form.non_field_errors }}</div>

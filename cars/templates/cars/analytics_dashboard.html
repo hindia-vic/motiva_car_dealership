@@ -1,0 +1,65 @@
+{% extends 'base.html' %}
+{% load humanize %}
+{% block title %}Analytics Dashboard{% endblock %}
+{% block content %}
+<div class="container-fluid py-4">
+  <div class="d-flex justify-content-between align-items-center mb-4">
+    <h2><i class="bi bi-graph-up"></i> Analytics Dashboard</h2>
+    <a href="{% url 'cars:dashboard' %}" class="btn btn-outline-secondary">Back to Dashboard</a>
+  </div>
+  <div class="row g-3 mb-4">
+    <div class="col-md-3">
+      <div class="card text-center"><div class="card-body">
+        <h3>{{ total_cars }}</h3><p class="text-muted mb-0">Total Cars</p>
+      </div></div>
+    </div>
+    <div class="col-md-3">
+      <div class="card text-center"><div class="card-body">
+        <h3>{{ available_cars }}</h3><p class="text-muted mb-0">Available</p>
+      </div></div>
+    </div>
+    <div class="col-md-3">
+      <div class="card text-center"><div class="card-body">
+        <h3>{{ sold_cars }}</h3><p class="text-muted mb-0">Sold</p>
+      </div></div>
+    </div>
+    <div class="col-md-3">
+      <div class="card text-center"><div class="card-body">
+        <h3>KSh {{ revenue_30d|intcomma }}</h3><p class="text-muted mb-0">Revenue (30d)</p>
+      </div></div>
+    </div>
+  </div>
+  <div class="row g-3 mb-4">
+    <div class="col-md-6">
+      <div class="card">
+        <div class="card-header">Recent Sales</div>
+        <div class="card-body p-0">
+          <table class="table table-sm mb-0">
+            <thead><tr><th>Invoice</th><th>Customer</th><th>Amount</th><th>Date</th></tr></thead>
+            <tbody>
+              {% for sale in recent_sales_list %}
+              <tr><td>{{ sale.invoice_number }}</td><td>{{ sale.customer_name }}</td><td>KSh {{ sale.total_amount|intcomma }}</td><td>{{ sale.sale_date }}</td></tr>
+              {% empty %}<tr><td colspan="4" class="text-center">No sales</td></tr>{% endfor %}
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+    <div class="col-md-6">
+      <div class="card">
+        <div class="card-header">Recent Inquiries</div>
+        <div class="card-body p-0">
+          <table class="table table-sm mb-0">
+            <thead><tr><th>Name</th><th>Email</th><th>Date</th></tr></thead>
+            <tbody>
+              {% for inq in recent_inquiries_list %}
+              <tr><td>{{ inq.name }}</td><td>{{ inq.email }}</td><td>{{ inq.created_at|date:"M d" }}</td></tr>
+              {% empty %}<tr><td colspan="3" class="text-center">No inquiries</td></tr>{% endfor %}
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+{% endblock %}

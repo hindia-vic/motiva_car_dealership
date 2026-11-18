@@ -1,4 +1,5 @@
 {% extends "base.html" %}
+{% load currency static %}
 
 {% block title %}Reports - Staff Panel{% endblock %}
 
@@ -15,13 +16,13 @@
     <div class="row mb-4">
         <div class="col-md-3 mb-3">
             <div class="stat-card success">
-                <div class="stat-number">${{ total_revenue|floatformat:0 }}</div>
+                <div class="stat-number">{{ total_revenue|money }}</div>
                 <div class="stat-label"><i class="bi bi-cash-stack"></i> Total Revenue</div>
             </div>
         </div>
         <div class="col-md-3 mb-3">
             <div class="stat-card">
-                <div class="stat-number">${{ avg_sale_price|floatformat:0 }}</div>
+                <div class="stat-number">{{ avg_sale_price|money }}</div>
                 <div class="stat-label"><i class="bi bi-tag"></i> Avg Sale Price</div>
             </div>
         </div>
@@ -97,7 +98,7 @@
                                 <tr>
                                     <td><strong>{{ row.car__make|title }}</strong></td>
                                     <td class="text-end">{{ row.count }}</td>
-                                    <td class="text-end price-tag" style="font-size: 1rem;">${{ row.revenue|floatformat:0 }}</td>
+                                    <td class="text-end price-tag" style="font-size: 1rem;">{{ row.revenue|money }}</td>
                                 </tr>
                             {% empty %}
                                 <tr><td colspan="3" class="text-center text-muted">No completed sales yet.</td></tr>
@@ -128,7 +129,7 @@
                                 <tr>
                                     <td><span class="badge bg-light text-dark">{{ row.payment_method|title }}</span></td>
                                     <td class="text-end">{{ row.count }}</td>
-                                    <td class="text-end price-tag" style="font-size: 1rem;">${{ row.revenue|floatformat:0 }}</td>
+                                    <td class="text-end price-tag" style="font-size: 1rem;">{{ row.revenue|money }}</td>
                                 </tr>
                             {% empty %}
                                 <tr><td colspan="3" class="text-center text-muted">No completed sales yet.</td></tr>
@@ -161,7 +162,7 @@
                                 <tr>
                                     <td><strong>{{ row.car__make|title }} {{ row.car__model|title }}</strong></td>
                                     <td class="text-end">{{ row.count }}</td>
-                                    <td class="text-end price-tag" style="font-size: 1rem;">${{ row.revenue|floatformat:0 }}</td>
+                                    <td class="text-end price-tag" style="font-size: 1rem;">{{ row.revenue|money }}</td>
                                 </tr>
                             {% empty %}
                                 <tr><td colspan="3" class="text-center text-muted">No completed sales yet.</td></tr>
@@ -211,8 +212,9 @@
 {% endblock %}
 
 {% block extra_js %}
-<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+<script src="{% static 'vendor/chartjs/chart.umd.min.js' %}"></script>
 <script>
+    const currencySymbol = "{% currency %}";
     const labels = [{% for row in monthly_revenue %}'{{ row.label }}',{% endfor %}];
     const revenues = [{% for row in monthly_revenue %}{{ row.revenue|floatformat:2 }},{% endfor %}];
 
@@ -222,7 +224,7 @@
         data: {
             labels: labels,
             datasets: [{
-                label: 'Revenue ($)',
+                label: 'Revenue ({% currency_code %})',
                 data: revenues,
                 backgroundColor: 'rgba(26, 95, 122, 0.7)',
                 borderColor: '#1a5f7a',
@@ -238,7 +240,7 @@
                 y: {
                     beginAtZero: true,
                     ticks: {
-                        callback: (value) => '$' + value.toLocaleString(),
+                        callback: (value) => currencySymbol + ' ' + value.toLocaleString(),
                     },
                 },
             },

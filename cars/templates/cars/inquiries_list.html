@@ -6,7 +6,10 @@
 <div class="container-lg py-4">
     <div class="d-flex flex-wrap flex-column flex-sm-row justify-content-between align-items-start align-items-sm-center gap-2 mb-4">
         <h1><i class="bi bi-chat-dots"></i> Customer Inquiries</h1>
-        <div class="d-flex gap-2">
+        <div class="d-flex gap-2 flex-wrap">
+            <a href="{% url 'cars:contact_messages_list' %}" class="btn btn-outline-secondary">
+                <i class="bi bi-envelope"></i> Contact Messages
+            </a>
             <a href="{% url 'cars:inquiries_export' %}{% if request.GET.urlencode %}?{{ request.GET.urlencode }}{% endif %}" class="btn btn-outline-secondary">
                 <i class="bi bi-download"></i> Export CSV
             </a>
@@ -16,26 +19,76 @@
         </div>
     </div>
 
+    <!-- Attention counters -->
+    <div class="row g-2 mb-3">
+        <div class="col-6 col-lg-4">
+            <a href="?follow_up=overdue" class="text-decoration-none">
+                <div class="card border-danger h-100">
+                    <div class="card-body py-2 d-flex justify-content-between align-items-center">
+                        <span><i class="bi bi-exclamation-triangle text-danger"></i> Overdue</span>
+                        <span class="badge bg-danger rounded-pill">{{ lead_counts.overdue }}</span>
+                    </div>
+                </div>
+            </a>
+        </div>
+        <div class="col-6 col-lg-4">
+            <a href="?follow_up=today" class="text-decoration-none">
+                <div class="card border-warning h-100">
+                    <div class="card-body py-2 d-flex justify-content-between align-items-center">
+                        <span><i class="bi bi-calendar-event text-warning"></i> Due today</span>
+                        <span class="badge bg-warning text-dark rounded-pill">{{ lead_counts.due_today }}</span>
+                    </div>
+                </div>
+            </a>
+        </div>
+        <div class="col-12 col-lg-4">
+            <a href="?assignee=unassigned" class="text-decoration-none">
+                <div class="card border-secondary h-100">
+                    <div class="card-body py-2 d-flex justify-content-between align-items-center">
+                        <span><i class="bi bi-person-dash text-secondary"></i> Nobody owns</span>
+                        <span class="badge bg-secondary rounded-pill">{{ lead_counts.unassigned }}</span>
+                    </div>
+                </div>
+            </a>
+        </div>
+    </div>
+
     <!-- Filter Panel -->
     <div class="card mb-4">
         <div class="card-body">
             <h5 class="card-title mb-3"><i class="bi bi-funnel"></i> Filter Inquiries</h5>
             <form method="get" class="row g-3">
-                <div class="col-md-4">
-                    <input type="text" name="search" class="form-control" placeholder="Search by customer or car..." 
+                <div class="col-md-3">
+                    <input type="text" name="search" class="form-control" placeholder="Search by customer or car..."
                            value="{{ request.GET.search }}">
                 </div>
-                <div class="col-md-4">
+                <div class="col-md-2">
                     <select name="status" class="form-select">
                         <option value="">All Statuses</option>
-                        {% for status_choice in statuses %}
-                            <option value="{{ status_choice }}" {% if request.GET.status == status_choice %}selected{% endif %}>
-                                {{ status_choice|title }}
-                            </option>
+                        {% for value, label in statuses %}
+                            <option value="{{ value }}" {% if request.GET.status == value %}selected{% endif %}>{{ label }}</option>
                         {% endfor %}
                     </select>
                 </div>
-                <div class="col-md-4">
+                <div class="col-md-3">
+                    <select name="assignee" class="form-select">
+                        <option value="">Any owner</option>
+                        <option value="me" {% if request.GET.assignee == 'me' %}selected{% endif %}>Assigned to me</option>
+                        <option value="unassigned" {% if request.GET.assignee == 'unassigned' %}selected{% endif %}>Unassigned</option>
+                        {% for person in staff_users %}
+                            <option value="{{ person.pk }}" {% if request.GET.assignee == person.pk|stringformat:'s' %}selected{% endif %}>{{ person.username }}</option>
+                        {% endfor %}
+                    </select>
+                </div>
+                <div class="col-md-2">
+                    <select name="follow_up" class="form-select">
+                        <option value="">Any follow-up</option>
+                        <option value="overdue" {% if request.GET.follow_up == 'overdue' %}selected{% endif %}>Overdue</option>
+                        <option value="today" {% if request.GET.follow_up == 'today' %}selected{% endif %}>Due today</option>
+                        <option value="week" {% if request.GET.follow_up == 'week' %}selected{% endif %}>Next 7 days</option>
+                    </select>
+                </div>
+                <div class="col-md-2">
                     <button type="submit" class="btn btn-primary w-100">
                         <i class="bi bi-search"></i> Filter
                     </button>
@@ -47,29 +100,37 @@
     <!-- Inquiries Table -->
     {% if inquiries %}
         <div class="table-responsive">
-            <table class="table table-hover">
+            <table class="table table-hover align-middle">
                 <thead class="table-light">
                     <tr>
-                        <th>Customer Name</th>
+                        <th>Lead</th>
                         <th>Vehicle</th>
-                        <th>Email</th>
-                        <th>Phone</th>
                         <th>Message</th>
                         <th>Status</th>
-                        <th>Date</th>
+                        <th>Owner &amp; follow-up</th>
+                        <th>Last contact</th>
                         <th>Action</th>
                     </tr>
                 </thead>
                 <tbody>
                     {% for inquiry in inquiries %}
-                        <tr>
-                            <td><strong>{{ inquiry.customer_name }}</strong></td>
-                            <td>{{ inquiry.car.year }} {{ inquiry.car.make }} {{ inquiry.car.model }}</td>
-                            <td><small>{{ inquiry.customer_email }}</small></td>
-                            <td><small>{{ inquiry.customer_phone }}</small></td>
+                        <tr id="lead-{{ inquiry.pk }}"
+                            class="{% if inquiry.follow_up_date and inquiry.follow_up_date < today %}table-warning{% endif %}">
                             <td>
-                                <small>{{ inquiry.message|truncatewords:10 }}</small>
+                                <strong>{{ inquiry.customer_name }}</strong>
+                                <div><small class="text-muted">{{ inquiry.customer_email }}</small></div>
+                                <div><small class="text-muted">{{ inquiry.customer_phone }}</small></div>
+                                {% if inquiry.notes %}
+                                    <div><small class="text-muted fst-italic">{{ inquiry.notes|truncatechars:90 }}</small></div>
+                                {% endif %}
                             </td>
+                            <td>
+                                {{ inquiry.car.year }} {{ inquiry.car.make }} {{ inquiry.car.model }}
+                                {% if inquiry.source %}
+                                    <div><span class="badge bg-secondary">{{ inquiry.source }}</span></div>
+                                {% endif %}
+                            </td>
+                            <td><small>{{ inquiry.message|truncatewords:10 }}</small></td>
                             <td>
                                 <form method="post" action="{% url 'cars:inquiry_status_update' inquiry.id %}">
                                     {% csrf_token %}
@@ -86,11 +147,54 @@
                                     </div>
                                 </form>
                             </td>
-                            <td><small>{{ inquiry.created_at|date:"M d, Y" }}</small></td>
+                            <td style="min-width: 200px;">
+                                <form method="post" action="{% url 'cars:lead_assign' 'inquiry' inquiry.pk %}" class="d-flex flex-column gap-1">
+                                    {% csrf_token %}
+                                    <input type="hidden" name="next" value="{{ request.get_full_path }}">
+                                    <select name="assigned_to" class="form-select form-select-sm">
+                                        <option value="">Unassigned</option>
+                                        {% for person in staff_users %}
+                                            <option value="{{ person.pk }}" {% if inquiry.assigned_to_id == person.pk %}selected{% endif %}>{{ person.username }}</option>
+                                        {% endfor %}
+                                    </select>
+                                    <input type="date" name="follow_up_date" class="form-control form-control-sm"
+                                           value="{{ inquiry.follow_up_date|date:'Y-m-d' }}" aria-label="Follow-up date">
+                                    <input type="text" name="note" class="form-control form-control-sm"
+                                           placeholder="Note (optional)" aria-label="Note">
+                                    <button type="submit" class="btn btn-sm btn-outline-primary">
+                                        <i class="bi bi-save"></i> Save
+                                    </button>
+                                </form>
+                            </td>
                             <td>
-                                <a href="mailto:{{ inquiry.customer_email }}" class="btn btn-sm btn-outline-primary">
-                                    <i class="bi bi-envelope"></i> Email
-                                </a>
+                                <small>
+                                    {% if inquiry.last_contacted_at %}
+                                        {{ inquiry.last_contacted_at|date:"M d, Y" }}
+                                    {% else %}
+                                        <span class="text-muted">Never</span>
+                                    {% endif %}
+                                </small>
+                                {% if inquiry.follow_up_date %}
+                                    <div>
+                                        <small class="{% if inquiry.follow_up_date < today %}text-danger fw-semibold{% else %}text-muted{% endif %}">
+                                            Follow up {{ inquiry.follow_up_date|date:"M d" }}
+                                        </small>
+                                    </div>
+                                {% endif %}
+                            </td>
+                            <td>
+                                <div class="d-flex flex-column gap-1">
+                                    <form method="post" action="{% url 'cars:lead_contact' 'inquiry' inquiry.pk %}">
+                                        {% csrf_token %}
+                                        <input type="hidden" name="next" value="{{ request.get_full_path }}">
+                                        <button type="submit" class="btn btn-sm btn-outline-success w-100" title="Mark as contacted now">
+                                            <i class="bi bi-telephone"></i> Contacted
+                                        </button>
+                                    </form>
+                                    <a href="mailto:{{ inquiry.customer_email }}" class="btn btn-sm btn-outline-primary">
+                                        <i class="bi bi-envelope"></i> Email
+                                    </a>
+                                </div>
                             </td>
                         </tr>
                     {% endfor %}
@@ -104,29 +208,23 @@
                 <ul class="pagination justify-content-center">
                     {% if page_obj.has_previous %}
                         <li class="page-item">
-                            <a class="page-link" href="?page=1{% if request.GET.urlencode %}&{{ request.GET.urlencode }}{% endif %}">First</a>
+                            <a class="page-link" href="{% querystring page=1 %}">First</a>
                         </li>
                         <li class="page-item">
-                            <a class="page-link" href="?page={{ page_obj.previous_page_number }}{% if request.GET.urlencode %}&{{ request.GET.urlencode }}{% endif %}">Previous</a>
+                            <a class="page-link" href="{% querystring page=page_obj.previous_page_number %}">Previous</a>
                         </li>
                     {% endif %}
 
-                    {% for num in page_obj.paginator.page_range %}
-                        {% if page_obj.number == num %}
-                            <li class="page-item active"><span class="page-link">{{ num }}</span></li>
-                        {% elif num > page_obj.number|add:'-3' and num < page_obj.number|add:'3' %}
-                            <li class="page-item">
-                                <a class="page-link" href="?page={{ num }}{% if request.GET.urlencode %}&{{ request.GET.urlencode }}{% endif %}">{{ num }}</a>
-                            </li>
-                        {% endif %}
-                    {% endfor %}
+                    <li class="page-item disabled">
+                        <span class="page-link">Page {{ page_obj.number }} of {{ paginator.num_pages }}</span>
+                    </li>
 
                     {% if page_obj.has_next %}
                         <li class="page-item">
-                            <a class="page-link" href="?page={{ page_obj.next_page_number }}{% if request.GET.urlencode %}&{{ request.GET.urlencode }}{% endif %}">Next</a>
+                            <a class="page-link" href="{% querystring page=page_obj.next_page_number %}">Next</a>
                         </li>
                         <li class="page-item">
-                            <a class="page-link" href="?page={{ page_obj.paginator.num_pages }}{% if request.GET.urlencode %}&{{ request.GET.urlencode }}{% endif %}">Last</a>
+                            <a class="page-link" href="{% querystring page=paginator.num_pages %}">Last</a>
                         </li>
                     {% endif %}
                 </ul>
@@ -134,7 +232,7 @@
         {% endif %}
     {% else %}
         <div class="alert alert-info">
-            <i class="bi bi-info-circle"></i> No inquiries found. Check back later!
+            <i class="bi bi-info-circle"></i> No inquiries match this filter.
         </div>
     {% endif %}
 </div>

@@ -1,0 +1,51 @@
+{% extends "base.html" %}
+{% load currency %}
+
+{% block title %}Hire Availability Calendar - {{ dealership.name|default:"Car Dealership" }}{% endblock %}
+
+{% block content %}
+<div class="page-header">
+    <div class="container-lg d-flex justify-content-between align-items-center flex-wrap">
+        <div>
+            <h1><i class="bi bi-calendar3"></i> Hire Availability Calendar</h1>
+            <p>Overview of all hire cars from {{ start_date }} to {{ end_date }}</p>
+        </div>
+        <div>
+            <a href="{% url 'hiring:staff_hire_cars' %}" class="btn btn-light"><i class="bi bi-car-front"></i> Fleet</a>
+            <a href="{% url 'hiring:staff_hire_bookings' %}" class="btn btn-light"><i class="bi bi-list-check"></i> Bookings</a>
+        </div>
+    </div>
+</div>
+
+<div class="container-lg py-4">
+    <div class="card shadow-sm">
+        <div class="card-header">
+            <h5 class="mb-0">All Cars</h5>
+        </div>
+        <div class="card-body p-0">
+            <div class="table-responsive">
+                <table class="table table-sm table-striped mb-0">
+                    <thead>
+                        <tr>
+                            <th>Car</th>
+                            <th>Status</th>
+                            <th>Calendar</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for car in hire_cars %}
+                        <tr>
+                            <td>{{ car.year }} {{ car.make }} {{ car.model }}</td>
+                            <td><span class="badge {{ car.status_badge_class }}">{{ car.get_status_display }}</span></td>
+                            <td><a href="{% url 'hiring:staff_hire_car_calendar' car.pk %}" class="btn btn-sm btn-outline-primary">View Calendar</a></td>
+                        </tr>
+                        {% empty %}
+                        <tr><td colspan="3" class="text-center text-muted">No cars</td></tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

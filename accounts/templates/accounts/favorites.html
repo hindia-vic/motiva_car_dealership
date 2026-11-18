@@ -1,4 +1,7 @@
+
+
 {% extends "base.html" %}
+{% load currency %}
 
 {% block title %}My Favorites - Car Dealership{% endblock %}
 
@@ -23,6 +26,13 @@
                                     <span class="badge badge-available">{{ car.condition|title }}</span>
                                 </div>
 
+                                {% if favorite.price_at_save and favorite.price_at_save > car.asking_price %}
+                                    <div class="alert alert-success py-1 px-2 mb-2 small">
+                                        <i class="bi bi-arrow-down-circle"></i>
+                                        Price dropped from {{ favorite.price_at_save|money }} to {{ car.asking_price|money }}
+                                    </div>
+                                {% endif %}
+
                                 <div class="vehicle-specs">
                                     <div class="spec-item">
                                         <div class="spec-label">Color</div>
@@ -46,7 +56,7 @@
                                     </div>
                                     <div class="spec-item">
                                         <div class="spec-label">Price</div>
-                                        <div class="spec-value">${{ car.asking_price }}</div>
+                                        <div class="spec-value">{{ car.asking_price|money }}</div>
                                     </div>
                                 </div>
                             </div>

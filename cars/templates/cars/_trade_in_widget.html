@@ -1,0 +1,125 @@
+{% load currency %}
+{% comment %}
+Trade-in widget for the order forms.
+
+Fills the trade-in value box with an online estimate, using the same
+rules as the trade-in page (cars/tradein.py). Expects ``order_form`` in
+the context - the order form of the page it is included in.
+{% endcomment %}
+<div class="border rounded p-3 mb-3 bg-light">
+    <div class="d-flex flex-wrap justify-content-between align-items-center gap-2 mb-2">
+        <span class="form-label mb-0 fw-semibold">
+            <i class="bi bi-arrow-left-right"></i> Trading in a vehicle?
+        </span>
+        <button type="button" class="btn btn-sm btn-outline-primary" id="trade-in-estimate-btn">
+            <i class="bi bi-calculator"></i> Get estimate
+        </button>
+    </div>
+    <p class="small text-muted mb-3">
+        Tell us about your current car and we will fill in an estimate for your
+        trade-in value. You can change the number afterwards.
+    </p>
+
+    <div class="row">
+        <div class="col-6 col-md-3 mb-2">
+            <label for="{{ order_form.trade_in_year.id_for_label }}" class="form-label small">Year</label>
+            {{ order_form.trade_in_year }}
+        </div>
+        <div class="col-6 col-md-3 mb-2">
+            <label for="{{ order_form.trade_in_make.id_for_label }}" class="form-label small">Make</label>
+            {{ order_form.trade_in_make }}
+        </div>
+        <div class="col-6 col-md-3 mb-2">
+            <label for="{{ order_form.trade_in_model.id_for_label }}" class="form-label small">Model</label>
+            {{ order_form.trade_in_model }}
+        </div>
+        <div class="col-6 col-md-3 mb-2">
+            <label for="{{ order_form.trade_in_mileage.id_for_label }}" class="form-label small">Mileage</label>
+            {{ order_form.trade_in_mileage }}
+        </div>
+    </div>
+
+    <div class="row">
+        <div class="col-6 col-md-3 mb-2">
+            <label for="{{ order_form.trade_in_condition.id_for_label }}" class="form-label small">Condition</label>
+            {{ order_form.trade_in_condition }}
+        </div>
+        <div class="col-6 col-md-3 mb-2">
+            <label for="{{ order_form.trade_in_body_type.id_for_label }}" class="form-label small">Body type</label>
+            {{ order_form.trade_in_body_type }}
+        </div>
+    </div>
+
+    {{ order_form.trade_in_estimate }}
+
+    <div id="trade-in-feedback" class="small mt-2"></div>
+</div>
+
+<script>
+(function () {
+    var button = document.getElementById('trade-in-estimate-btn');
+    if (!button) { return; }
+
+    var feedback = document.getElementById('trade-in-feedback');
+    var valueField = document.getElementById('{{ order_form.trade_in_value.id_for_label }}');
+    var estimateField = document.getElementById('{{ order_form.trade_in_estimate.id_for_label }}');
+    var currencySymbol = "{% currency %}";
+    var endpoint = "{% url 'cars:trade_in_estimate' %}";
+
+    var fields = {
+        year: document.getElementById('{{ order_form.trade_in_year.id_for_label }}'),
+        make: document.getElementById('{{ order_form.trade_in_make.id_for_label }}'),
+        model: document.getElementById('{{ order_form.trade_in_model.id_for_label }}'),
+        mileage: document.getElementById('{{ order_form.trade_in_mileage.id_for_label }}'),
+        condition: document.getElementById('{{ order_form.trade_in_condition.id_for_label }}'),
+        bodyType: document.getElementById('{{ order_form.trade_in_body_type.id_for_label }}')
+    };
+
+    function setFeedback(message, kind) {
+        feedback.className = 'small mt-2 text-' + (kind || 'muted');
+        feedback.textContent = message;
+    }
+
+    button.addEventListener('click', function () {
+        if (!fields.year.value || !fields.make.value) {
+            setFeedback('Please fill in at least the year and the make.', 'danger');
+            return;
+        }
+
+        var payload = new FormData();
+        payload.append('year', fields.year.value);
+        payload.append('make', fields.make.value);
+        payload.append('model', fields.model.value);
+        payload.append('mileage', fields.mileage.value);
+        payload.append('condition', fields.condition.value);
+        if (fields.bodyType) { payload.append('body_type', fields.bodyType.value); }
+
+        button.disabled = true;
+        setFeedback('Working out your estimate...', 'muted');
+
+        fetch(endpoint, {
+            method: 'POST',
+            body: payload,
+            headers: {
+                'X-CSRFToken': '{{ csrf_token }}',
+                'X-Requested-With': 'XMLHttpRequest'
+            }
+        })
+            .then(function (response) { return response.json(); })
+            .then(function (data) {
+                if (data.error) { throw new Error(data.error); }
+                if (valueField) { valueField.value = data.mid.toFixed(2); }
+                if (estimateField) { estimateField.value = data.mid.toFixed(2); }
+                setFeedback(
+                    'Estimated trade-in value: ' + currencySymbol + ' ' + data.low + ' - ' + currencySymbol + ' ' + data.high +
+                    '. We used the midpoint; change it if you like.',
+                    'success'
+                );
+            })
+            .catch(function (error) {
+                setFeedback(error.message || 'We could not work out an estimate just now.', 'danger');
+            })
+            .finally(function () { button.disabled = false; });
+    });
+})();
+</script>

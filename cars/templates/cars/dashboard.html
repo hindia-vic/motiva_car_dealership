@@ -1,4 +1,5 @@
 {% extends "base.html" %}
+{% load currency %}
 
 {% block title %}Staff Dashboard - Admin{% endblock %}
 
@@ -88,7 +89,7 @@
         </div>
         <div class="col-6 col-lg-3">
             <div class="stat-card">
-                <div class="stat-number">${{ total_sales_revenue|floatformat:0 }}</div>
+                <div class="stat-number">{{ total_sales_revenue|money }}</div>
                 <div class="stat-label"><i class="bi bi-cash-coin"></i> Revenue</div>
             </div>
         </div>
@@ -122,8 +123,17 @@
                         <a href="{% url 'cars:inquiries_list' %}" class="btn btn-sm btn-outline-primary">
                             View Inquiries
                         </a>
+                        <a href="{% url 'cars:contact_messages_list' %}" class="btn btn-sm btn-outline-secondary">
+                            Contact Messages
+                        </a>
                         <a href="{% url 'cars:orders_list' %}" class="btn btn-sm btn-outline-danger">
                             View Orders
+                        </a>
+                        <a href="{% url 'payments:transactions_list' %}" class="btn btn-sm btn-outline-warning">
+                            Payments
+                            {% if pending_payments %}
+                                <span class="badge bg-warning text-dark">{{ pending_payments }}</span>
+                            {% endif %}
                         </a>
                         <a href="{% url 'cars:appointments_list' %}" class="btn btn-sm btn-outline-secondary">
                             Test Drives
@@ -131,6 +141,95 @@
                                 <span class="badge bg-warning text-dark">{{ pending_appointments }}</span>
                             {% endif %}
                         </a>
+                        <a href="{% url 'cars:listing_requests_list' %}" class="btn btn-sm btn-outline-info">
+                            Listing Requests
+                            {% if open_listing_requests %}
+                                <span class="badge bg-info text-dark">{{ open_listing_requests }}</span>
+                            {% endif %}
+                        </a>
+                        <a href="{% url 'cars:financing_applications_list' %}" class="btn btn-sm btn-outline-dark">
+                            Financing Applications
+                            {% if open_financing_applications %}
+                                <span class="badge bg-dark">{{ open_financing_applications }}</span>
+                            {% endif %}
+                        </a>
+                        <a href="{% url 'hiring:staff_hire_bookings' %}" class="btn btn-sm btn-outline-primary">
+                            Hire Bookings
+                            {% if pending_hire_bookings %}
+                                <span class="badge bg-primary">{{ pending_hire_bookings }}</span>
+                            {% endif %}
+                        </a>
+                        <a href="{% url 'hiring:staff_hire_cars' %}" class="btn btn-sm btn-outline-success">
+                            Hire Fleet
+                            <span class="badge bg-success">{{ hire_cars_available }}</span>
+                        </a>
+                        <a href="{% url 'cars:car_create' %}" class="btn btn-sm btn-outline-success">
+                            Add Car
+                        </a>
+                        <a href="{% url 'cars:about_info_edit' %}" class="btn btn-sm btn-outline-secondary">
+                            Edit About Page
+                        </a>
+                        <a href="{% url 'cars:contact_info_edit' %}" class="btn btn-sm btn-outline-secondary">
+                            Edit Contact Info
+                        </a>
+                        <a href="{% url 'cars:testimonial_list' %}" class="btn btn-sm btn-outline-secondary">
+                            Reviews
+                        </a>
+                        <a href="{% url 'cars:chatbot_sessions' %}" class="btn btn-sm btn-outline-secondary">
+                            Chat Transcripts
+                        </a>
+                        <form method="post" action="{% url 'cars:send_alerts_now' %}">
+                            {% csrf_token %}
+                            <button type="submit" class="btn btn-sm btn-outline-success w-100">
+                                Send Alerts Now
+                                {% if pending_alerts %}
+                                    <span class="badge bg-success">{{ pending_alerts }}</span>
+                                {% endif %}
+                            </button>
+                        </form>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Needs attention -->
+    <div class="row mb-4">
+        <div class="col-12">
+            <div class="card border-warning">
+                <div class="card-header bg-light">
+                    <h5 class="mb-0"><i class="bi bi-bell"></i> Needs attention</h5>
+                </div>
+                <div class="card-body">
+                    <div class="row g-3">
+                        <div class="col-6 col-lg-3">
+                            <a class="text-decoration-none d-flex justify-content-between"
+                               href="{% url 'cars:inquiries_list' %}?follow_up=overdue">
+                                <span><i class="bi bi-exclamation-triangle text-danger"></i> Overdue leads</span>
+                                <span class="badge bg-danger rounded-pill">{{ lead_counts.overdue }}</span>
+                            </a>
+                        </div>
+                        <div class="col-6 col-lg-3">
+                            <a class="text-decoration-none d-flex justify-content-between"
+                               href="{% url 'cars:inquiries_list' %}?assignee=unassigned">
+                                <span><i class="bi bi-person-dash text-secondary"></i> Unowned leads</span>
+                                <span class="badge bg-secondary rounded-pill">{{ lead_counts.unassigned }}</span>
+                            </a>
+                        </div>
+                        <div class="col-6 col-lg-3">
+                            <a class="text-decoration-none d-flex justify-content-between"
+                               href="{% url 'cars:orders_list' %}?filter=awaiting_deposit">
+                                <span><i class="bi bi-hourglass-split text-warning"></i> Awaiting deposit</span>
+                                <span class="badge bg-warning text-dark rounded-pill">{{ awaiting_deposit_orders }}</span>
+                            </a>
+                        </div>
+                        <div class="col-6 col-lg-3">
+                            <a class="text-decoration-none d-flex justify-content-between"
+                               href="{% url 'cars:orders_list' %}?filter=stale">
+                                <span><i class="bi bi-x-circle text-danger"></i> Stale orders</span>
+                                <span class="badge bg-danger rounded-pill">{{ stale_orders }}</span>
+                            </a>
+                        </div>
                     </div>
                 </div>
             </div>
@@ -190,7 +289,7 @@
                                         <div>
                                             <h6 class="mb-1">{{ order.car.year }} {{ order.car.make }} {{ order.car.model }}</h6>
                                             <p class="mb-1"><small>From: <strong>{{ order.customer_name }}</strong></small></p>
-                                            <p class="mb-0"><small class="text-muted">${{ order.price }} • {{ order.order_date|date:"M d, Y" }}</small></p>
+                                            <p class="mb-0"><small class="text-muted">{{ order.price|money }} • {{ order.order_date|date:"M d, Y" }}</small></p>
                                         </div>
                                         <span class="badge bg-warning">{{ order.status|title }}</span>
                                     </div>
@@ -248,6 +347,40 @@
         </div>
     </div>
 
+    <!-- Website Traffic -->
+    <div class="row mb-4">
+        <div class="col-12">
+            <div class="card">
+                <div class="card-header bg-light d-flex justify-content-between align-items-center flex-wrap gap-2">
+                    <h5 class="mb-0"><i class="bi bi-activity"></i> Website Traffic</h5>
+                    <a href="{% url 'traffic:traffic' %}" class="btn btn-sm btn-primary">
+                        View full report <i class="bi bi-arrow-right"></i>
+                    </a>
+                </div>
+                <div class="card-body">
+                    <div class="row text-center">
+                        <div class="col-6 col-md-3">
+                            <div class="stat-number">{{ traffic_visitors_today }}</div>
+                            <div class="stat-label">Visitors today</div>
+                        </div>
+                        <div class="col-6 col-md-3">
+                            <div class="stat-number">{{ traffic_views_today }}</div>
+                            <div class="stat-label">Page views today</div>
+                        </div>
+                        <div class="col-6 col-md-3">
+                            <div class="stat-number">{{ traffic_visitors_week }}</div>
+                            <div class="stat-label">Visitors this week</div>
+                        </div>
+                        <div class="col-6 col-md-3">
+                            <div class="stat-number">{{ traffic_views_week }}</div>
+                            <div class="stat-label">Page views this week</div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
     <!-- Additional Management Options -->
     <div class="row">
         <div class="col-6 col-lg-3 mb-3">
@@ -297,6 +430,19 @@
                     <p class="card-text small">Create staff accounts and send login credentials</p>
                     <a href="{% url 'accounts:staff_create' %}" class="btn btn-outline-success btn-sm">
                         Create Staff Account
+                    </a>
+                </div>
+            </div>
+        </div>
+
+        <div class="col-6 col-lg-3 mb-3">
+            <div class="card text-center">
+                <div class="card-body">
+                    <i class="bi bi-shop" style="font-size: 2rem; color: #6f42c1;"></i>
+                    <h5 class="card-title mt-3">Dealership Settings</h5>
+                    <p class="card-text small">Update the dealership name and logo shown across the site</p>
+                    <a href="{% url 'cars:dealership_info_edit' %}" class="btn btn-outline-primary btn-sm">
+                        Edit Branding
                     </a>
                 </div>
             </div>

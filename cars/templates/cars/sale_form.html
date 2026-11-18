@@ -1,4 +1,5 @@
 {% extends "base.html" %}
+{% load currency %}
 
 {% block title %}{% if is_edit %}Edit Sale {{ form.instance.invoice_number }}{% else %}Record Sale{% endif %} - Staff Panel{% endblock %}
 
@@ -34,6 +35,12 @@
                             {% if form.customer.errors %}<div class="text-danger small mt-1">{{ form.customer.errors }}</div>{% endif %}
                         </div>
                         <div class="col-md-6 mb-3">
+                            <label for="{{ form.order.id_for_label }}" class="form-label">Online Order</label>
+                            {{ form.order }}
+                            {% if form.order.errors %}<div class="text-danger small mt-1">{{ form.order.errors }}</div>{% endif %}
+                            <div class="form-text">Link the order the customer placed online, to keep their trade-in claim.</div>
+                        </div>
+                        <div class="col-md-6 mb-3">
                             <label for="{{ form.salesperson.id_for_label }}" class="form-label">Salesperson</label>
                             {{ form.salesperson }}
                             {% if form.salesperson.errors %}<div class="text-danger small mt-1">{{ form.salesperson.errors }}</div>{% endif %}
@@ -58,6 +65,11 @@
                             <label for="{{ form.trade_in_value.id_for_label }}" class="form-label">Trade-In Value</label>
                             {{ form.trade_in_value }}
                             {% if form.trade_in_value.errors %}<div class="text-danger small mt-1">{{ form.trade_in_value.errors }}</div>{% endif %}
+                            <div class="form-text" id="claimed-trade-in-hint">
+                                {% if form.instance.order and form.instance.order.trade_in_value %}
+                                    The customer claimed {{ form.instance.order.trade_in_value|money }} for their trade-in.
+                                {% endif %}
+                            </div>
                         </div>
                         <div class="col-md-4 mb-3">
                             <label for="{{ form.down_payment.id_for_label }}" class="form-label">Down Payment</label>
@@ -114,4 +126,33 @@
         </div>
     </div>
 </div>
+
+<script>
+(function () {
+    var currencySymbol = "{% currency %}";
+    var orderSelect = document.getElementById('{{ form.order.id_for_label }}');
+    var hint = document.getElementById('claimed-trade-in-hint');
+    var tradeIn = document.getElementById('{{ form.trade_in_value.id_for_label }}');
+    if (!orderSelect || !hint) { return; }
+
+    var claimed = {};
+    try {
+        claimed = JSON.parse(orderSelect.dataset.claimed || '{}');
+    } catch (error) {
+        claimed = {};
+    }
+
+    orderSelect.addEventListener('change', function () {
+        var value = claimed[orderSelect.value];
+        if (value === undefined) {
+            hint.textContent = '';
+            return;
+        }
+        hint.textContent = 'The customer claimed ' + currencySymbol + ' ' + value + ' for their trade-in.';
+        if (tradeIn && (!tradeIn.value || parseFloat(tradeIn.value) === 0)) {
+            tradeIn.value = value;
+        }
+    });
+})();
+</script>
 {% endblock %}

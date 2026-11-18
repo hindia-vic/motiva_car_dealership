@@ -6,7 +6,7 @@
 <div class="page-header">
     <div class="container-lg">
         <h1><i class="bi bi-geo-alt"></i> Edit Visit or Call Info</h1>
-        <p>Update the address, phone, email, and showroom hours shown on the contact page</p>
+        <p>Update the address, phone, email, WhatsApp number, and showroom hours shown on the contact page</p>
     </div>
 </div>
 
@@ -44,6 +44,12 @@
                             <label for="{{ form.email.id_for_label }}" class="form-label">Email *</label>
                             {{ form.email }}
                             {% if form.email.errors %}<div class="text-danger small mt-1">{{ form.email.errors }}</div>{% endif %}
+                        </div>
+                        <div class="col-md-6 mb-3">
+                            <label for="{{ form.whatsapp.id_for_label }}" class="form-label">WhatsApp Number</label>
+                            {{ form.whatsapp }}
+                            {% if form.whatsapp.errors %}<div class="text-danger small mt-1">{{ form.whatsapp.errors }}</div>{% endif %}
+                            <div class="form-text">Include the country code, digits only (e.g. 14155551234). Leave blank to hide the button.</div>
                         </div>
                     </div>
                 </div>

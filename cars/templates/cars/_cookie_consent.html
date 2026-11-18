@@ -1,0 +1,76 @@
+{% comment %}
+Cookie consent banner for the optional GA4 integration.
+
+The decision is stored in the first-party ``cookie_consent`` cookie, which
+config.context_processors.analytics reads on the next request. Nothing is sent
+to Google before the visitor accepts, so declining is a real opt-out rather
+than a hidden setting.
+
+Included from base.html. The "Cookie Settings" footer link clears the cookie so
+the banner appears again and the visitor can change their mind.
+{% endcomment %}
+{% if analytics_consent_pending %}
+<div id="cookie-consent"
+     role="region"
+     aria-label="Cookie consent"
+     style="position: fixed; left: 0; right: 0; bottom: 0; z-index: 1080; background: #111827; color: #fff; box-shadow: 0 -8px 30px rgba(0, 0, 0, 0.25);">
+    <div class="container-lg py-3 d-flex flex-column flex-md-row align-items-md-center gap-3">
+        <p class="mb-0 small" style="flex: 1;">
+            <strong>We use optional cookies for analytics.</strong>
+            With your permission we load Google Analytics to understand how the
+            site is used and improve it. We do not load it unless you accept.
+            Read our <a href="{% url 'cars:privacy_policy' %}" class="link-light">privacy policy</a>.
+        </p>
+        <div class="d-flex gap-2 flex-shrink-0">
+            <button type="button" class="btn btn-outline-light btn-sm" data-consent="denied">
+                Decline
+            </button>
+            <button type="button" class="btn btn-secondary btn-sm" data-consent="granted">
+                Accept analytics
+            </button>
+        </div>
+    </div>
+</div>
+{% endif %}
+
+{% if analytics_configured and analytics_consent_required %}
+<script>
+(function () {
+    function writeConsent(value) {
+        var cookie = 'cookie_consent=' + value + '; Max-Age=15552000; Path=/; SameSite=Lax';
+        if (window.location.protocol === 'https:') {
+            cookie += '; Secure';
+        }
+        document.cookie = cookie;
+    }
+
+    var banner = document.getElementById('cookie-consent');
+    if (banner) {
+        banner.querySelectorAll('[data-consent]').forEach(function (button) {
+            button.addEventListener('click', function () {
+                var value = button.getAttribute('data-consent');
+                writeConsent(value);
+                if (value === 'granted') {
+                    // Remember to report the opt-in once gtag exists after the
+                    // reload. Declining loads no analytics at all, so there is
+                    // nothing to report in that case.
+                    try { sessionStorage.setItem('cookieConsentEvent', 'granted'); } catch (e) {}
+                    window.location.reload();
+                } else {
+                    banner.remove();
+                }
+            });
+        });
+    }
+
+    var settingsLink = document.getElementById('cookie-settings-link');
+    if (settingsLink) {
+        settingsLink.addEventListener('click', function (event) {
+            event.preventDefault();
+            document.cookie = 'cookie_consent=; Max-Age=0; Path=/; SameSite=Lax';
+            window.location.reload();
+        });
+    }
+})();
+</script>
+{% endif %}

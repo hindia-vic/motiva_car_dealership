@@ -1,0 +1,32 @@
+{% extends 'base.html' %}
+{% block title %}Privacy Policy{% endblock %}
+
+{% block meta_description %}How we collect, use, and protect your personal information, including analytics cookies and your privacy choices.{% endblock %}
+{% block og_title %}Privacy Policy{% endblock %}
+{% block og_description %}How we collect, use, and protect your personal information.{% endblock %}
+{% block content %}
+<div class="container py-4">
+  <div class="row justify-content-center">
+    <div class="col-lg-10">
+      <div class="card shadow-sm">
+        <div class="card-header bg-primary text-white">
+          <h4 class="mb-0">Privacy Policy</h4>
+        </div>
+        <div class="card-body">
+          <p>Last updated: {{ now|date:"F d, Y" }}</p>
+          <h5>Information We Collect</h5>
+          <p>We collect information you provide directly to us, such as when you create an account, make an inquiry, request a test drive, or contact us.</p>
+          <h5>How We Use Your Information</h5>
+          <p>We use the information we collect to provide, maintain, and improve our services, process transactions, and communicate with you.</p>
+          <h5>Data Security</h5>
+          <p>We implement appropriate security measures to protect your personal information.</p>
+          <h5>Your Rights (GDPR)</h5>
+          <p>You have the right to access, correct, or delete your personal data. You may also request data portability or restrict processing.</p>
+          <h5>Contact Us</h5>
+          <p>If you have questions about this Privacy Policy, please <a href="{% url 'cars:contact' %}">contact us</a>.</p>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+{% endblock %}

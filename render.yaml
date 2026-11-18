@@ -1,0 +1,214 @@
+# Render blueprint for the dealership site.
+#
+# Deploy with: Render Dashboard -> New -> Blueprint -> select this repository.
+# Render reads this file, creates the database, Redis instance and three
+# services, then prompts for the values marked `sync: false`.
+#
+# Plans are deliberately small; raise them once traffic justifies it. Free
+# Postgres instances expire after 30 days, so use a paid plan for anything
+# that matters.
+
+envVarGroups:
+  - name: dealership-shared
+    envVars:
+      - key: DEBUG
+        value: "false"
+      - key: SECRET_KEY
+        generateValue: true
+      - key: PYTHON_VERSION
+        value: "3.14.0"
+
+      # Public address of the site. Fill these in the dashboard after the
+      # first deploy (Render also injects its own hostname automatically).
+      - key: SITE_BASE_URL
+        sync: false
+      - key: ALLOWED_HOSTS
+        sync: false
+      - key: CSRF_TRUSTED_ORIGINS
+        sync: false
+      - key: ADMIN_URL
+        sync: false
+
+      # Uploads must live outside the container. Use S3 or Cloudflare R2.
+      - key: USE_S3
+        value: "true"
+      - key: AWS_ACCESS_KEY_ID
+        sync: false
+      - key: AWS_SECRET_ACCESS_KEY
+        sync: false
+      - key: AWS_STORAGE_BUCKET_NAME
+        sync: false
+      - key: AWS_S3_REGION_NAME
+        sync: false
+      - key: AWS_S3_ENDPOINT_URL
+        sync: false
+      - key: AWS_S3_CUSTOM_DOMAIN
+        sync: false
+      - key: AWS_QUERYSTRING_AUTH
+        value: "false"
+
+      # Transactional email. Staff 2FA and verification links need this.
+      - key: EMAIL_BACKEND
+        value: django.core.mail.backends.smtp.EmailBackend
+      - key: EMAIL_HOST
+        sync: false
+      - key: EMAIL_PORT
+        value: "587"
+      - key: EMAIL_HOST_USER
+        sync: false
+      - key: EMAIL_HOST_PASSWORD
+        sync: false
+      - key: EMAIL_USE_TLS
+        value: "true"
+      - key: EMAIL_USE_SSL
+        value: "false"
+      - key: DEFAULT_FROM_EMAIL
+        sync: false
+      - key: DEALERSHIP_NOTIFY_EMAIL
+        sync: false
+
+      # Security. TLS is terminated by Render's proxy.
+      - key: USE_X_FORWARDED_PROTO
+        value: "true"
+      - key: TRUST_X_FORWARDED_FOR
+        value: "true"
+      - key: SECURE_SSL_REDIRECT
+        value: "true"
+      - key: SESSION_COOKIE_SECURE
+        value: "true"
+      - key: CSRF_COOKIE_SECURE
+        value: "true"
+      - key: SECURE_HSTS_SECONDS
+        value: "31536000"
+      - key: SECURE_HSTS_INCLUDE_SUBDOMAINS
+        value: "true"
+      - key: SECURE_HSTS_PRELOAD
+        value: "false"
+      - key: STAFF_2FA_ENABLED
+        value: "true"
+
+      # M-Pesa. Switch to production only after Daraja approves the account.
+      - key: MPESA_ENVIRONMENT
+        value: production
+      - key: MPESA_CALLBACK_URL
+        sync: false
+      - key: MPESA_CONSUMER_KEY
+        sync: false
+      - key: MPESA_CONSUMER_SECRET
+        sync: false
+      - key: MPESA_SHORTCODE
+        sync: false
+      - key: MPESA_PASSKEY
+        sync: false
+
+      # Google sign-in (optional).
+      - key: GOOGLE_OAUTH_CLIENT_ID
+        sync: false
+      - key: GOOGLE_OAUTH_CLIENT_SECRET
+        sync: false
+
+      # Client-side analytics. Leave the Measurement ID blank to disable.
+      - key: GOOGLE_ANALYTICS_ID
+        sync: false
+      - key: GOOGLE_ANALYTICS_ENABLED
+        value: "true"
+
+      # Error reporting: either an admin mailbox or a Sentry DSN.
+      - key: DJANGO_ADMINS
+        sync: false
+      - key: SENTRY_DSN
+        sync: false
+      - key: DJANGO_LOG_LEVEL
+        value: INFO
+
+      - key: BACKUP_RETENTION_DAYS
+        value: "30"
+
+databases:
+  - name: dealership-db
+    databaseName: dealership
+    user: dealership
+    plan: 0.5c-1g
+    region: oregon
+
+services:
+  - type: keyvalue
+    name: dealership-redis
+    plan: 256mb
+    region: oregon
+    maxmemoryPolicy: noeviction
+    persistenceMode: journal-snapshot
+    ipAllowList: []
+
+  - type: web
+    name: dealership-web
+    runtime: python
+    plan: 0.5c-512mb
+    region: oregon
+    branch: main
+    autoDeployTrigger: commit
+    healthCheckPath: /health
+    buildCommand: pip install -r requirements.txt && python manage.py collectstatic --noinput
+    preDeployCommand: python manage.py migrate
+    startCommand: >-
+      gunicorn config.wsgi:application
+      --bind 0.0.0.0:$PORT
+      --workers 2
+      --timeout 60
+      --access-logfile -
+      --error-logfile -
+    envVars:
+      - fromGroup: dealership-shared
+      - key: DATABASE_URL
+        fromDatabase:
+          name: dealership-db
+          property: connectionString
+      - key: REDIS_URL
+        fromService:
+          type: keyvalue
+          name: dealership-redis
+          property: connectionString
+
+  # Celery worker: reminders, payment polling and backups.
+  - type: worker
+    name: dealership-worker
+    runtime: python
+    plan: 0.5c-512mb
+    region: oregon
+    branch: main
+    autoDeployTrigger: commit
+    buildCommand: pip install -r requirements.txt
+    startCommand: celery -A config worker --loglevel=info --concurrency=2
+    envVars:
+      - fromGroup: dealership-shared
+      - key: DATABASE_URL
+        fromDatabase:
+          name: dealership-db
+          property: connectionString
+      - key: REDIS_URL
+        fromService:
+          type: keyvalue
+          name: dealership-redis
+          property: connectionString
+
+  # Exactly one beat instance. Two would double-schedule every job.
+  - type: worker
+    name: dealership-beat
+    runtime: python
+    plan: 0.5c-512mb
+    region: oregon
+    branch: main
+    autoDeployTrigger: commit
+    buildCommand: pip install -r requirements.txt
+    startCommand: celery -A config beat --loglevel=info
+    envVars:
+      - fromGroup: dealership-shared
+      - key: DATABASE_URL
+        fromDatabase:
+          name: dealership-db
+          property: connectionString
+      - key: REDIS_URL
+        fromService:
+          type: keyvalue
+          name: dealership-redis
+          property: connectionString

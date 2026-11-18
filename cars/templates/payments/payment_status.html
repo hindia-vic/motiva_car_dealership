@@ -1,0 +1,89 @@
+{% extends "base.html" %}
+{% load currency %}
+
+{% block title %}Payment Status - {{ dealership.name|default:"Car Dealership" }}{% endblock %}
+
+{% block content %}
+<div class="container py-5">
+    <div class="row justify-content-center">
+        <div class="col-lg-6">
+            <div class="card shadow-sm">
+                <div class="card-header">
+                    <h4 class="mb-0"><i class="bi bi-phone"></i> M-Pesa Payment Status</h4>
+                </div>
+                <div class="card-body text-center">
+                    <p class="mb-2"><strong>Reference:</strong> {{ transaction.reference }}</p>
+                    <p class="mb-2"><strong>For:</strong> {{ transaction.related_description }}</p>
+                    <p class="mb-2"><strong>Amount:</strong> {{ transaction.amount|money }}</p>
+                    <p class="mb-2"><strong>Phone:</strong> {{ transaction.phone_number }}</p>
+                    <hr>
+                    {% if transaction.status == 'success' %}
+                        <div class="alert alert-success">
+                            <i class="bi bi-check-circle"></i> Payment Successful
+                            {% if transaction.mpesa_receipt_number %}
+                                <br><strong>Receipt:</strong> {{ transaction.mpesa_receipt_number }}
+                            {% endif %}
+                        </div>
+                        {% if transaction.order_id %}
+                            <p class="text-muted small mb-0">
+                                Your order is still pending until our team reviews it.
+                            </p>
+                        {% endif %}
+                    {% elif transaction.status == 'pending' %}
+                        <div class="alert alert-warning">
+                            <i class="bi bi-hourglass-split"></i> Payment Pending
+                            <br><small>Please check your phone and enter your M-Pesa PIN if prompted.</small>
+                        </div>
+                        <p class="text-muted small">This page refreshes on its own while we wait.</p>
+                    {% elif transaction.status == 'failed' %}
+                        <div class="alert alert-danger">
+                            <i class="bi bi-x-circle"></i> Payment Failed
+                            {% if transaction.result_desc %}
+                                <br><small>{{ transaction.result_desc }}</small>
+                            {% endif %}
+                        </div>
+                    {% else %}
+                        <div class="alert alert-secondary">
+                            <i class="bi bi-info-circle"></i> {{ transaction.get_status_display }}
+                        </div>
+                    {% endif %}
+
+                    <div class="d-flex flex-wrap justify-content-center gap-2 mt-3">
+                        {% if transaction.order_id %}
+                            <a href="{% url 'cars:my_activity' %}" class="btn btn-outline-primary">
+                                <i class="bi bi-activity"></i> My Activity
+                            </a>
+                        {% elif transaction.hire_booking_id %}
+                            <a href="{% url 'hiring:my_hire_bookings' %}" class="btn btn-outline-primary">
+                                <i class="bi bi-key"></i> My Hires
+                            </a>
+                        {% elif transaction.listing_request_id %}
+                            <a href="{% url 'cars:listing_request_detail' transaction.listing_request_id %}" class="btn btn-outline-primary">
+                                <i class="bi bi-camera"></i> My Listing
+                            </a>
+                        {% endif %}
+
+                        {% if can_query and transaction.status == 'pending' %}
+                            <form method="post" action="{% url 'payments:transaction_query' transaction.reference %}">
+                                {% csrf_token %}
+                                <input type="hidden" name="next" value="{{ request.get_full_path }}">
+                                <button type="submit" class="btn btn-outline-secondary">
+                                    <i class="bi bi-arrow-repeat"></i> Check with Safaricom
+                                </button>
+                            </form>
+                        {% endif %}
+
+                        <a href="{% url 'cars:home' %}" class="btn btn-primary">Back to Home</a>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+{% if transaction.status == 'pending' %}
+<script>
+    setTimeout(function () { window.location.reload(); }, 5000);
+</script>
+{% endif %}
+{% endblock %}

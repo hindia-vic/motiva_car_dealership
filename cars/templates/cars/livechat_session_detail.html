@@ -1,0 +1,77 @@
+{% extends 'base.html' %}
+{% block title %}Live Chat{% endblock %}
+{% block content %}
+<div class="container py-4">
+  <div class="d-flex justify-content-between align-items-center mb-3">
+    <h2><i class="bi bi-chat-dots"></i> Live Chat Session <span class="badge bg-success">Live</span></h2>
+    <div>
+      <a href="{% url 'cars:livechat_inbox' %}" class="btn btn-outline-secondary">Back to Inbox</a>
+    </div>
+  </div>
+  <div class="row">
+    <div class="col-lg-8">
+      <div class="card mb-3">
+        <div class="card-header d-flex justify-content-between">
+          <div>
+            <strong>Visitor:</strong>
+            {% if chat_session.user %}{{ chat_session.user.get_full_name|default:chat_session.user.username }} ({{ chat_session.user.email }}){% else %}Guest{% endif %}
+          </div>
+          <div>
+            <span class="badge bg-secondary">{{ chat_session.get_status_display }}</span>
+            {% if chat_session.assigned_to %}<span class="badge bg-info">Assigned: {{ chat_session.assigned_to.username }}</span>{% endif %}
+          </div>
+        </div>
+        <div class="card-body" style="max-height: 400px; overflow-y: auto;" id="chatBox">
+          {% for msg in chat_session.messages.all %}
+          <div class="mb-2 {% if msg.sender == 'staff' %}text-end{% endif %}">
+            <div class="d-inline-block p-2 rounded {% if msg.sender == 'staff' %}bg-primary text-white{% elif msg.sender == 'user' %}bg-light{% else %}bg-warning{% endif %}" style="max-width: 70%;">
+              <div class="small text-muted {% if msg.sender == 'staff' %}text-white-50{% endif %}">
+                {% if msg.sender == 'staff' %}{{ msg.sender_user.username|default:'Staff' }}{% elif msg.sender == 'user' %}Visitor{% else %}Bot{% endif %} • {{ msg.created_at|time }}
+              </div>
+              <div>{{ msg.text|linebreaksbr }}</div>
+            </div>
+          </div>
+          {% endfor %}
+        </div>
+        <div class="card-footer">
+          {% if chat_session.status != 'closed' %}
+          <form method="post" action="{% url 'cars:livechat_reply' chat_session.pk %}" class="d-flex gap-2">
+            {% csrf_token %}
+            <input type="text" name="message" class="form-control" placeholder="Type your reply..." required>
+            <button class="btn btn-primary">Send</button>
+          </form>
+          {% else %}
+          <div class="text-muted">This chat is closed.</div>
+          {% endif %}
+        </div>
+      </div>
+    </div>
+    <div class="col-lg-4">
+      <div class="card">
+        <div class="card-header">Actions</div>
+        <div class="card-body">
+          {% if not chat_session.assigned_to and chat_session.status != 'closed' %}
+          <form method="post" action="{% url 'cars:livechat_claim' chat_session.pk %}">
+            {% csrf_token %}
+            <button class="btn btn-success w-100 mb-2">Claim Chat</button>
+          </form>
+          {% endif %}
+          {% if chat_session.status != 'closed' %}
+          <form method="post" action="{% url 'cars:livechat_close' chat_session.pk %}">
+            {% csrf_token %}
+            <button class="btn btn-danger w-100">Close Chat</button>
+          </form>
+          {% endif %}
+          <hr>
+          <a href="{% url 'cars:chatbot_session_detail' chat_session.pk %}" class="btn btn-outline-secondary w-100">View Full Transcript</a>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+<script>
+const box = document.getElementById('chatBox');
+if (box) { box.scrollTop = box.scrollHeight; }
+setTimeout(function(){ window.location.reload(); }, 10000);
+</script>
+{% endblock %}

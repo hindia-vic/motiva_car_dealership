@@ -1,0 +1,52 @@
+{% extends 'base.html' %}
+{% block title %}Live Chat Inbox{% endblock %}
+{% block content %}
+<div class="container py-4">
+  <div class="d-flex justify-content-between align-items-center mb-3">
+    <h2><i class="bi bi-chat-dots"></i> Live Chat Inbox</h2>
+    <div>
+      <span class="badge bg-success me-2" id="realtime-status">Live Updates</span>
+      <a href="{% url 'cars:chatbot_sessions' %}" class="btn btn-outline-secondary">Bot Transcripts</a>
+    </div>
+  </div>
+  <div class="table-responsive">
+    <table class="table table-hover align-middle">
+      <thead>
+        <tr>
+          <th>Session</th>
+          <th>Status</th>
+          <th>Assigned</th>
+          <th>Messages</th>
+          <th>Last Activity</th>
+          <th></th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for session in sessions %}
+        <tr>
+          <td>
+            {% if session.user %}{{ session.user.get_full_name|default:session.user.username }}{% else %}Guest ({{ session.session_key|slice:":8" }}){% endif %}
+          </td>
+          <td>
+            {% if session.status == 'waiting' %}<span class="badge bg-warning text-dark">Waiting</span>
+            {% elif session.status == 'active' %}<span class="badge bg-success">Active</span>
+            {% elif session.status == 'bot' %}<span class="badge bg-info">Bot</span>
+            {% elif session.status == 'closed' %}<span class="badge bg-secondary">Closed</span>
+            {% endif %}
+          </td>
+          <td>{{ session.assigned_to.username|default:"-" }}</td>
+          <td>{{ session.message_count }}</td>
+          <td>{{ session.last_activity_at|timesince }} ago</td>
+          <td><a href="{% url 'cars:livechat_session_detail' session.pk %}" class="btn btn-sm btn-primary">Open</a></td>
+        </tr>
+        {% empty %}
+        <tr><td colspan="6" class="text-center text-muted">No active chats</td></tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+</div>
+<script>
+  setTimeout(function(){ window.location.reload(); }, 15000);
+</script>
+{% endblock %}

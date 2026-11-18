@@ -2,6 +2,10 @@
 
 {% block title %}About Us - Car Dealership{% endblock %}
 
+{% block meta_description %}Learn about {{ dealership.name|default:"our dealership" }}: our story, values, team, and our commitment to quality vehicles and customer service.{% endblock %}
+{% block og_title %}About {{ dealership.name|default:"Our Dealership" }}{% endblock %}
+{% block og_description %}Our story, values, and the team behind {{ dealership.name|default:"our dealership" }}.{% endblock %}
+
 {% block content %}
 <div class="page-header">
     <div class="container-lg">

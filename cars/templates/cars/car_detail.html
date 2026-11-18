@@ -1,4 +1,5 @@
 {% extends "base.html" %}
+{% load currency %}
 
 {% block title %}{{ car.year }} {{ car.make }} {{ car.model }} - Car Dealership{% endblock %}
 
@@ -44,11 +45,11 @@
                     <div class="row">
                         <div class="col-md-6">
                             <p class="text-muted">Purchase Price</p>
-                            <p class="price-tag">${{ car.purchase_price }}</p>
+                            <p class="price-tag">{{ car.purchase_price|money }}</p>
                         </div>
                         <div class="col-md-6">
                             <p class="text-muted">Asking Price</p>
-                            <p class="price-tag">${{ car.asking_price }}</p>
+                            <p class="price-tag">{{ car.asking_price|money }}</p>
                         </div>
                     </div>
                 </div>
@@ -217,7 +218,7 @@
                                         <td>{{ record.service_date|date:"M d, Y" }}</td>
                                         <td>{{ record.service_type|title }}</td>
                                         <td>{{ record.odometer_reading|floatformat:0 }} miles</td>
-                                        <td>${{ record.cost }}</td>
+                                        <td>{{ record.cost|money }}</td>
                                     </tr>
                                 {% endfor %}
                             </tbody>

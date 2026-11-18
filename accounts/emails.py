@@ -10,6 +10,12 @@ from django.utils.encoding import force_bytes
 logger = logging.getLogger(__name__)
 
 
+def _brand_name():
+    """Dealership name for email subjects/sign-offs, with a safe fallback."""
+    from cars.models import DealershipInfo
+    return DealershipInfo.display_name()
+
+
 def send_verification_email(user, request=None):
     """Email a newly registered user a link to verify their address.
 
@@ -22,7 +28,7 @@ def send_verification_email(user, request=None):
     if request is not None:
         verify_url = request.build_absolute_uri(verify_url)
 
-    subject = "[Car Dealership] Verify your email address"
+    subject = f"[{_brand_name()}] Verify your email address"
     lines = [
         f"Hi {user.first_name or user.username},",
         "",
@@ -36,7 +42,7 @@ def send_verification_email(user, request=None):
         "",
         "If you did not create an account, you can safely ignore this email.",
         "",
-        "The Car Dealership Team",
+        f"The {_brand_name()} Team",
     ]
     try:
         send_mail(
@@ -50,6 +56,43 @@ def send_verification_email(user, request=None):
         logger.warning("Failed to send verification email to %s", user.username, exc_info=True)
 
 
+def send_staff_two_factor_email(user, code):
+    """Email a staff member the six-digit code that completes their sign-in.
+
+    Returns ``True`` when the message was handed to the mail backend. The
+    caller treats a failure as a failed sign-in rather than letting the user
+    through without the second factor.
+    """
+    brand = _brand_name()
+    subject = f"[{brand}] Your sign-in code"
+    lines = [
+        f"Hi {user.first_name or user.username},",
+        "",
+        "Use this one-time code to finish signing in to the staff panel:",
+        "",
+        f"    {code}",
+        "",
+        "The code expires in a few minutes and can only be used once.",
+        "If you did not try to sign in, change your password immediately.",
+        "",
+        f"The {brand} Team",
+    ]
+    try:
+        send_mail(
+            subject,
+            "\n".join(lines),
+            settings.DEFAULT_FROM_EMAIL,
+            [user.email],
+            fail_silently=False,
+        )
+    except Exception:
+        logger.warning(
+            "Failed to send two-factor code to %s", user.username, exc_info=True,
+        )
+        return False
+    return True
+
+
 def send_staff_account_email(user, temporary_password, request=None):
     """Email a newly created staff user their credentials and a notice that
     they must set their own password on the first login.
@@ -60,7 +103,7 @@ def send_staff_account_email(user, temporary_password, request=None):
     if request is not None:
         login_url = request.build_absolute_uri(login_url)
 
-    subject = "[Car Dealership] Your new staff account"
+    subject = f"[{_brand_name()}] Your new staff account"
     lines = [
         f"Hi {user.first_name or user.username},",
         "",

@@ -1,0 +1,55 @@
+<script>
+(function () {
+    const KEY = 'compareCars';
+    const MAX = 4;
+    let selected = new Set(JSON.parse(localStorage.getItem(KEY) || '[]'));
+
+    const bar = document.getElementById('compareBar');
+    const count = document.getElementById('compareCount');
+    const link = document.getElementById('compareLink');
+    if (!bar) return;
+
+    function save() {
+        localStorage.setItem(KEY, JSON.stringify([...selected]));
+    }
+
+    function updateBar() {
+        count.textContent = selected.size;
+        if (selected.size > 0) {
+            bar.classList.remove('d-none');
+            link.href = "{% url 'cars:compare' %}?ids=" + [...selected].join(',');
+        } else {
+            bar.classList.add('d-none');
+        }
+    }
+
+    document.querySelectorAll('.compare-check').forEach(function (box) {
+        if (selected.has(box.value)) {
+            box.checked = true;
+        }
+        box.addEventListener('change', function () {
+            if (box.checked) {
+                if (selected.size >= MAX) {
+                    box.checked = false;
+                    alert('You can compare up to ' + MAX + ' vehicles at once.');
+                    return;
+                }
+                selected.add(box.value);
+            } else {
+                selected.delete(box.value);
+            }
+            save();
+            updateBar();
+        });
+    });
+
+    window.clearCompare = function () {
+        selected = new Set();
+        save();
+        document.querySelectorAll('.compare-check').forEach(function (box) { box.checked = false; });
+        updateBar();
+    };
+
+    updateBar();
+})();
+</script>

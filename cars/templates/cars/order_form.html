@@ -1,4 +1,5 @@
 {% extends "base.html" %}
+{% load currency %}
 
 {% block title %}Place Order for {{ car.year }} {{ car.make }} {{ car.model }} - Car Dealership{% endblock %}
 
@@ -18,11 +19,12 @@
                     <!-- Car Info Card -->
                     <div class="alert alert-info mb-4">
                         <strong>{{ car.year }} {{ car.make }} {{ car.model }}</strong><br>
-                        Listed Price: <span class="badge bg-primary">${{ car.asking_price }}</span>
+                        Listed Price: <span class="badge bg-primary">{{ car.asking_price|money }}</span>
                     </div>
 
                     <form method="post">
                         {% csrf_token %}
+                        {% include "cars/_antispam_fields.html" %}
 
                         {% if form.non_field_errors %}
                             <div class="alert alert-danger">
@@ -84,6 +86,8 @@
                         <!-- Pricing Information -->
                         <hr class="my-4">
                         <h5 class="mb-3"><i class="bi bi-credit-card"></i> Pricing & Payment</h5>
+
+                        {% include "cars/_trade_in_widget.html" with order_form=form %}
 
                         <div class="row">
                             <div class="col-md-6 mb-3">

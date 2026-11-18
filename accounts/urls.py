@@ -1,12 +1,11 @@
 from django.contrib.auth.views import (
-    LoginView, LogoutView, PasswordChangeDoneView,
+    LogoutView, PasswordChangeDoneView,
     PasswordResetView, PasswordResetDoneView, PasswordResetConfirmView,
     PasswordResetCompleteView,
 )
 from django.urls import path, reverse_lazy
 
 from . import views
-from .forms import LoginForm
 
 app_name = 'accounts'
 
@@ -16,13 +15,17 @@ urlpatterns = [
     path('verify/resend/', views.resend_verification, name='resend_verification'),
     path('verify/invalid/', views.verify_email_invalid, name='verify_email_invalid'),
     path('verify/<uidb64>/<token>/', views.verify_email, name='verify_email'),
-    path('login/', LoginView.as_view(
-        template_name='accounts/login.html',
-        authentication_form=LoginForm,
-    ), name='login'),
+    path('login/', views.StaffAwareLoginView.as_view(), name='login'),
+    path('login/verify/', views.StaffTwoFactorView.as_view(), name='staff_2fa'),
+    path('google/login/', views.google_login, name='google_login'),
+    path('google/callback/', views.google_callback, name='google_callback'),
     path('logout/', LogoutView.as_view(), name='logout'),
     path('favorites/', views.FavoritesView.as_view(), name='favorites'),
+    path('favorites/compare/', views.FavoritesCompareView.as_view(), name='favorites_compare'),
+    path('profile/', views.ProfileView.as_view(), name='profile'),
+    path('profile/password/', views.ChangePasswordView.as_view(), name='change_password'),
     path('favorite/<int:car_id>/toggle/', views.toggle_favorite, name='toggle_favorite'),
+    path('alerts/preferences/', views.update_alert_preferences, name='alert_preferences'),
     path('staff/', views.StaffUserListView.as_view(), name='staff_list'),
     path('staff/create/', views.StaffUserCreateView.as_view(), name='staff_create'),
     path('staff/<int:pk>/toggle-active/', views.toggle_staff_active, name='toggle_staff_active'),

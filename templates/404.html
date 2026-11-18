@@ -1,0 +1,116 @@
+{% extends "base.html" %}
+
+{% block title %}Page Not Found - {{ dealership.name|default:"Premier Car Dealership" }}{% endblock %}
+
+{% block meta %}
+    {{ block.super }}
+    <meta name="robots" content="noindex, nofollow">
+{% endblock %}
+
+{% block content %}
+<div class="page-header text-center">
+    <div class="container-lg">
+        <div class="d-inline-flex align-items-center justify-content-center mb-3"
+             style="width: 5rem; height: 5rem; border-radius: 50%; background: rgba(255, 255, 255, 0.12);">
+            <i class="bi bi-signpost-split" style="font-size: 2.5rem;"></i>
+        </div>
+        <h1>404 &mdash; Wrong Turn</h1>
+        <p>That page has moved, been sold, or never existed. Let's get you back on the road.</p>
+    </div>
+</div>
+
+<div class="container-lg py-4">
+    <div class="row justify-content-center">
+        <div class="col-lg-9">
+            <div class="card mb-4">
+                <div class="card-body p-4 p-md-5 text-center">
+                    <h2 class="h4 mb-2">Looking for something specific?</h2>
+                    <p class="text-muted mb-4">
+                        Search our inventory by make, model, body type, or keyword.
+                    </p>
+
+                    <form action="{% url 'cars:browse_cars' %}" method="get"
+                          class="row g-2 justify-content-center">
+                        <div class="col-md-8">
+                            <label for="not-found-search" class="visually-hidden">Search cars</label>
+                            <div class="input-group input-group-lg">
+                                <span class="input-group-text"><i class="bi bi-search"></i></span>
+                                <input type="search" id="not-found-search" name="search"
+                                       class="form-control"
+                                       placeholder="Try “Toyota SUV” or “hybrid”">
+                            </div>
+                        </div>
+                        <div class="col-md-auto">
+                            <button type="submit" class="btn btn-primary btn-lg w-100">
+                                Search Cars
+                            </button>
+                        </div>
+                    </form>
+
+                    <p class="small text-muted mt-3 mb-0">
+                        Popular right now:
+                        <a href="{% url 'cars:browse_cars' %}?search=SUV">SUVs</a>,
+                        <a href="{% url 'cars:browse_cars' %}?search=hybrid">hybrids</a>,
+                        <a href="{% url 'cars:browse_cars' %}?search=sedan">sedans</a>
+                    </p>
+                </div>
+            </div>
+
+            <div class="row g-3">
+                <div class="col-sm-6 col-lg-3">
+                    <a class="card h-100 text-decoration-none text-reset text-center"
+                       href="{% url 'cars:home' %}">
+                        <div class="card-body">
+                            <i class="bi bi-house-door fs-2 text-primary"></i>
+                            <h3 class="h6 mt-3 mb-1">Home</h3>
+                            <p class="small text-muted mb-0">Back to the showroom</p>
+                        </div>
+                    </a>
+                </div>
+                <div class="col-sm-6 col-lg-3">
+                    <a class="card h-100 text-decoration-none text-reset text-center"
+                       href="{% url 'cars:browse_cars' %}">
+                        <div class="card-body">
+                            <i class="bi bi-car-front fs-2 text-primary"></i>
+                            <h3 class="h6 mt-3 mb-1">Browse Cars</h3>
+                            <p class="small text-muted mb-0">See the full inventory</p>
+                        </div>
+                    </a>
+                </div>
+                <div class="col-sm-6 col-lg-3">
+                    <a class="card h-100 text-decoration-none text-reset text-center"
+                       href="{% url 'hiring:hire_car_list' %}">
+                        <div class="card-body">
+                            <i class="bi bi-key fs-2 text-primary"></i>
+                            <h3 class="h6 mt-3 mb-1">Car Hire</h3>
+                            <p class="small text-muted mb-0">Self-drive and tours</p>
+                        </div>
+                    </a>
+                </div>
+                <div class="col-sm-6 col-lg-3">
+                    <a class="card h-100 text-decoration-none text-reset text-center"
+                       href="{% url 'cars:financing' %}">
+                        <div class="card-body">
+                            <i class="bi bi-cash-coin fs-2 text-primary"></i>
+                            <h3 class="h6 mt-3 mb-1">Financing</h3>
+                            <p class="small text-muted mb-0">Estimate your monthly cost</p>
+                        </div>
+                    </a>
+                </div>
+            </div>
+
+            <div class="text-center mt-5">
+                <p class="text-muted mb-3">Still stuck? We're happy to help.</p>
+                <div class="d-flex flex-wrap justify-content-center gap-2">
+                    <a href="{% url 'cars:contact' %}" class="btn btn-outline-primary">
+                        <i class="bi bi-envelope"></i> Contact Us
+                    </a>
+                    <a href="{% url 'cars:faq' %}" class="btn btn-outline-primary">
+                        <i class="bi bi-question-circle"></i> Read the FAQ
+                    </a>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

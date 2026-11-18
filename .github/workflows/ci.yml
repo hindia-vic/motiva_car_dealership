@@ -1,0 +1,119 @@
+name: CI
+
+on: [push, pull_request]
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.14'
+          cache: pip
+      - name: Install dependencies
+        run: |
+          pip install -r requirements.txt
+      - name: Audit dependencies for known vulnerabilities
+        run: |
+          pip install pip-audit
+          pip-audit -r requirements.txt
+      - name: Django system checks
+        run: |
+          python manage.py check
+      - name: Check for missing migrations
+        run: |
+          python manage.py makemigrations --check --dry-run
+      - name: Run tests
+        run: |
+          python manage.py test
+
+  deploy-checks:
+    runs-on: ubuntu-latest
+    env:
+      DEBUG: 'false'
+      SECRET_KEY: 'ci-only-9f3a7c1e5b8d2a4f6c0e9b7d5a3f1c8e2b4d6a0f9c7e5b3d1a8f6c4e2b0d9a7f'
+      ALLOWED_HOSTS: 'www.example.com,example.com'
+      CSRF_TRUSTED_ORIGINS: 'https://www.example.com,https://example.com'
+      SITE_BASE_URL: 'https://www.example.com'
+      ADMIN_URL: 'manage-ci-only/'
+      STAFF_2FA_ENABLED: 'true'
+      EMAIL_BACKEND: 'django.core.mail.backends.smtp.EmailBackend'
+      EMAIL_HOST: 'smtp.example.com'
+      EMAIL_PORT: '587'
+      EMAIL_USE_TLS: 'true'
+      DEFAULT_FROM_EMAIL: 'Car Dealership <noreply@example.com>'
+      DJANGO_ADMINS: 'CI <ci@example.com>'
+      SECURE_SSL_REDIRECT: 'true'
+      SESSION_COOKIE_SECURE: 'true'
+      CSRF_COOKIE_SECURE: 'true'
+      SECURE_HSTS_SECONDS: '31536000'
+      SECURE_HSTS_INCLUDE_SUBDOMAINS: 'true'
+      SECURE_HSTS_PRELOAD: 'false'
+      USE_X_FORWARDED_PROTO: 'true'
+      TRUST_X_FORWARDED_FOR: 'true'
+      REDIS_URL: 'redis://localhost:6379/1'
+      DATABASE_URL: 'postgres://ci:ci@localhost:5432/ci'
+      USE_S3: 'true'
+      AWS_ACCESS_KEY_ID: 'ci'
+      AWS_SECRET_ACCESS_KEY: 'ci'
+      AWS_STORAGE_BUCKET_NAME: 'ci-bucket'
+      BACKUP_DIR: '/tmp/dealership-backups'
+    steps:
+      - uses: actions/checkout@v4
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.14'
+          cache: pip
+      - name: Install dependencies
+        run: |
+          pip install -r requirements.txt
+      - name: Django deployment checks
+        run: |
+          python manage.py check --deploy
+      - name: Project security audit
+        run: |
+          python manage.py security_check
+      - name: Collect static files
+        run: |
+          python manage.py collectstatic --noinput
+
+  # Postgres is the production database. This job is informational until it
+  # has a clean run, then remove `continue-on-error` to make it a hard gate.
+  test-postgres:
+    runs-on: ubuntu-latest
+    continue-on-error: true
+    services:
+      postgres:
+        image: postgres:16
+        env:
+          POSTGRES_DB: dealership
+          POSTGRES_USER: dealership
+          POSTGRES_PASSWORD: postgres
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd pg_isready
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+    env:
+      DATABASE_URL: 'postgres://dealership:postgres@localhost:5432/dealership'
+      SECRET_KEY: 'ci-postgres-only-9f3a7c1e5b8d2a4f6c0e9b7d5a3f1c8e2b4d6a0f9c7e5b3d1a8f6c4e2b0d9a7f'
+      ALLOWED_HOSTS: 'localhost,127.0.0.1,testserver'
+      EMAIL_BACKEND: 'django.core.mail.backends.locmem.EmailBackend'
+    steps:
+      - uses: actions/checkout@v4
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.14'
+          cache: pip
+      - name: Install dependencies
+        run: |
+          pip install -r requirements.txt
+      - name: Run tests against PostgreSQL
+        run: |
+          python manage.py test

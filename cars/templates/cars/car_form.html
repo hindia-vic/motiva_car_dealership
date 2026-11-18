@@ -143,7 +143,7 @@
                         <label class="form-label">Current Photos</label>
                         <div class="d-flex flex-wrap gap-2 mb-2">
                             {% for img in existing_images %}
-                                <img src="{{ img.image.url }}" alt="{{ img.caption|default:'Car photo' }}" class="img-thumbnail car-photo-thumb">
+                                <img src="{{ img.thumbnail_url }}" alt="{{ img.caption|default:'Car photo' }}" class="img-thumbnail car-photo-thumb">
                             {% endfor %}
                         </div>
                     {% endif %}

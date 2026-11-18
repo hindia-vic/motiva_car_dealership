@@ -1,0 +1,293 @@
+{% extends "base.html" %}
+{% load currency %}
+
+{% block title %}{{ hire_car.year }} {{ hire_car.make }} {{ hire_car.model }} - Hire - {{ dealership.name|default:"Car Dealership" }}{% endblock %}
+
+{% block meta_description %}Hire a {{ hire_car.year }} {{ hire_car.make }} {{ hire_car.model }} by the day. {{ hire_car.seats }} seats, {{ hire_car.transmission|capfirst }}, self-drive or with a driver. Check availability and send a request.{% endblock %}
+{% block og_title %}Hire the {{ hire_car.year }} {{ hire_car.make }} {{ hire_car.model }}{% endblock %}
+{% block og_description %}Hire this {{ hire_car.year }} {{ hire_car.make }} {{ hire_car.model }} by the day, self-drive or with one of our drivers.{% endblock %}
+
+{% block content %}
+<div class="container-lg py-4">
+    <nav aria-label="breadcrumb">
+        <ol class="breadcrumb">
+            <li class="breadcrumb-item"><a href="{% url 'cars:home' %}">Home</a></li>
+            <li class="breadcrumb-item"><a href="{% url 'hiring:hire_car_list' %}">Car hire</a></li>
+            <li class="breadcrumb-item active" aria-current="page">{{ hire_car.make }} {{ hire_car.model }}</li>
+        </ol>
+    </nav>
+
+    <div class="row g-4">
+        <!-- Photos and details -->
+        <div class="col-lg-7">
+            <div class="card">
+                {% with photo=hire_car.primary_photo %}
+                    {% if photo %}
+                        <img src="{{ photo.image.url }}" class="card-img-top" alt="{{ hire_car }}">
+                    {% else %}
+                        <div class="card-img-top d-flex align-items-center justify-content-center bg-light" style="height: 260px;">
+                            <i class="bi bi-car-front fs-1 text-muted"></i>
+                        </div>
+                    {% endif %}
+                {% endwith %}
+                <div class="card-body">
+                    <h2 class="mb-1">{{ hire_car.year }} {{ hire_car.make }} {{ hire_car.model }}</h2>
+                    <p class="text-muted mb-3">{{ hire_car.color }} {{ hire_car.body_type|capfirst }}</p>
+
+                    <div class="vehicle-specs">
+                        <div class="spec-item">
+                            <div class="spec-label">Seats</div>
+                            <div class="spec-value">{{ hire_car.seats }}</div>
+                        </div>
+                        <div class="spec-item">
+                            <div class="spec-label">Transmission</div>
+                            <div class="spec-value">{{ hire_car.transmission|capfirst }}</div>
+                        </div>
+                        <div class="spec-item">
+                            <div class="spec-label">Fuel</div>
+                            <div class="spec-value">{{ hire_car.fuel_type|capfirst }}</div>
+                        </div>
+                        <div class="spec-item">
+                            <div class="spec-label">Luggage</div>
+                            <div class="spec-value">{{ hire_car.luggage_capacity }}</div>
+                        </div>
+                    </div>
+
+                    {% if hire_car.description %}
+                        <p class="mb-0">{{ hire_car.description|linebreaksbr }}</p>
+                    {% endif %}
+                </div>
+            </div>
+
+            {% if photos|length > 1 %}
+                <div class="row g-2 mt-1">
+                    {% for photo in photos %}
+                        <div class="col-4 col-md-3">
+                            <img src="{{ photo.thumbnail_url }}" class="img-fluid rounded w-100"
+                                 alt="{{ hire_car }} photo {{ forloop.counter }}">
+                        </div>
+                    {% endfor %}
+                </div>
+            {% endif %}
+        </div>
+
+        <!-- Rates and booking -->
+        <div class="col-lg-5">
+            <div class="card mb-3">
+                <div class="card-body">
+                    <div class="row g-3 text-center">
+                        <div class="col-6">
+                            <small class="text-muted d-block">Self-drive, per day</small>
+                            <span class="price-tag">{{ hire_car.hire_daily_rate|money }}</span>
+                        </div>
+                        <div class="col-6">
+                            <small class="text-muted d-block">With a driver, per day</small>
+                            <span class="price-tag">
+                                {% if hire_car.allows_tours %}{{ hire_car.tour_daily_rate|money }}{% else %}&mdash;{% endif %}
+                            </span>
+                        </div>
+                    </div>
+                    {% if not hire_car.allows_tours %}
+                        <p class="text-muted small text-center mt-3 mb-0">
+                            This car is hired without a driver only.
+                        </p>
+                    {% endif %}
+                </div>
+            </div>
+
+            {% if not bookable %}
+                <div class="alert alert-warning">
+                    <i class="bi bi-exclamation-triangle"></i>
+                    This car is not available at the moment.
+                    {% if next_free %}
+                        It is free again from <strong>{{ next_free|date:"d M Y" }}</strong>.
+                    {% endif %}
+                </div>
+                <a href="{% url 'hiring:hire_car_list' %}" class="btn btn-outline-primary w-100">
+                    See other cars
+                </a>
+            {% else %}
+                <div class="card">
+                    <div class="card-body">
+                        <h4 class="mb-3"><i class="bi bi-calendar-check"></i> Request this car</h4>
+
+                        {% if form.non_field_errors %}
+                            <div class="alert alert-danger">{{ form.non_field_errors }}</div>
+                        {% endif %}
+
+                        <form method="post" action="{% url 'hiring:hire_car_detail' hire_car.pk %}">
+                            {% csrf_token %}
+                            {% include "cars/_antispam_fields.html" %}
+
+                            <div class="mb-3">
+                                <span class="form-label d-block">How would you like the car?</span>
+                                {{ form.service_type }}
+                                {% if form.service_type.errors %}
+                                    <div class="text-danger small mt-1">
+                                        {% for error in form.service_type.errors %}{{ error }}<br>{% endfor %}
+                                    </div>
+                                {% endif %}
+                            </div>
+
+                            {% if add_ons %}
+                                <div class="mb-3">
+                                    <span class="form-label d-block">{{ form.extras.label }}</span>
+                                    {% for checkbox in form.extras %}
+                                        <div class="form-check">
+                                            {{ checkbox.tag }}
+                                            <label class="form-check-label" for="{{ checkbox.id_for_label }}">
+                                                {{ checkbox.choice_label }}
+                                            </label>
+                                        </div>
+                                    {% endfor %}
+                                    {% if form.extras.errors %}
+                                        <div class="text-danger small mt-1">
+                                            {% for error in form.extras.errors %}{{ error }}<br>{% endfor %}
+                                        </div>
+                                    {% endif %}
+                                </div>
+                            {% endif %}
+
+                            <div class="row g-3">
+                                <div class="col-6">
+                                    <label for="{{ form.start_date.id_for_label }}" class="form-label">Pick-up date *</label>
+                                    {{ form.start_date }}
+                                    {% if form.start_date.errors %}
+                                        <div class="text-danger small mt-1">
+                                            {% for error in form.start_date.errors %}{{ error }}<br>{% endfor %}
+                                        </div>
+                                    {% endif %}
+                                </div>
+                                <div class="col-6">
+                                    <label for="{{ form.end_date.id_for_label }}" class="form-label">Return date *</label>
+                                    {{ form.end_date }}
+                                    {% if form.end_date.errors %}
+                                        <div class="text-danger small mt-1">
+                                            {% for error in form.end_date.errors %}{{ error }}<br>{% endfor %}
+                                        </div>
+                                    {% endif %}
+                                </div>
+                            </div>
+
+                            <div class="row g-3 mt-0">
+                                <div class="col-6">
+                                    <label for="{{ form.passengers.id_for_label }}" class="form-label">Passengers *</label>
+                                    {{ form.passengers }}
+                                    {% if form.passengers.errors %}
+                                        <div class="text-danger small mt-1">
+                                            {% for error in form.passengers.errors %}{{ error }}<br>{% endfor %}
+                                        </div>
+                                    {% endif %}
+                                </div>
+                                <div class="col-6">
+                                    <label for="{{ form.pickup_location.id_for_label }}" class="form-label">Pick-up place</label>
+                                    {{ form.pickup_location }}
+                                    {% if form.pickup_location.errors %}
+                                        <div class="text-danger small mt-1">
+                                            {% for error in form.pickup_location.errors %}{{ error }}<br>{% endfor %}
+                                        </div>
+                                    {% endif %}
+                                </div>
+                                <div class="col-12">
+                                    <label for="{{ form.destination.id_for_label }}" class="form-label">Where are you going?</label>
+                                    {{ form.destination }}
+                                    {% if form.destination.errors %}
+                                        <div class="text-danger small mt-1">
+                                            {% for error in form.destination.errors %}{{ error }}<br>{% endfor %}
+                                        </div>
+                                    {% endif %}
+                                </div>
+                            </div>
+
+                            <hr class="my-4">
+
+                            <h5 class="mb-3"><i class="bi bi-person-vcard"></i> Your details</h5>
+
+                            <div class="row g-3">
+                                <div class="col-12">
+                                    <label for="{{ form.customer_name.id_for_label }}" class="form-label">Your name *</label>
+                                    {{ form.customer_name }}
+                                    {% if form.customer_name.errors %}
+                                        <div class="text-danger small mt-1">
+                                            {% for error in form.customer_name.errors %}{{ error }}<br>{% endfor %}
+                                        </div>
+                                    {% endif %}
+                                </div>
+                                <div class="col-12">
+                                    <label for="{{ form.customer_email.id_for_label }}" class="form-label">Email address *</label>
+                                    {{ form.customer_email }}
+                                    {% if form.customer_email.errors %}
+                                        <div class="text-danger small mt-1">
+                                            {% for error in form.customer_email.errors %}{{ error }}<br>{% endfor %}
+                                        </div>
+                                    {% endif %}
+                                </div>
+                                <div class="col-12">
+                                    <label for="{{ form.customer_phone.id_for_label }}" class="form-label">Phone number *</label>
+                                    {{ form.customer_phone }}
+                                    {% if form.customer_phone.errors %}
+                                        <div class="text-danger small mt-1">
+                                            {% for error in form.customer_phone.errors %}{{ error }}<br>{% endfor %}
+                                        </div>
+                                    {% endif %}
+                                </div>
+                            </div>
+
+                            <hr class="my-4">
+
+                            <h5 class="mb-3"><i class="bi bi-shield-check"></i> To drive, you need</h5>
+
+                            <div class="row g-3">
+                                <div class="col-12">
+                                    <label for="{{ form.licence_number.id_for_label }}" class="form-label">
+                                        Driving licence number *
+                                    </label>
+                                    {{ form.licence_number }}
+                                    {% if form.licence_number.errors %}
+                                        <div class="text-danger small mt-1">
+                                            {% for error in form.licence_number.errors %}{{ error }}<br>{% endfor %}
+                                        </div>
+                                    {% endif %}
+                                </div>
+                                <div class="col-12">
+                                    <label for="{{ form.id_number.id_for_label }}" class="form-label">
+                                        National ID or passport number *
+                                    </label>
+                                    {{ form.id_number }}
+                                    {% if form.id_number.errors %}
+                                        <div class="text-danger small mt-1">
+                                            {% for error in form.id_number.errors %}{{ error }}<br>{% endfor %}
+                                        </div>
+                                    {% endif %}
+                                </div>
+                                <div class="col-12">
+                                    <label for="{{ form.notes.id_for_label }}" class="form-label">Anything else?</label>
+                                    {{ form.notes }}
+                                    {% if form.notes.errors %}
+                                        <div class="text-danger small mt-1">
+                                            {% for error in form.notes.errors %}{{ error }}<br>{% endfor %}
+                                        </div>
+                                    {% endif %}
+                                </div>
+                            </div>
+
+                            <div class="alert alert-info mt-4 small">
+                                <i class="bi bi-info-circle"></i>
+                                We work out the price from the number of days and send you a
+                                quote. We also ask for a security deposit of about
+                                {{ deposit_ratio }}% of the hire, which is given back when
+                                the car comes home. Nothing is confirmed until you have paid,
+                                and we check your licence and ID before the car goes out.
+                            </div>
+
+                            <button type="submit" class="btn btn-primary w-100 btn-lg">
+                                <i class="bi bi-send"></i> Send My Request
+                            </button>
+                        </form>
+                    </div>
+                </div>
+            {% endif %}
+        </div>
+    </div>
+</div>
+{% endblock %}

@@ -1,0 +1,50 @@
+{% comment %}
+GA4 page-view snippet and the small helper the conversion templates call.
+
+Loaded from base.html only when ``google_analytics_id`` is set. The context
+processor leaves that blank until the visitor accepts the cookie banner, so a
+site without consent makes no third-party requests. The helper is a no-op when
+gtag has not loaded (ad blockers, offline, or the script failing).
+{% endcomment %}
+{% if google_analytics_id %}
+<script async src="https://www.googletagmanager.com/gtag/js?id={{ google_analytics_id|urlencode }}"></script>
+<script>
+    window.dataLayer = window.dataLayer || [];
+    function gtag() { dataLayer.push(arguments); }
+    gtag('js', new Date());
+    gtag('config', '{{ google_analytics_id|escapejs }}', { send_page_view: true });
+
+    // The banner stores the opt-in before reloading this page. Send it as a
+    // consent event now that gtag exists, then clear the marker so it is
+    // reported once per decision rather than once per page view.
+    try {
+        var pendingConsent = sessionStorage.getItem('cookieConsentEvent');
+        if (pendingConsent) {
+            gtag('event', 'cookie_consent', { status: pendingConsent });
+            sessionStorage.removeItem('cookieConsentEvent');
+        }
+    } catch (e) {}
+
+    window.dealershipTrack = function (name, params) {
+        if (typeof gtag === 'function') {
+            gtag('event', name, params || {});
+        }
+    };
+
+    // Phone and WhatsApp links are the two highest-intent actions on the site
+    // and are plain anchors, so one delegated listener covers every page.
+    document.addEventListener('click', function (event) {
+        var link = event.target.closest && event.target.closest('a[href]');
+        if (!link) return;
+        var href = link.getAttribute('href') || '';
+        if (href.indexOf('tel:') === 0) {
+            window.dealershipTrack('contact', { method: 'phone' });
+        } else if (
+            href.indexOf('https://wa.me') === 0 ||
+            href.indexOf('https://api.whatsapp.com') === 0
+        ) {
+            window.dealershipTrack('contact', { method: 'whatsapp' });
+        }
+    });
+</script>
+{% endif %}

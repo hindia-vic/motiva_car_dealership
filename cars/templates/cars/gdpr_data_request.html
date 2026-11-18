@@ -1,0 +1,40 @@
+{% extends 'base.html' %}
+{% block title %}Data Request (GDPR){% endblock %}
+
+{% block meta_description %}Request a copy of the personal data we hold about you, or ask us to correct or delete it.{% endblock %}
+{% block og_title %}Data Request (GDPR){% endblock %}
+{% block og_description %}Ask for a copy of your personal data, or request a correction or deletion.{% endblock %}
+{% block content %}
+<div class="container py-4">
+  <div class="row justify-content-center">
+    <div class="col-lg-8">
+      <div class="card shadow-sm">
+        <div class="card-header bg-primary text-white">
+          <h4 class="mb-0">GDPR Data Request</h4>
+        </div>
+        <div class="card-body">
+          <p>Under GDPR, you have the right to access, rectify, erase, restrict, or port your personal data.</p>
+          <form method="post">
+            {% csrf_token %}
+            <div class="mb-3">
+              <label class="form-label">Request Type</label>
+              <select name="request_type" class="form-select">
+                <option value="access">Access my data</option>
+                <option value="rectify">Rectify my data</option>
+                <option value="erase">Erase my data</option>
+                <option value="portability">Data portability</option>
+                <option value="restrict">Restrict processing</option>
+              </select>
+            </div>
+            <div class="mb-3">
+              <label class="form-label">Additional Details</label>
+              <textarea name="details" class="form-control" rows="4"></textarea>
+            </div>
+            <button type="submit" class="btn btn-primary">Submit Request</button>
+          </form>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+{% endblock %}

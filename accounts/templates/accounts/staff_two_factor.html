@@ -1,0 +1,56 @@
+{% extends "base.html" %}
+
+{% block title %}Two-Factor Check - Car Dealership{% endblock %}
+
+{% block content %}
+<div class="page-header">
+    <div class="container-lg">
+        <h1><i class="bi bi-shield-lock"></i> Two-Factor Check</h1>
+        <p>One more step to protect the staff panel</p>
+    </div>
+</div>
+
+<div class="container-lg py-4">
+    <div class="row justify-content-center">
+        <div class="col-md-6 col-lg-5">
+            <div class="filter-panel">
+                <h5 class="mb-3">Enter your sign-in code</h5>
+
+                <p class="text-muted">
+                    We emailed a six-digit code to
+                    <strong>{{ email }}</strong>. It expires in a few minutes.
+                </p>
+
+                <form method="post" novalidate>
+                    {% csrf_token %}
+
+                    <div class="mb-3">
+                        <label for="code" class="form-label">Six-digit code</label>
+                        <input type="text" id="code" name="code" class="form-control"
+                               inputmode="numeric" pattern="[0-9]{6}" maxlength="6"
+                               autocomplete="one-time-code" autofocus required
+                               placeholder="000000">
+                    </div>
+
+                    <button type="submit" class="btn btn-primary w-100 mb-3">
+                        <i class="bi bi-shield-check"></i> Verify and sign in
+                    </button>
+                </form>
+
+                <form method="post" class="text-center mb-3">
+                    {% csrf_token %}
+                    <input type="hidden" name="action" value="resend">
+                    <button type="submit" class="btn btn-link btn-sm p-0">
+                        Didn't get the code? Send another
+                    </button>
+                </form>
+
+                <hr>
+                <p class="text-center mb-0">
+                    <a href="{% url 'accounts:login' %}">Start over</a>
+                </p>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

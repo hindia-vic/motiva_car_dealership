@@ -1,5 +1,7 @@
 from django import forms
-from django.contrib.auth.forms import AuthenticationForm, UserCreationForm
+from django.contrib.auth.forms import (
+    AuthenticationForm, PasswordChangeForm, UserCreationForm,
+)
 from django.contrib.auth.models import User
 
 
@@ -129,3 +131,89 @@ class StaffUserCreateForm(forms.ModelForm):
         if email and User.objects.filter(email__iexact=email).exists():
             raise forms.ValidationError('A user with this email address already exists.')
         return email.lower()
+
+
+class ProfileForm(forms.ModelForm):
+    """Let a signed-in user edit their name, email address and profile picture."""
+
+    avatar = forms.ImageField(
+        required=False,
+        widget=forms.ClearableFileInput(attrs={
+            'class': 'form-control',
+            'accept': 'image/*',
+        }),
+        help_text='PNG or JPG, up to 5 MB.',
+    )
+
+    class Meta:
+        model = User
+        fields = ['first_name', 'last_name', 'email']
+        widgets = {
+            'first_name': forms.TextInput(attrs={'class': 'form-control'}),
+            'last_name': forms.TextInput(attrs={'class': 'form-control'}),
+            'email': forms.EmailInput(attrs={'class': 'form-control'}),
+        }
+
+    def __init__(self, *args, profile=None, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.profile = profile
+        self.fields['email'].required = True
+        if profile is not None and profile.avatar:
+            self.fields['avatar'].initial = profile.avatar
+
+    def clean_email(self):
+        email = self.cleaned_data.get('email')
+        if email:
+            qs = User.objects.filter(email__iexact=email)
+            if self.instance is not None and self.instance.pk:
+                qs = qs.exclude(pk=self.instance.pk)
+            if qs.exists():
+                raise forms.ValidationError('An account with this email address already exists.')
+        return email.lower() if email else email
+
+    def clean_avatar(self):
+        avatar = self.cleaned_data.get('avatar')
+        if avatar and getattr(avatar, 'size', 0) > 5 * 1024 * 1024:
+            raise forms.ValidationError('Please choose an image smaller than 5 MB.')
+        return avatar
+
+    def save(self, commit=True):
+        user = super().save(commit=commit)
+        if commit and self.profile is not None:
+            avatar = self.cleaned_data.get('avatar')
+            if avatar is False:
+                # The user ticked "Clear" on the existing picture.
+                if self.profile.avatar:
+                    self.profile.avatar.delete(save=False)
+                self.profile.avatar = ''
+                self.profile.save(update_fields=['avatar'])
+            elif avatar and avatar is not self.profile.avatar:
+                self.profile.avatar = avatar
+                self.profile.save(update_fields=['avatar'])
+        return user
+
+
+class StyledPasswordChangeForm(PasswordChangeForm):
+    """PasswordChangeForm with Bootstrap styling on every field."""
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        for field in self.fields.values():
+            field.widget.attrs.setdefault('class', 'form-control')
+
+
+from .models import CustomerDocument
+
+
+class CustomerDocumentForm(forms.ModelForm):
+    class Meta:
+        model = CustomerDocument
+        fields = ('document_type', 'title', 'document', 'notes')
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        for field in self.fields.values():
+            if hasattr(field.widget, 'attrs'):
+                field.widget.attrs['class'] = 'form-control'
+        if 'document_type' in self.fields:
+            self.fields['document_type'].widget.attrs['class'] = 'form-select'

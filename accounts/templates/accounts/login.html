@@ -16,6 +16,8 @@
             <div class="filter-panel">
                 <h5 class="mb-4">Member Login</h5>
 
+                {% include "accounts/_google_button.html" with label="Sign in with Google" %}
+
                 {% if form.non_field_errors %}
                     <div class="alert alert-danger">
                         {{ form.non_field_errors }}

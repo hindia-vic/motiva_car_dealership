@@ -1,4 +1,5 @@
 {% extends "base.html" %}
+{% load currency %}
 
 {% block title %}Sales - Car Dealership{% endblock %}
 
@@ -93,7 +94,7 @@
                                     </a>
                                 </td>
                                 <td>{{ sale.sale_date|date:"M d, Y" }}</td>
-                                <td class="price-tag">${{ sale.sale_price }}</td>
+                                <td class="price-tag">{{ sale.sale_price|money }}</td>
                                 <td>
                                     <span class="badge bg-light text-dark">{{ sale.payment_method|title }}</span>
                                 </td>

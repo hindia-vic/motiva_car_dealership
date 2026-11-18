@@ -1,0 +1,43 @@
+{% extends 'base.html' %}
+{% block title %}Audit Log{% endblock %}
+{% block content %}
+<div class="container-fluid py-4">
+  <h2><i class="bi bi-clock-history"></i> Audit Log</h2>
+  <div class="row mt-3">
+    <div class="col-md-6">
+      <div class="card">
+        <div class="card-header">Car History</div>
+        <div class="card-body p-0">
+          <div class="table-responsive">
+            <table class="table table-sm mb-0">
+              <thead><tr><th>Car</th><th>History Date</th><th>Type</th></tr></thead>
+              <tbody>
+                {% for h in car_history %}
+                <tr><td>{{ h }}</td><td>{{ h.history_date }}</td><td>{{ h.history_type }}</td></tr>
+                {% empty %}<tr><td colspan="3" class="text-center">No history</td></tr>{% endfor %}
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+    </div>
+    <div class="col-md-6">
+      <div class="card">
+        <div class="card-header">Hire Booking History</div>
+        <div class="card-body p-0">
+          <div class="table-responsive">
+            <table class="table table-sm mb-0">
+              <thead><tr><th>Booking</th><th>History Date</th><th>Type</th></tr></thead>
+              <tbody>
+                {% for h in hire_history %}
+                <tr><td>{{ h }}</td><td>{{ h.history_date }}</td><td>{{ h.history_type }}</td></tr>
+                {% empty %}<tr><td colspan="3" class="text-center">No history</td></tr>{% endfor %}
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+{% endblock %}

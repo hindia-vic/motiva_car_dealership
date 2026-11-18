@@ -1,0 +1,338 @@
+{% comment %}
+Floating chatbot widget. Answer engine is server-side (cars/chatbot.py); this
+partial only handles presentation and the fetch calls. Included from base.html
+for signed-out visitors and customers (hidden from staff).
+{% endcomment %}
+<style>
+    .chatbot-launcher {
+        position: fixed;
+        right: 1.25rem;
+        bottom: 1.25rem;
+        z-index: 1055;
+        width: 3.5rem;
+        height: 3.5rem;
+        border-radius: 50%;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 1.5rem;
+        box-shadow: 0 4px 14px rgba(0, 0, 0, 0.25);
+    }
+    .chatbot-launcher .bi-x-lg { display: none; }
+    .chatbot-launcher.is-open .bi-chat-dots-fill { display: none; }
+    .chatbot-launcher.is-open .bi-x-lg { display: inline; }
+
+    .chatbot-panel {
+        position: fixed;
+        right: 1.25rem;
+        bottom: 5.5rem;
+        z-index: 1055;
+        width: min(380px, calc(100vw - 2.5rem));
+        height: min(560px, 72vh);
+        background: #fff;
+        border-radius: 14px;
+        box-shadow: 0 10px 30px rgba(0, 0, 0, 0.25);
+        display: flex;
+        flex-direction: column;
+        overflow: hidden;
+    }
+    .chatbot-panel[hidden] { display: none; }
+
+    .chatbot-header {
+        background: linear-gradient(135deg, var(--primary-color) 0%, #0f3d50 100%);
+        color: #fff;
+        padding: 0.85rem 1rem;
+        font-weight: 600;
+        display: flex;
+        align-items: center;
+        gap: 0.5rem;
+    }
+    .chatbot-log {
+        flex: 1 1 auto;
+        overflow-y: auto;
+        padding: 1rem;
+        background: #f6f8fa;
+        display: flex;
+        flex-direction: column;
+        gap: 0.6rem;
+    }
+    .chatbot-msg { display: flex; }
+    .chatbot-msg-user { justify-content: flex-end; }
+    .chatbot-bubble {
+        max-width: 85%;
+        padding: 0.55rem 0.8rem;
+        border-radius: 12px;
+        white-space: pre-wrap;
+        word-wrap: break-word;
+        overflow-wrap: anywhere;
+        font-size: 0.92rem;
+        line-height: 1.35;
+    }
+    .chatbot-msg-bot .chatbot-bubble { background: #fff; border: 1px solid #e4e8ec; }
+    .chatbot-msg-user .chatbot-bubble { background: var(--primary-color); color: #fff; }
+    .chatbot-links { margin-top: 0.5rem; display: flex; flex-wrap: wrap; gap: 0.35rem; }
+    .chatbot-suggestions { padding: 0 1rem 0.5rem; display: flex; flex-wrap: wrap; gap: 0.35rem; }
+    .chatbot-suggestions button {
+        font-size: 0.8rem;
+        border-radius: 999px;
+        padding: 0.25rem 0.7rem;
+    }
+    .chatbot-input {
+        border-top: 1px solid #e4e8ec;
+        padding: 0.6rem;
+        display: flex;
+        gap: 0.5rem;
+        background: #fff;
+    }
+    .chatbot-input input { flex: 1 1 auto; }
+    .chatbot-handoff {
+        border-top: 1px solid #e4e8ec;
+        padding: 0.75rem 1rem;
+        background: #fff8e6;
+    }
+    .chatbot-handoff[hidden] { display: none; }
+    .chatbot-handoff p { font-size: 0.82rem; margin-bottom: 0.5rem; }
+    .chatbot-typing .chatbot-bubble { color: #6c757d; font-style: italic; }
+</style>
+
+<div class="chatbot" data-message-url="{% url 'cars:chatbot_message' %}"
+     data-handoff-url="{% url 'cars:chatbot_handoff' %}"
+     data-brand="{{ dealership.name|default:'Car Dealership' }}">
+    <input type="hidden" id="chatbotCsrf" value="{{ csrf_token }}">
+
+    <button type="button" id="chatbotLauncher" class="btn btn-primary chatbot-launcher"
+            aria-label="Open chat" aria-expanded="false" aria-controls="chatbotPanel">
+        <i class="bi bi-chat-dots-fill" aria-hidden="true"></i>
+        <i class="bi bi-x-lg" aria-hidden="true"></i>
+    </button>
+
+    <div id="chatbotPanel" class="chatbot-panel" role="dialog" aria-label="Chat with us" hidden>
+        <div class="chatbot-header">
+            <i class="bi bi-robot" aria-hidden="true"></i>
+            <span>{{ dealership.name|default:"Car Dealership" }} assistant</span>
+        </div>
+
+        <div id="chatbotLog" class="chatbot-log" role="log" aria-live="polite"
+             aria-label="Conversation"></div>
+
+        <div id="chatbotSuggestions" class="chatbot-suggestions"></div>
+
+        <div id="chatbotHandoff" class="chatbot-handoff" hidden>
+            <p class="mb-1"><strong>Want a person to help?</strong> Leave your details and our team will get back to you.</p>
+            <form id="chatbotHandoffForm" novalidate>
+                <div class="mb-2">
+                    <input type="text" class="form-control form-control-sm" name="name"
+                           placeholder="Your name" autocomplete="name" required>
+                    <div class="text-danger small" data-error="name"></div>
+                </div>
+                <div class="mb-2">
+                    <input type="email" class="form-control form-control-sm" name="email"
+                           placeholder="Your email" autocomplete="email" required>
+                    <div class="text-danger small" data-error="email"></div>
+                </div>
+                <button type="submit" class="btn btn-sm btn-primary">
+                    <i class="bi bi-send"></i> Send to the team
+                </button>
+            </form>
+        </div>
+
+        <form id="chatbotForm" class="chatbot-input" novalidate>
+            <label for="chatbotText" class="visually-hidden">Type your message</label>
+            <input type="text" id="chatbotText" class="form-control form-control-sm"
+                   placeholder="Ask a question…" autocomplete="off" maxlength="500">
+            <button type="submit" class="btn btn-sm btn-primary" aria-label="Send message">
+                <i class="bi bi-send" aria-hidden="true"></i>
+            </button>
+        </form>
+    </div>
+</div>
+
+<script>
+(function () {
+    var root = document.querySelector('.chatbot[data-message-url]');
+    if (!root) { return; }
+
+    var messageUrl = root.dataset.messageUrl;
+    var handoffUrl = root.dataset.handoffUrl;
+    var brand = root.dataset.brand || 'our team';
+    var csrf = root.querySelector('#chatbotCsrf').value;
+
+    var launcher = root.querySelector('#chatbotLauncher');
+    var panel = root.querySelector('#chatbotPanel');
+    var log = root.querySelector('#chatbotLog');
+    var suggestionsBox = root.querySelector('#chatbotSuggestions');
+    var form = root.querySelector('#chatbotForm');
+    var textInput = root.querySelector('#chatbotText');
+    var handoffBox = root.querySelector('#chatbotHandoff');
+    var handoffForm = root.querySelector('#chatbotHandoffForm');
+    var opened = false;
+    var handoffDone = false;
+
+    function currentKey() {
+        try { return window.localStorage.getItem('chatbotSessionKey') || ''; }
+        catch (e) { return ''; }
+    }
+    function rememberKey(key) {
+        if (!key) { return; }
+        try { window.localStorage.setItem('chatbotSessionKey', key); } catch (e) {}
+    }
+
+    function scrollDown() { log.scrollTop = log.scrollHeight; }
+
+    function bubble(who, text) {
+        var row = document.createElement('div');
+        row.className = 'chatbot-msg chatbot-msg-' + who;
+        var b = document.createElement('div');
+        b.className = 'chatbot-bubble';
+        b.textContent = text;   /* never innerHTML: keeps bot/user text inert */
+        row.appendChild(b);
+        log.appendChild(row);
+        scrollDown();
+        return row;
+    }
+
+    function addLinks(container, links) {
+        if (!links || !links.length) { return; }
+        var wrap = document.createElement('div');
+        wrap.className = 'chatbot-links';
+        links.forEach(function (link) {
+            var a = document.createElement('a');
+            a.className = 'btn btn-sm btn-outline-primary';
+            a.href = link.url;
+            a.textContent = link.label;
+            wrap.appendChild(a);
+        });
+        container.querySelector('.chatbot-bubble').appendChild(wrap);
+        scrollDown();
+    }
+
+    function renderSuggestions(list) {
+        suggestionsBox.textContent = '';
+        (list || []).forEach(function (text) {
+            var b = document.createElement('button');
+            b.type = 'button';
+            b.className = 'btn btn-outline-secondary';
+            b.textContent = text;
+            b.addEventListener('click', function () { send(text); });
+            suggestionsBox.appendChild(b);
+        });
+    }
+
+    function open() {
+        opened = true;
+        panel.hidden = false;
+        launcher.classList.add('is-open');
+        launcher.setAttribute('aria-expanded', 'true');
+        launcher.setAttribute('aria-label', 'Close chat');
+        textInput.focus();
+        if (!log.childElementCount) {
+            bubble('bot', "Hi! I'm the " + brand + " assistant. Ask me about " +
+                "financing, trade-ins, test drives, hours, or what we have in stock.");
+            renderSuggestions([
+                'Do you offer financing?',
+                'What are your hours?',
+                'How do I book a test drive?',
+                'Do you take trade-ins?'
+            ]);
+        }
+        scrollDown();
+    }
+    function close() {
+        opened = false;
+        panel.hidden = true;
+        launcher.classList.remove('is-open');
+        launcher.setAttribute('aria-expanded', 'false');
+        launcher.setAttribute('aria-label', 'Open chat');
+        launcher.focus();
+    }
+
+    launcher.addEventListener('click', function () { opened ? close() : open(); });
+    document.addEventListener('keydown', function (e) {
+        if (e.key === 'Escape' && opened) { close(); }
+    });
+
+    function typing() {
+        var row = document.createElement('div');
+        row.className = 'chatbot-msg chatbot-msg-bot chatbot-typing';
+        var b = document.createElement('div');
+        b.className = 'chatbot-bubble';
+        b.textContent = '…';
+        row.appendChild(b);
+        log.appendChild(row);
+        scrollDown();
+        return row;
+    }
+
+    function send(text) {
+        text = (text || '').trim();
+        if (!text) { return; }
+        if (panel.hidden) { open(); }
+        bubble('user', text);
+        textInput.value = '';
+        renderSuggestions([]);
+        var pending = typing();
+
+        fetch(messageUrl, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json', 'X-CSRFToken': csrf },
+            credentials: 'same-origin',
+            body: JSON.stringify({ message: text, session_key: currentKey() })
+        }).then(function (res) {
+            var type = res.headers.get('content-type') || '';
+            if (!res.ok || type.indexOf('application/json') === -1) {
+                throw new Error('bad response');
+            }
+            return res.json();
+        }).then(function (data) {
+            pending.remove();
+            rememberKey(data.session_key);
+            var row = bubble('bot', data.reply);
+            addLinks(row, data.links);
+            renderSuggestions(data.suggestions);
+            if (data.escalate && !handoffDone) { handoffBox.hidden = false; }
+        }).catch(function () {
+            pending.remove();
+            bubble('bot', 'Sorry, something went wrong. Please try again, or use ' +
+                'the Contact page to reach us.');
+        });
+    }
+
+    form.addEventListener('submit', function (e) {
+        e.preventDefault();
+        send(textInput.value);
+    });
+
+    handoffForm.addEventListener('submit', function (e) {
+        e.preventDefault();
+        var nameInput = handoffForm.querySelector('input[name="name"]');
+        var emailInput = handoffForm.querySelector('input[name="email"]');
+        var name = nameInput.value.trim();
+        var email = emailInput.value.trim();
+        handoffForm.querySelectorAll('[data-error]').forEach(function (el) { el.textContent = ''; });
+
+        fetch(handoffUrl, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json', 'X-CSRFToken': csrf },
+            credentials: 'same-origin',
+            body: JSON.stringify({ name: name, email: email, session_key: currentKey() })
+        }).then(function (res) { return res.json().then(function (d) { return { ok: res.ok, data: d }; }); })
+        .then(function (result) {
+            if (!result.ok) {
+                var errs = result.data.errors || {};
+                Object.keys(errs).forEach(function (field) {
+                    var el = handoffForm.querySelector('[data-error="' + field + '"]');
+                    if (el) { el.textContent = errs[field]; }
+                });
+                return;
+            }
+            handoffDone = true;
+            rememberKey(result.data.session_key);
+            handoffBox.hidden = true;
+            bubble('bot', 'Thanks — your message is on its way. A member of our ' +
+                'team will get back to you by email shortly.');
+        }).catch(function () {
+            bubble('bot', 'Sorry, we could not send that. Please use the Contact page instead.');
+        });
+    });
+})();
+</script>

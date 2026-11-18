@@ -1,0 +1,134 @@
+{% extends "base.html" %}
+{% load currency %}
+
+{% block title %}My Hires - Car Hire{% endblock %}
+
+{% block content %}
+<div class="page-header">
+    <div class="container-lg">
+        <h1><i class="bi bi-calendar-check"></i> My Hires</h1>
+        <p>Every car you have asked to hire, and where each request has got to.</p>
+    </div>
+</div>
+
+<div class="container-lg py-4">
+    {% if bookings %}
+        <div class="row g-4">
+            {% for booking in bookings %}
+                <div class="col-lg-6">
+                    <div class="card h-100">
+                        <div class="card-body">
+                            <div class="d-flex justify-content-between align-items-start mb-2">
+                                <h5 class="mb-0">
+                                    {{ booking.hire_car.year }} {{ booking.hire_car.make }} {{ booking.hire_car.model }}
+                                </h5>
+                                <span class="badge bg-{% if booking.status == 'confirmed' %}success{% elif booking.status == 'pending' %}warning text-dark{% elif booking.status == 'active' %}info text-dark{% elif booking.status == 'completed' %}secondary{% else %}danger{% endif %}">
+                                    {{ booking.get_status_display }}
+                                </span>
+                            </div>
+
+                            <p class="text-muted small mb-2">
+                                <i class="bi bi-hash"></i> {{ booking.reference }}
+                                <span class="mx-1">|</span>
+                                {{ booking.service_label }}
+                            </p>
+
+                            <dl class="row mb-3">
+                                <dt class="col-sm-5">Dates</dt>
+                                <dd class="col-sm-7">
+                                    {{ booking.start_date|date:"d M Y" }} to {{ booking.end_date|date:"d M Y" }}
+                                    ({{ booking.days }} day{{ booking.days|pluralize }})
+                                </dd>
+
+                                <dt class="col-sm-5">Amount</dt>
+                                <dd class="col-sm-7">{{ booking.hire_total|money }}</dd>
+
+                                {% if booking.security_deposit %}
+                                    <dt class="col-sm-5">Deposit</dt>
+                                    <dd class="col-sm-7">{{ booking.security_deposit|money }}</dd>
+                                {% endif %}
+
+                                <dt class="col-sm-5">Payment</dt>
+                                <dd class="col-sm-7">
+                                    {% if booking.payment_status == 'paid' %}
+                                        <span class="badge bg-success">Paid</span>
+                                    {% elif booking.payment_status == 'partial' %}
+                                        <span class="badge bg-warning text-dark">Part paid</span>
+                                    {% elif booking.payment_status == 'refunded' %}
+                                        <span class="badge bg-secondary">Refunded</span>
+                                    {% else %}
+                                        <span class="badge bg-light text-dark">Not paid</span>
+                                    {% endif %}
+                                </dd>
+                            </dl>
+
+                            {% if booking.status == 'pending' %}
+                                <p class="small text-muted mb-0">
+                                    <i class="bi bi-hourglass-split"></i>
+                                    We are checking the car and your licence. We will confirm it
+                                    shortly and email you the amount to pay.
+                                </p>
+                            {% elif booking.status == 'confirmed' and not booking.is_settled %}
+                                <p class="small text-muted mb-0">
+                                    <i class="bi bi-cash-coin"></i>
+                                    Please pay by M-Pesa or bank transfer and send us the
+                                    reference so we can settle the booking.
+                                </p>
+                            {% endif %}
+
+                            {% if not booking.is_settled and booking.status != 'rejected' and booking.status != 'cancelled' %}
+                                <form method="post" action="{% url 'hiring:hire_booking_pay' booking.pk %}"
+                                      class="d-flex flex-wrap gap-2 mt-3">
+                                    {% csrf_token %}
+                                    <input type="tel" name="phone_number" value="{{ booking.customer_phone }}"
+                                           class="form-control form-control-sm" style="max-width: 180px;"
+                                           aria-label="M-Pesa phone number" required>
+                                    <button type="submit" class="btn btn-sm btn-success">
+                                        <i class="bi bi-phone"></i> Pay with M-Pesa
+                                    </button>
+                                </form>
+                            {% endif %}
+
+                            <a href="{% url 'hiring:hire_booking_detail' booking.pk %}"
+                               class="btn btn-outline-primary btn-sm mt-3">
+                                View details
+                            </a>
+                        </div>
+                    </div>
+                </div>
+            {% endfor %}
+        </div>
+
+        {% if page_obj.has_other_pages %}
+            <nav class="mt-4" aria-label="Page navigation">
+                <ul class="pagination justify-content-center">
+                    {% if page_obj.has_previous %}
+                        <li class="page-item">
+                            <a class="page-link" href="?page={{ page_obj.previous_page_number }}">Previous</a>
+                        </li>
+                    {% endif %}
+                    {% for num in page_obj.paginator.page_range %}
+                        <li class="page-item {% if num == page_obj.number %}active{% endif %}">
+                            <a class="page-link" href="?page={{ num }}">{{ num }}</a>
+                        </li>
+                    {% endfor %}
+                    {% if page_obj.has_next %}
+                        <li class="page-item">
+                            <a class="page-link" href="?page={{ page_obj.next_page_number }}">Next</a>
+                        </li>
+                    {% endif %}
+                </ul>
+            </nav>
+        {% endif %}
+    {% else %}
+        <div class="card">
+            <div class="card-body text-center py-5">
+                <i class="bi bi-calendar-x fs-1 text-muted"></i>
+                <h4 class="mt-3">You have not hired a car yet</h4>
+                <p class="text-muted">Pick a car, choose your dates and send us a request.</p>
+                <a href="{% url 'hiring:hire_car_list' %}" class="btn btn-primary">See the fleet</a>
+            </div>
+        </div>
+    {% endif %}
+</div>
+{% endblock %}

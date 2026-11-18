@@ -180,7 +180,7 @@ python manage.py runserver
 ```
 
 ### 5. Access the Application
-- Admin Interface: http://localhost:8000/admin/
+- Admin Interface: `/ADMIN_URL/` (default `/admin/`)
 - Dashboard: http://localhost:8000/
 - Cars: http://localhost:8000/cars/
 - Customers: http://localhost:8000/customers/

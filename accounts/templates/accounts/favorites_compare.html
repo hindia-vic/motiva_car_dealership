@@ -1,0 +1,121 @@
+{% extends "base.html" %}
+{% load currency %}
+
+{% block title %}Compare Favorites - {{ dealership.name|default:"Car Dealership" }}{% endblock %}
+
+{% block content %}
+<div class="page-header">
+    <div class="container-lg d-flex justify-content-between align-items-center flex-wrap">
+        <div>
+            <h1><i class="bi bi-layout-split"></i> Compare Favorites</h1>
+            <p>Compare your favorited cars side by side</p>
+        </div>
+        <div>
+            <a href="{% url 'accounts:favorites' %}" class="btn btn-light"><i class="bi bi-heart"></i> Back to Favorites</a>
+        </div>
+    </div>
+</div>
+
+<div class="container-lg py-4">
+    {% if cars %}
+    <div class="table-responsive">
+        <table class="table table-bordered table-striped">
+            <thead>
+                <tr>
+                    <th>Feature</th>
+                    {% for car in cars %}
+                    <th>{{ car.year }} {{ car.make }} {{ car.model }}</th>
+                    {% endfor %}
+                </tr>
+            </thead>
+            <tbody>
+                <tr>
+                    <td><strong>Image</strong></td>
+                    {% for car in cars %}
+                    <td class="text-center">
+                        {% with car.primary_photo as photo %}
+                        {% if photo %}
+                        <img src="{{ photo.thumbnail.url }}" alt="{{ car }}" style="max-height: 150px;">
+                        {% endif %}
+                        {% endwith %}
+                    </td>
+                    {% endfor %}
+                </tr>
+                <tr>
+                    <td><strong>Price</strong></td>
+                    {% for car in cars %}
+                    <td>{{ car.asking_price|currency }}</td>
+                    {% endfor %}
+                </tr>
+                <tr>
+                    <td><strong>Year</strong></td>
+                    {% for car in cars %}
+                    <td>{{ car.year }}</td>
+                    {% endfor %}
+                </tr>
+                <tr>
+                    <td><strong>Make/Model</strong></td>
+                    {% for car in cars %}
+                    <td>{{ car.make }} {{ car.model }}</td>
+                    {% endfor %}
+                </tr>
+                <tr>
+                    <td><strong>Mileage</strong></td>
+                    {% for car in cars %}
+                    <td>{{ car.mileage|floatformat:0 }} miles</td>
+                    {% endfor %}
+                </tr>
+                <tr>
+                    <td><strong>Transmission</strong></td>
+                    {% for car in cars %}
+                    <td>{{ car.get_transmission_display }}</td>
+                    {% endfor %}
+                </tr>
+                <tr>
+                    <td><strong>Fuel Type</strong></td>
+                    {% for car in cars %}
+                    <td>{{ car.get_fuel_type_display }}</td>
+                    {% endfor %}
+                </tr>
+                <tr>
+                    <td><strong>Body Type</strong></td>
+                    {% for car in cars %}
+                    <td>{{ car.get_body_type_display }}</td>
+                    {% endfor %}
+                </tr>
+                <tr>
+                    <td><strong>Color</strong></td>
+                    {% for car in cars %}
+                    <td>{{ car.color }}</td>
+                    {% endfor %}
+                </tr>
+                <tr>
+                    <td><strong>VIN</strong></td>
+                    {% for car in cars %}
+                    <td>{{ car.vin|default:"-" }}</td>
+                    {% endfor %}
+                </tr>
+                <tr>
+                    <td><strong>Status</strong></td>
+                    {% for car in cars %}
+                    <td><span class="badge {{ car.status_badge_class }}">{{ car.get_status_display }}</span></td>
+                    {% endfor %}
+                </tr>
+                <tr>
+                    <td><strong>Actions</strong></td>
+                    {% for car in cars %}
+                    <td>
+                        <a href="{% url 'cars:car_detail' car.pk %}" class="btn btn-sm btn-primary">View Details</a>
+                    </td>
+                    {% endfor %}
+                </tr>
+            </tbody>
+        </table>
+    </div>
+    {% else %}
+    <div class="alert alert-info">
+        <i class="bi bi-info-circle"></i> You have no favorited cars to compare. <a href="{% url 'cars:browse_cars' %}">Browse cars</a>
+    </div>
+    {% endif %}
+</div>
+{% endblock %}

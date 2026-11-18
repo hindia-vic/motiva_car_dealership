@@ -1,0 +1,63 @@
+{% extends 'base.html' %}
+{% block title %}Book a Service{% endblock %}
+
+{% block meta_description %}Book a service appointment for your vehicle. Tell us the car, the work needed, and a date that suits you.{% endblock %}
+{% block og_title %}Book a Service Appointment{% endblock %}
+{% block og_description %}Book a service appointment online.{% endblock %}
+{% block content %}
+<div class="container py-4">
+  <div class="row justify-content-center">
+    <div class="col-lg-8">
+      <div class="card shadow-sm">
+        <div class="card-header bg-primary text-white">
+          <h4 class="mb-0"><i class="bi bi-wrench"></i> Book a Service Appointment</h4>
+        </div>
+        <div class="card-body">
+          <form method="post" novalidate>
+            {% csrf_token %}
+            {% if form.non_field_errors %}
+              <div class="alert alert-danger">{{ form.non_field_errors }}</div>
+            {% endif %}
+            <div class="row mb-3">
+              <div class="col-md-6">
+                <label class="form-label" for="{{ form.service_type.id_for_label }}">Service Type</label>
+                {{ form.service_type }}
+                {% if form.service_type.errors %}<div class="text-danger small">{{ form.service_type.errors }}</div>{% endif %}
+              </div>
+              <div class="col-md-6">
+                <label class="form-label" for="{{ form.service_date.id_for_label }}">Service Date</label>
+                {{ form.service_date }}
+                {% if form.service_date.errors %}<div class="text-danger small">{{ form.service_date.errors }}</div>{% endif %}
+              </div>
+            </div>
+            <div class="row mb-3">
+              <div class="col-md-4">
+                <label class="form-label" for="{{ form.customer_name.id_for_label }}">Full Name</label>
+                {{ form.customer_name }}
+                {% if form.customer_name.errors %}<div class="text-danger small">{{ form.customer_name.errors }}</div>{% endif %}
+              </div>
+              <div class="col-md-4">
+                <label class="form-label" for="{{ form.customer_email.id_for_label }}">Email</label>
+                {{ form.customer_email }}
+                {% if form.customer_email.errors %}<div class="text-danger small">{{ form.customer_email.errors }}</div>{% endif %}
+              </div>
+              <div class="col-md-4">
+                <label class="form-label" for="{{ form.customer_phone.id_for_label }}">Phone</label>
+                {{ form.customer_phone }}
+                {% if form.customer_phone.errors %}<div class="text-danger small">{{ form.customer_phone.errors }}</div>{% endif %}
+              </div>
+            </div>
+            <div class="mb-3">
+              <label class="form-label" for="{{ form.description.id_for_label }}">Description / Issue</label>
+              {{ form.description }}
+              {% if form.description.errors %}<div class="text-danger small">{{ form.description.errors }}</div>{% endif %}
+            </div>
+            <button type="submit" class="btn btn-primary">Submit Booking</button>
+            <a href="{% url 'cars:home' %}" class="btn btn-secondary">Cancel</a>
+          </form>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+{% endblock %}

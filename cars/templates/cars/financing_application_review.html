@@ -1,0 +1,206 @@
+{% extends "base.html" %}
+{% load currency %}
+
+{% block title %}Review {{ application.reference }} - Staff Panel{% endblock %}
+
+{% block content %}
+<div class="page-header">
+    <div class="container-lg">
+        <h1><i class="bi bi-clipboard-check"></i> {{ application.customer_name }}</h1>
+        <p>
+            <code>{{ application.reference }}</code> &bull;
+            submitted {{ application.created_at|date:"M d, Y H:i" }} &bull;
+            {{ application.vehicle_label|default:"no vehicle named" }}
+        </p>
+    </div>
+</div>
+
+<div class="container-lg py-4">
+    <div class="d-flex flex-wrap gap-2 mb-4">
+        <a href="{% url 'cars:financing_applications_list' %}" class="btn btn-outline-secondary">
+            <i class="bi bi-arrow-left"></i> Back to Applications
+        </a>
+        <a href="{% url 'cars:financing_application_detail' application.pk %}" class="btn btn-outline-primary">
+            <i class="bi bi-eye"></i> Customer View
+        </a>
+    </div>
+
+    <div class="row">
+        <div class="col-lg-5 mb-4">
+            <div class="card mb-4">
+                <div class="card-header bg-light">
+                    <h5 class="mb-0"><i class="bi bi-person"></i> The applicant</h5>
+                </div>
+                <div class="card-body">
+                    <p class="mb-1"><strong>{{ application.customer_name }}</strong></p>
+                    <p class="mb-1"><a href="mailto:{{ application.customer_email }}">{{ application.customer_email }}</a></p>
+                    <p class="mb-3"><a href="tel:{{ application.customer_phone }}">{{ application.customer_phone }}</a></p>
+                    <hr>
+                    <div class="d-flex justify-content-between">
+                        <span class="text-muted">Employment</span>
+                        <strong>{{ application.get_employment_status_display }}</strong>
+                    </div>
+                    {% if application.employer_name %}
+                        <div class="d-flex justify-content-between">
+                            <span class="text-muted">Employer</span>
+                            <strong>{{ application.employer_name }}</strong>
+                        </div>
+                    {% endif %}
+                    {% if application.job_title %}
+                        <div class="d-flex justify-content-between">
+                            <span class="text-muted">Job title</span>
+                            <strong>{{ application.job_title }}</strong>
+                        </div>
+                    {% endif %}
+                    <div class="d-flex justify-content-between">
+                        <span class="text-muted">Net monthly income</span>
+                        <strong>{{ application.monthly_income|money }}</strong>
+                    </div>
+                    <div class="d-flex justify-content-between">
+                        <span class="text-muted">Monthly commitments</span>
+                        <strong>{{ application.monthly_expenses|money }}</strong>
+                    </div>
+                </div>
+            </div>
+
+            <div class="card mb-4">
+                <div class="card-header bg-light">
+                    <h5 class="mb-0"><i class="bi bi-car-front"></i> What they asked for</h5>
+                </div>
+                <div class="card-body">
+                    <div class="d-flex justify-content-between">
+                        <span class="text-muted">Vehicle</span>
+                        <strong>{{ application.vehicle_label|default:"-" }}</strong>
+                    </div>
+                    <div class="d-flex justify-content-between">
+                        <span class="text-muted">Price</span>
+                        <strong>{{ application.price|money }}</strong>
+                    </div>
+                    <div class="d-flex justify-content-between">
+                        <span class="text-muted">Deposit</span>
+                        <strong>{{ application.deposit_amount|money }}</strong>
+                    </div>
+                    <div class="d-flex justify-content-between">
+                        <span class="text-muted">Trade-in</span>
+                        <strong>{{ application.trade_in_value|money }}</strong>
+                    </div>
+                    <div class="d-flex justify-content-between border-top mt-2 pt-2">
+                        <span class="text-muted">Amount financed</span>
+                        <strong>{{ application.requested_amount|money }}</strong>
+                    </div>
+                    <div class="d-flex justify-content-between">
+                        <span class="text-muted">Term asked for</span>
+                        <strong>{{ application.loan_term_months }} months</strong>
+                    </div>
+                    <div class="d-flex justify-content-between">
+                        <span class="text-muted">Rate quoted</span>
+                        <strong>{{ application.interest_rate }}% p.a.</strong>
+                    </div>
+                    <div class="d-flex justify-content-between">
+                        <span class="text-muted">Estimated monthly</span>
+                        <strong>{{ application.estimated_monthly|money }}</strong>
+                    </div>
+                    {% if application.car_id %}
+                        <hr>
+                        <a href="{% url 'cars:car_detail' application.car_id %}" class="btn btn-sm btn-outline-primary">
+                            <i class="bi bi-car-front"></i> View the car
+                        </a>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+
+        <div class="col-lg-7">
+            <div class="card mb-4">
+                <div class="card-header bg-light">
+                    <h5 class="mb-0"><i class="bi bi-table"></i> What it costs over each term</h5>
+                </div>
+                <div class="card-body">
+                    <p class="text-muted small">
+                        The same amount financed, at the rate the customer was quoted.
+                        Customers often take a longer term once they see the monthly figure.
+                    </p>
+                    <table class="table table-sm mb-0">
+                        <thead class="table-light">
+                            <tr>
+                                <th>Term</th>
+                                <th class="text-end">Monthly</th>
+                                <th class="text-end">Total repaid</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for row in quote_table %}
+                                <tr {% if row.months == application.loan_term_months %}class="table-primary"{% endif %}>
+                                    <td>{{ row.months }} months</td>
+                                    <td class="text-end">{{ row.monthly|money }}</td>
+                                    <td class="text-end">{{ row.total|money }}</td>
+                                </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+
+            <div class="card">
+                <div class="card-header bg-light">
+                    <h5 class="mb-0"><i class="bi bi-gavel"></i> Record the decision</h5>
+                </div>
+                <div class="card-body">
+                    {% if form.non_field_errors %}
+                        <div class="alert alert-danger">{{ form.non_field_errors }}</div>
+                    {% endif %}
+
+                    <form method="post" action="{% url 'cars:financing_application_update' application.pk %}">
+                        {% csrf_token %}
+
+                        <div class="row g-3">
+                            <div class="col-md-6">
+                                <label for="{{ form.status.id_for_label }}" class="form-label">{{ form.status.label }}</label>
+                                {{ form.status }}
+                                {% if form.status.errors %}<div class="text-danger small mt-1">{{ form.status.errors }}</div>{% endif %}
+                            </div>
+                            <div class="col-md-6">
+                                <label for="{{ form.approved_amount.id_for_label }}" class="form-label">{{ form.approved_amount.label }}</label>
+                                {{ form.approved_amount }}
+                                {% if form.approved_amount.errors %}<div class="text-danger small mt-1">{{ form.approved_amount.errors }}</div>{% endif %}
+                                <div class="form-text">Leave blank to approve the amount requested.</div>
+                            </div>
+                            <div class="col-md-6">
+                                <label for="{{ form.approved_term_months.id_for_label }}" class="form-label">{{ form.approved_term_months.label }}</label>
+                                {{ form.approved_term_months }}
+                                {% if form.approved_term_months.errors %}<div class="text-danger small mt-1">{{ form.approved_term_months.errors }}</div>{% endif %}
+                            </div>
+                        </div>
+
+                        <div class="mt-3">
+                            <label for="{{ form.decline_reason.id_for_label }}" class="form-label">{{ form.decline_reason.label }}</label>
+                            {{ form.decline_reason }}
+                            {% if form.decline_reason.errors %}<div class="text-danger small mt-1">{{ form.decline_reason.errors }}</div>{% endif %}
+                            <div class="form-text">Required when the application is declined. The customer sees this.</div>
+                        </div>
+
+                        <div class="mt-3">
+                            <label for="{{ form.decision_notes.id_for_label }}" class="form-label">{{ form.decision_notes.label }}</label>
+                            {{ form.decision_notes }}
+                            {% if form.decision_notes.errors %}<div class="text-danger small mt-1">{{ form.decision_notes.errors }}</div>{% endif %}
+                            <div class="form-text">Never shown to the customer.</div>
+                        </div>
+
+                        <button type="submit" class="btn btn-primary mt-3">
+                            <i class="bi bi-check-lg"></i> Save Decision
+                        </button>
+                    </form>
+
+                    {% if application.reviewed_at %}
+                        <hr>
+                        <p class="text-muted small mb-0">
+                            Last reviewed {{ application.reviewed_at|date:"M d, Y H:i" }}
+                            by {{ application.reviewed_by|default:"staff" }}.
+                        </p>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

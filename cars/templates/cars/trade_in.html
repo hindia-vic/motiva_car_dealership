@@ -1,0 +1,195 @@
+{% extends "base.html" %}
+{% load currency %}
+
+{% block title %}Trade-In Value Estimator - Car Dealership{% endblock %}
+
+{% block meta %}
+<meta name="description" content="Find out what your car is worth as a trade-in. Enter your vehicle's year, make, model, mileage and condition for an instant online estimate.">
+<link rel="canonical" href="{{ request.scheme }}://{{ request.get_host }}{% url 'cars:trade_in' %}">
+<meta property="og:type" content="website">
+<meta property="og:site_name" content="Car Dealership">
+<meta property="og:url" content="{{ request.scheme }}://{{ request.get_host }}{% url 'cars:trade_in' %}">
+<meta property="og:title" content="Trade-In Value Estimator - Car Dealership">
+<meta property="og:description" content="An instant online estimate of what your vehicle is worth as a trade-in.">
+{% endblock %}
+
+{% block content %}
+<div class="page-header">
+    <div class="container-lg">
+        <h1><i class="bi bi-arrow-left-right"></i> Trade-In Value Estimator</h1>
+        <p>See what your current vehicle is worth before you shop</p>
+    </div>
+</div>
+
+<div class="container-lg py-4">
+    <div class="row g-4">
+        <div class="col-lg-7">
+            <div class="card border-0 shadow-sm">
+                <div class="card-body p-4">
+                    <h4 class="mb-3">Tell us about your vehicle</h4>
+                    <p class="text-muted small">
+                        The more accurate the details, the closer the estimate will be to
+                        what we can actually pay on the day.
+                    </p>
+
+                    <form method="post" id="trade-in-form">
+                        {% csrf_token %}
+                        {% if form.non_field_errors %}
+                            <div class="alert alert-danger">{{ form.non_field_errors }}</div>
+                        {% endif %}
+
+                        <div class="row">
+                            <div class="col-md-4 mb-3">
+                                <label for="{{ form.year.id_for_label }}" class="form-label">Year *</label>
+                                {{ form.year }}
+                                {% if form.year.errors %}
+                                    <div class="text-danger small mt-1">{{ form.year.errors }}</div>
+                                {% endif %}
+                            </div>
+
+                            <div class="col-md-4 mb-3">
+                                <label for="{{ form.make.id_for_label }}" class="form-label">Make *</label>
+                                {{ form.make }}
+                                {% if form.make.errors %}
+                                    <div class="text-danger small mt-1">{{ form.make.errors }}</div>
+                                {% endif %}
+                            </div>
+
+                            <div class="col-md-4 mb-3">
+                                <label for="{{ form.model.id_for_label }}" class="form-label">Model</label>
+                                {{ form.model }}
+                                {% if form.model.errors %}
+                                    <div class="text-danger small mt-1">{{ form.model.errors }}</div>
+                                {% endif %}
+                            </div>
+                        </div>
+
+                        <div class="row">
+                            <div class="col-md-4 mb-3">
+                                <label for="{{ form.mileage.id_for_label }}" class="form-label">Mileage</label>
+                                {{ form.mileage }}
+                                {% if form.mileage.errors %}
+                                    <div class="text-danger small mt-1">{{ form.mileage.errors }}</div>
+                                {% endif %}
+                            </div>
+
+                            <div class="col-md-4 mb-3">
+                                <label for="{{ form.condition.id_for_label }}" class="form-label">Condition</label>
+                                {{ form.condition }}
+                                {% if form.condition.errors %}
+                                    <div class="text-danger small mt-1">{{ form.condition.errors }}</div>
+                                {% endif %}
+                            </div>
+
+                            <div class="col-md-4 mb-3">
+                                <label for="{{ form.body_type.id_for_label }}" class="form-label">Body type</label>
+                                {{ form.body_type }}
+                                {% if form.body_type.errors %}
+                                    <div class="text-danger small mt-1">{{ form.body_type.errors }}</div>
+                                {% endif %}
+                            </div>
+                        </div>
+
+                        <button type="submit" class="btn btn-primary">
+                            <i class="bi bi-calculator"></i> Get My Estimate
+                        </button>
+                    </form>
+                </div>
+            </div>
+        </div>
+
+        <div class="col-lg-5">
+            <div class="card border-0 shadow-sm" id="trade-in-result">
+                <div class="card-body p-4">
+                    {% if estimate and estimate.valid %}
+                        <h4 class="mb-1">Your estimated trade-in value</h4>
+                        <p class="text-muted small mb-3">
+                            {{ estimate.year }} {{ estimate.make }} {{ estimate.model }}
+                        </p>
+
+                        <div class="text-center my-4">
+                            <div class="display-4 fw-bold text-primary">{{ estimate.mid|money }}</div>
+                            <div class="text-muted">
+                                Estimated range: {{ estimate.low|money }} &ndash; {{ estimate.high|money }}
+                            </div>
+                        </div>
+
+                        <table class="table table-sm small">
+                            <tbody>
+                                <tr>
+                                    <td>Value when new (estimated)</td>
+                                    <td class="text-end">{{ estimate.new_price|money }}</td>
+                                </tr>
+                                <tr>
+                                    <td>Age</td>
+                                    <td class="text-end">{{ estimate.age }} year{{ estimate.age|pluralize }}</td>
+                                </tr>
+                                <tr>
+                                    <td>Age factor</td>
+                                    <td class="text-end">{{ estimate.age_factor|floatformat:2 }}</td>
+                                </tr>
+                                <tr>
+                                    <td>Brand factor</td>
+                                    <td class="text-end">{{ estimate.make_factor|floatformat:2 }}</td>
+                                </tr>
+                                <tr>
+                                    <td>Model factor</td>
+                                    <td class="text-end">{{ estimate.model_factor|floatformat:2 }}</td>
+                                </tr>
+                                <tr>
+                                    <td>Mileage factor</td>
+                                    <td class="text-end">{{ estimate.mileage_factor|floatformat:2 }}</td>
+                                </tr>
+                                <tr>
+                                    <td>Condition factor</td>
+                                    <td class="text-end">{{ estimate.condition_factor|floatformat:2 }}</td>
+                                </tr>
+                            </tbody>
+                        </table>
+
+                        <hr>
+
+                        <a href="{% url 'cars:browse_cars' %}" class="btn btn-primary w-100 mb-2">
+                            <i class="bi bi-search"></i> Browse Vehicles
+                        </a>
+                        <a href="{% url 'cars:contact' %}" class="btn btn-outline-secondary w-100">
+                            <i class="bi bi-chat-dots"></i> Book a Free Appraisal
+                        </a>
+                    {% else %}
+                        <h4 class="mb-3"><i class="bi bi-cash-coin"></i> Your estimate appears here</h4>
+                        <p class="text-muted">
+                            Fill in your vehicle's details on the left and we will show you
+                            an instant estimate, together with the numbers behind it.
+                        </p>
+                        <ul class="list-unstyled small text-muted mb-0">
+                            <li class="mb-2"><i class="bi bi-check-circle text-success"></i> No sign-up, no obligation</li>
+                            <li class="mb-2"><i class="bi bi-check-circle text-success"></i> The trade-in value comes straight off your price</li>
+                            <li><i class="bi bi-check-circle text-success"></i> A final offer after we see the vehicle</li>
+                        </ul>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="card border-0 shadow-sm mt-4">
+        <div class="card-body p-4">
+            <h5 class="mb-2">How the estimate is worked out</h5>
+            <p class="text-muted mb-3">
+                The estimate is a guide, not a promise. It starts from what the vehicle
+                would have cost new, adjusts for the brand and model, then takes off
+                for age, mileage and condition:
+            </p>
+            <p class="mb-3">
+                <strong>value = new price &times; brand factor &times; model factor &times;
+                age factor &times; mileage factor &times; condition factor</strong>
+            </p>
+            <p class="text-muted small mb-0">
+                A real appraisal always depends on the condition of the particular car,
+                its service history and what we have in stock on the day. Bring the
+                vehicle in and we will confirm the number in person.
+            </p>
+        </div>
+    </div>
+</div>
+{% endblock %}

@@ -1,0 +1,117 @@
+{% extends "base.html" %}
+
+{% block title %}Chat Transcripts - Staff Panel{% endblock %}
+
+{% block content %}
+<div class="page-header">
+    <div class="container-lg">
+        <h1><i class="bi bi-chat-square-text"></i> Chat Transcripts</h1>
+        <p>Conversations customers have had with the site chatbot</p>
+    </div>
+</div>
+
+<div class="container-lg py-4">
+    <div class="filter-panel">
+        <h5><i class="bi bi-funnel"></i> Filter</h5>
+        <form method="get" class="row g-3 align-items-end">
+            <div class="col-md-4">
+                <div class="form-check">
+                    <input class="form-check-input" type="checkbox" name="escalated" value="1"
+                           id="escalated" {% if escalated_only %}checked{% endif %}>
+                    <label class="form-check-label" for="escalated">
+                        Only conversations that asked for a person
+                        {% if escalated_count %}<span class="badge bg-warning text-dark">{{ escalated_count }}</span>{% endif %}
+                    </label>
+                </div>
+            </div>
+            <div class="col-md-4 d-flex gap-2">
+                <button type="submit" class="btn btn-primary">
+                    <i class="bi bi-search"></i> Apply
+                </button>
+                <a href="{% url 'cars:chatbot_sessions' %}" class="btn btn-outline-secondary">
+                    <i class="bi bi-arrow-clockwise"></i> Reset
+                </a>
+            </div>
+        </form>
+    </div>
+
+    {% if sessions %}
+        <div class="card">
+            <div class="card-header bg-light">
+                <h5 class="card-title mb-0">Conversations</h5>
+            </div>
+            <div class="table-responsive">
+                <table class="table table-hover mb-0">
+                    <thead class="table-light">
+                        <tr>
+                            <th>Started</th>
+                            <th>Visitor</th>
+                            <th>Messages</th>
+                            <th>Status</th>
+                            <th>Action</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for session in sessions %}
+                            <tr>
+                                <td>{{ session.created_at|date:"M j, Y H:i" }}</td>
+                                <td>
+                                    {% if session.user %}
+                                        <a href="{% url 'cars:chatbot_session_detail' session.id %}">
+                                            {{ session.user.get_username }}
+                                        </a>
+                                    {% else %}
+                                        <span class="text-muted">Guest</span>
+                                    {% endif %}
+                                </td>
+                                <td>{{ session.message_count }}</td>
+                                <td>
+                                    {% if session.is_escalated %}
+                                        <span class="badge bg-warning text-dark">Wants a person</span>
+                                    {% elif session.contact_message %}
+                                        <span class="badge bg-success">Handled</span>
+                                    {% else %}
+                                        <span class="badge bg-secondary">Bot only</span>
+                                    {% endif %}
+                                </td>
+                                <td>
+                                    <a href="{% url 'cars:chatbot_session_detail' session.id %}" class="btn btn-sm btn-primary">
+                                        <i class="bi bi-eye"></i> View
+                                    </a>
+                                </td>
+                            </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+
+        {% if is_paginated %}
+            <nav aria-label="Page navigation" class="mt-4">
+                <ul class="pagination justify-content-center">
+                    {% if page_obj.has_previous %}
+                        <li class="page-item">
+                            <a class="page-link" href="?page={{ page_obj.previous_page_number }}{% if escalated_only %}&escalated=1{% endif %}">Previous</a>
+                        </li>
+                    {% endif %}
+                    <li class="page-item active"><span class="page-link">{{ page_obj.number }} / {{ page_obj.paginator.num_pages }}</span></li>
+                    {% if page_obj.has_next %}
+                        <li class="page-item">
+                            <a class="page-link" href="?page={{ page_obj.next_page_number }}{% if escalated_only %}&escalated=1{% endif %}">Next</a>
+                        </li>
+                    {% endif %}
+                </ul>
+            </nav>
+        {% endif %}
+    {% else %}
+        <div class="alert alert-info">
+            <i class="bi bi-info-circle"></i>
+            {% if escalated_only %}
+                No conversations have asked for a person yet.
+            {% else %}
+                No chatbot conversations yet. They'll appear here once visitors start chatting.
+            {% endif %}
+        </div>
+    {% endif %}
+</div>
+{% endblock %}

@@ -1,8 +1,10 @@
 {% extends "base.html" %}
+{% load analytics %}
 
 {% block title %}Test Drive Requested - Car Dealership{% endblock %}
 
 {% block content %}
+{% analytics_event "generate_lead" lead_type="test_drive" %}
 <div class="page-header">
     <div class="container-lg">
         <h1><i class="bi bi-calendar-check"></i> Test Drive Requested</h1>

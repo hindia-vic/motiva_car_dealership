@@ -1,18 +1,22 @@
 {% extends "base.html" %}
+{% load currency analytics %}
 
 {% block title %}{{ car.year }} {{ car.make }} {{ car.model }} for Sale - Car Dealership{% endblock %}
 
 {% block meta %}
-<meta name="description" content="{{ car.year }} {{ car.make }} {{ car.model }} for sale at Car Dealership. {{ car.condition|title }}, {{ car.mileage|floatformat:0 }} miles, {{ car.transmission|title }}. Priced at ${{ car.asking_price }}.">
+<meta name="description" content="{{ car.year }} {{ car.make }} {{ car.model }} for sale at Car Dealership. {{ car.condition|title }}, {{ car.mileage|floatformat:0 }} miles, {{ car.transmission|title }}. Priced at {{ car.asking_price|money }}.">
 <link rel="canonical" href="{{ request.scheme }}://{{ request.get_host }}{% url 'cars:car_detail' car.pk %}">
 <meta property="og:type" content="product">
-<meta property="og:title" content="{{ car.year }} {{ car.make }} {{ car.model }} - ${{ car.asking_price }}">
+<meta property="og:title" content="{{ car.year }} {{ car.make }} {{ car.model }} - {{ car.asking_price|money }}">
 <meta property="og:url" content="{{ request.scheme }}://{{ request.get_host }}{% url 'cars:car_detail' car.pk %}">
 <meta property="og:description" content="{{ car.condition|title }}, {{ car.mileage|floatformat:0 }} miles, {{ car.transmission|title }}. View details and schedule a test drive.">
 {% if car.images.first %}
 <meta property="og:image" content="{{ request.scheme }}://{{ request.get_host }}{{ car.images.first.image.url }}">
+<meta name="twitter:card" content="summary_large_image">
 {% endif %}
 {% endblock %}
+
+{% block structured_data %}{% include "cars/_structured_data.html" %}{% endblock %}
 
 {% block extra_css %}
 <style>
@@ -56,6 +60,92 @@
         box-shadow: 0 1px 3px rgba(0,0,0,0.1);
         margin-bottom: 2rem;
     }
+
+    /* Photo gallery */
+    .gallery-main {
+        position: relative;
+        height: 20rem;              /* h-80 */
+        overflow: hidden;
+        border-radius: 8px;
+        background: #f1f3f5;
+    }
+
+    .gallery-main img {
+        width: 100%;
+        height: 100%;
+        object-fit: contain;
+        transition: transform 0.4s ease;
+    }
+
+    .gallery-main:hover img {
+        transform: scale(1.08);     /* hover zoom */
+    }
+
+    .gallery-caption {
+        margin: 0.75rem 0 0;
+        font-size: 0.9rem;
+        color: #666;
+    }
+
+    .gallery-thumbs {
+        margin-top: 1rem;
+        padding-bottom: 0.25rem;
+        scroll-behavior: smooth;
+        scrollbar-width: none;       /* Firefox */
+        -ms-overflow-style: none;    /* legacy Edge */
+    }
+
+    .gallery-thumbs::-webkit-scrollbar {
+        display: none;
+    }
+
+    .gallery-thumb {
+        flex: 0 0 auto;
+        width: 88px;
+        height: 64px;
+        padding: 0;
+        border: 2px solid #dee2e6;
+        border-radius: 6px;
+        overflow: hidden;
+        background: #fff;
+        cursor: pointer;
+        transition: border-color 0.2s ease, transform 0.2s ease;
+    }
+
+    .gallery-thumb img {
+        display: block;
+        width: 100%;
+        height: 100%;
+        object-fit: contain;
+    }
+
+    .gallery-thumb:hover {
+        border-color: #adb5bd;
+        transform: translateY(-2px);
+    }
+
+    .gallery-thumb.active {
+        border-color: #dc3545;      /* border-red-500 */
+    }
+
+    .gallery-track {
+        position: relative;
+        height: 4px;
+        margin-top: 0.5rem;
+        border-radius: 2px;
+        background: #dee2e6;
+        overflow: hidden;
+    }
+
+    .gallery-track-fill {
+        position: absolute;
+        top: 0;
+        left: 0;
+        width: 100%;
+        height: 100%;
+        border-radius: 2px;
+        background: var(--primary-color);
+    }
 </style>
 {% endblock %}
 
@@ -64,6 +154,22 @@
     <a href="{% url 'cars:browse_cars' %}" class="btn btn-outline-secondary mb-3">
         <i class="bi bi-arrow-left"></i> Back to Inventory
     </a>
+
+    {% if not car.is_available %}
+        <div class="alert alert-secondary d-flex flex-wrap justify-content-between align-items-center gap-2 mb-3">
+            <div>
+                <i class="bi bi-info-circle"></i>
+                <strong>{{ car.get_status_display }}.</strong>
+                This vehicle is no longer available to buy.
+                {% if similar_cars %}
+                    Have a look at the similar vehicles below instead.
+                {% endif %}
+            </div>
+            <a href="{% url 'cars:browse_cars' %}" class="btn btn-sm btn-primary text-nowrap">
+                <i class="bi bi-collection"></i> Browse Available Cars
+            </a>
+        </div>
+    {% endif %}
 
     <div class="row">
         <!-- Car Details -->
@@ -76,13 +182,29 @@
                         <p class="text-muted">VIN: {{ car.vin }}</p>
                     </div>
                     <div class="d-flex align-items-center gap-2">
-                        <span class="badge bg-success fs-6">
+                        <span class="badge {{ car.status_badge_class }} fs-6">
                             {% if car.status == 'available' %}
-                                <i class="bi bi-check-circle"></i> Available
+                                <i class="bi bi-check-circle"></i>
                             {% else %}
-                                <i class="bi bi-x-circle"></i> Sold
+                                <i class="bi bi-x-circle"></i>
                             {% endif %}
+                            {{ car.get_status_display }}
                         </span>
+                        {% if user.is_staff %}
+                            <form method="post" action="{% url 'cars:car_status_update' car.id %}" class="d-flex align-items-center gap-2 mb-0">
+                                {% csrf_token %}
+                                <input type="hidden" name="next" value="{% url 'cars:car_detail' car.id %}">
+                                <label for="car-status-select" class="visually-hidden">Status</label>
+                                <select name="status" id="car-status-select" class="form-select form-select-sm">
+                                    {% for value, label in status_choices %}
+                                        <option value="{{ value }}" {% if car.status == value %}selected{% endif %}>{{ label }}</option>
+                                    {% endfor %}
+                                </select>
+                                <button type="submit" class="btn btn-sm btn-primary text-nowrap">
+                                    <i class="bi bi-check2"></i> Update
+                                </button>
+                            </form>
+                        {% endif %}
                         {% if user.is_authenticated %}
                             <form method="post" action="{% url 'accounts:toggle_favorite' car.id %}">
                                 {% csrf_token %}
@@ -98,42 +220,63 @@
                                 <i class="bi bi-heart"></i>
                             </a>
                         {% endif %}
+                        <div class="form-check form-check-inline mb-0">
+                            <input type="checkbox" class="form-check-input compare-check"
+                                   id="compare-{{ car.id }}" value="{{ car.id }}">
+                            <label class="form-check-label small" for="compare-{{ car.id }}">
+                                <i class="bi bi-arrow-left-right"></i> Compare
+                            </label>
+                        </div>
                     </div>
                 </div>
                 
-                <h3 class="text-primary">${{ car.asking_price }}</h3>
+                <h3 class="text-primary">{{ car.asking_price|money }}</h3>
+                {% if favorite.price_at_save and favorite.price_at_save > car.asking_price %}
+                    <div class="alert alert-success py-2 mb-2">
+                        <i class="bi bi-arrow-down-circle"></i>
+                        Price dropped since you saved it (was {{ favorite.price_at_save|money }}).
+                    </div>
+                {% endif %}
                 <p class="text-muted">Condition: <strong>{{ car.condition|title }}</strong></p>
             </div>
 
             <!-- Photo Gallery -->
             {% if car.images.all %}
-                <div class="car-detail-section p-0 overflow-hidden">
-                    <div id="carImages" class="carousel slide" data-bs-ride="carousel">
-                        <div class="carousel-inner">
+                <div class="car-detail-section p-3 p-md-4">
+                    {% with primary=car.images.first %}
+                    <!-- Main display box with hover zoom -->
+                    <div class="gallery-main">
+                        <img id="galleryMainImage"
+                             src="{{ primary.image.url }}"
+                             srcset="{{ primary.srcset }}"
+                             sizes="(min-width: 992px) 50vw, 100vw"
+                             fetchpriority="high" decoding="async"
+                             alt="{{ primary.caption|default:car }}">
+                    </div>
+                    <p class="gallery-caption" id="galleryCaption">{{ primary.caption }}</p>
+                    {% endwith %}
+
+                    {% if car.images.count > 1 %}
+                        <!-- Thumbnail row -->
+                        <div class="gallery-thumbs d-flex gap-3 overflow-x-auto" id="galleryThumbs">
                             {% for image in car.images.all %}
-                                <div class="carousel-item {% if forloop.first %}active{% endif %}">
-                                    <img src="{{ image.image.url }}" class="d-block w-100"
-                                         style="height: 380px; object-fit: cover;"
+                                <button type="button"
+                                        class="gallery-thumb {% if forloop.first %}active{% endif %}"
+                                        data-full="{{ image.image.url }}"
+                                        data-caption="{{ image.caption }}"
+                                        aria-label="View photo {{ forloop.counter }} of {{ car.images.count }}"
+                                        {% if forloop.first %}aria-current="true"{% endif %}>
+                                    <img src="{{ image.thumbnail_url }}"
+                                         loading="lazy" decoding="async"
                                          alt="{{ image.caption|default:car }}">
-                                    {% if image.caption %}
-                                        <div class="carousel-caption d-none d-md-block pb-2">
-                                            <span class="p-2 rounded" style="background: rgba(0,0,0,0.55);">{{ image.caption }}</span>
-                                        </div>
-                                    {% endif %}
-                                </div>
+                                </button>
                             {% endfor %}
                         </div>
-                        {% if car.images.count > 1 %}
-                            <button class="carousel-control-prev" type="button" data-bs-target="#carImages" data-bs-slide="prev">
-                                <span class="carousel-control-prev-icon" aria-hidden="true"></span>
-                                <span class="visually-hidden">Previous</span>
-                            </button>
-                            <button class="carousel-control-next" type="button" data-bs-target="#carImages" data-bs-slide="next">
-                                <span class="carousel-control-next-icon" aria-hidden="true"></span>
-                                <span class="visually-hidden">Next</span>
-                            </button>
-                        {% endif %}
-                    </div>
+                        <!-- Scroll track bar -->
+                        <div class="gallery-track" id="galleryTrack" aria-hidden="true">
+                            <div class="gallery-track-fill" id="galleryTrackFill"></div>
+                        </div>
+                    {% endif %}
                 </div>
             {% else %}
                 <div class="car-detail-section p-4 text-center">
@@ -216,6 +359,7 @@
 
         <!-- Inquiry/Order Forms -->
         <div class="col-lg-5">
+            {% if car.is_available %}
             <!-- Test Drive CTA -->
             <div class="form-section text-center">
                 <h4 class="mb-2"><i class="bi bi-calendar-check"></i> Test Drive This Car</h4>
@@ -231,14 +375,14 @@
                 <div class="mb-3">
                     <label for="calc-price" class="form-label">Vehicle Price</label>
                     <div class="input-group">
-                        <span class="input-group-text">$</span>
+                        <span class="input-group-text">{% currency %}</span>
                         <input type="number" class="form-control" id="calc-price" step="0.01" value="{{ car.asking_price }}">
                     </div>
                 </div>
                 <div class="mb-3">
                     <label for="calc-down" class="form-label">Down Payment</label>
                     <div class="input-group">
-                        <span class="input-group-text">$</span>
+                        <span class="input-group-text">{% currency %}</span>
                         <input type="number" class="form-control" id="calc-down" step="0.01" value="0">
                     </div>
                 </div>
@@ -254,7 +398,7 @@
                 </div>
                 <div class="alert alert-primary text-center mb-0">
                     <div class="text-muted small">Estimated Monthly Payment</div>
-                    <div class="price-tag" id="calc-result" style="font-size: 1.6rem;">$0.00</div>
+                    <div class="price-tag" id="calc-result" style="font-size: 1.6rem;">{% currency %} 0</div>
                 </div>
                 <p class="text-muted small mt-3 mb-0">
                     <i class="bi bi-info-circle"></i> Estimate only — does not include taxes, fees, or insurance.
@@ -356,6 +500,8 @@
                         {% endif %}
                     </div>
 
+                    {% include "cars/_trade_in_widget.html" with order_form=order_form %}
+
                     <div class="row">
                         <div class="col-md-6 mb-3">
                             <label for="{{ order_form.price.id_for_label }}" class="form-label">Price *</label>
@@ -406,8 +552,61 @@
                     </button>
                 </form>
             </div>
+            {% else %}
+                <div class="form-section text-center">
+                    <i class="bi bi-check-circle" style="font-size: 2.5rem; color: #6c757d;"></i>
+                    <h4 class="mt-3">{{ car.get_status_display }}</h4>
+                    <p class="text-muted">
+                        This vehicle is no longer available.
+                        {% if similar_cars %}
+                            Here are some similar vehicles you can buy today.
+                        {% else %}
+                            Have a look at the rest of our inventory.
+                        {% endif %}
+                    </p>
+                    {% if similar_cars %}
+                        <ul class="list-group list-group-flush text-start mb-3">
+                            {% for other in similar_cars %}
+                                <li class="list-group-item d-flex justify-content-between align-items-center px-0">
+                                    <a href="{% url 'cars:car_detail' other.pk %}">{{ other.year }} {{ other.make }} {{ other.model }}</a>
+                                    <span class="price-tag">{{ other.asking_price|money }}</span>
+                                </li>
+                            {% endfor %}
+                        </ul>
+                    {% endif %}
+                    <a href="{% url 'cars:browse_cars' %}" class="btn btn-primary w-100">
+                        <i class="bi bi-collection"></i> Browse All Vehicles
+                    </a>
+                </div>
+            {% endif %}
         </div>
     </div>
+
+    <!-- Similar Vehicles -->
+    {% if similar_cars %}
+        <div class="car-detail-section p-4 mt-4" id="similar-vehicles">
+            <h4 class="mb-4"><i class="bi bi-collection"></i> {% if car.is_available %}Similar Vehicles{% else %}Similar Vehicles Available Now{% endif %}</h4>
+            <div class="row g-4">
+                {% for other in similar_cars %}
+                    {% include 'cars/_car_card_mini.html' with item=other %}
+                {% endfor %}
+            </div>
+        </div>
+    {% endif %}
+
+    <!-- Recently Viewed -->
+    {% if recently_viewed %}
+        <div class="car-detail-section p-4 mt-4">
+            <h4 class="mb-4"><i class="bi bi-clock-history"></i> Recently Viewed</h4>
+            <div class="row g-4">
+                {% for other in recently_viewed %}
+                    {% include 'cars/_car_card_mini.html' with item=other %}
+                {% endfor %}
+            </div>
+        </div>
+    {% endif %}
+
+    {% include 'cars/_compare_bar.html' %}
 </div>
 {% endblock %}
 
@@ -420,8 +619,10 @@
     var termInput = document.getElementById('calc-term');
     var result = document.getElementById('calc-result');
 
+    var currencySymbol = "{% currency %}";
+
     function fmt(value) {
-        return '$' + value.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+        return currencySymbol + ' ' + value.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
     }
 
     function calculate() {
@@ -452,5 +653,59 @@
     });
     calculate();
 })();
+
+(function () {
+    var mainImage = document.getElementById('galleryMainImage');
+    var caption = document.getElementById('galleryCaption');
+    var thumbs = document.getElementById('galleryThumbs');
+    var track = document.getElementById('galleryTrack');
+    var fill = document.getElementById('galleryTrackFill');
+    if (!mainImage || !thumbs) return;
+
+    var buttons = thumbs.querySelectorAll('.gallery-thumb');
+
+    function updateTrack() {
+        if (!track || !fill) return;
+        var scrollable = thumbs.scrollWidth - thumbs.clientWidth;
+        if (scrollable <= 0) {
+            track.style.display = 'none';
+            return;
+        }
+        track.style.display = '';
+        var ratio = thumbs.clientWidth / thumbs.scrollWidth;
+        fill.style.width = (ratio * 100) + '%';
+        var progress = thumbs.scrollLeft / scrollable;
+        fill.style.left = (progress * (1 - ratio) * 100) + '%';
+    }
+
+    buttons.forEach(function (btn) {
+        btn.addEventListener('click', function () {
+            if (btn.classList.contains('active')) return;
+
+            mainImage.src = btn.getAttribute('data-full');
+            var text = btn.getAttribute('data-caption') || '';
+            mainImage.alt = text || mainImage.alt;
+            if (caption) {
+                caption.textContent = text;
+                caption.style.display = text ? '' : 'none';
+            }
+
+            buttons.forEach(function (other) {
+                other.classList.remove('active');
+                other.removeAttribute('aria-current');
+            });
+            btn.classList.add('active');
+            btn.setAttribute('aria-current', 'true');
+            btn.scrollIntoView({ behavior: 'smooth', block: 'nearest', inline: 'center' });
+        });
+    });
+
+    thumbs.addEventListener('scroll', updateTrack, { passive: true });
+    window.addEventListener('resize', updateTrack);
+    if (caption && !caption.textContent.trim()) caption.style.display = 'none';
+    updateTrack();
+})();
 </script>
+{% include 'cars/_compare_js.html' %}
+{% analytics_event "view_item" item_id=car.pk item_name=car.display_name item_brand=car.make item_category=car.body_type item_variant=car.condition price=car.asking_price currency="KES" %}
 {% endblock %}

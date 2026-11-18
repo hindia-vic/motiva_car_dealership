@@ -1,0 +1,100 @@
+{% extends "base.html" %}
+{% load currency analytics %}
+
+{% block title %}Request received - Car Hire{% endblock %}
+
+{% block content %}
+{% analytics_event "generate_lead" lead_type="hire_booking" %}
+<div class="container-lg py-5">
+    <div class="row justify-content-center">
+        <div class="col-lg-8">
+            <div class="card">
+                <div class="card-body p-5 text-center">
+                    <i class="bi bi-check-circle-fill text-success" style="font-size: 3.5rem;"></i>
+                    <h2 class="mt-3">Your request is with us</h2>
+                    <p class="text-muted">
+                        Thank you. We are checking the dates and the car, and we will confirm
+                        your booking and send you the amount to pay. We will email you as
+                        soon as it is done.
+                    </p>
+
+                    {% if booking %}
+                        <div class="card text-start mt-4">
+                            <div class="card-body">
+                                <h5 class="mb-3">{{ booking.hire_car.year }} {{ booking.hire_car.make }} {{ booking.hire_car.model }}</h5>
+                                <dl class="row mb-0">
+                                    <dt class="col-sm-4">Reference</dt>
+                                    <dd class="col-sm-8"><strong>{{ booking.reference }}</strong></dd>
+
+                                    <dt class="col-sm-4">Service</dt>
+                                    <dd class="col-sm-8">{{ booking.service_label }}</dd>
+
+                                    <dt class="col-sm-4">Dates</dt>
+                                    <dd class="col-sm-8">
+                                        {{ booking.start_date|date:"d M Y" }} to {{ booking.end_date|date:"d M Y" }}
+                                        ({{ booking.days }} day{{ booking.days|pluralize }})
+                                    </dd>
+
+                                    <dt class="col-sm-4">Passengers</dt>
+                                    <dd class="col-sm-8">{{ booking.passengers }}</dd>
+
+                                    {% if booking.destination %}
+                                        <dt class="col-sm-4">Destination</dt>
+                                        <dd class="col-sm-8">{{ booking.destination }}</dd>
+                                    {% endif %}
+
+                                    {% if booking.extras.all %}
+                                        <dt class="col-sm-4">Extras</dt>
+                                        <dd class="col-sm-8">
+                                            {% for extra in booking.extras.all %}
+                                                {{ extra.quantity }} &times; {{ extra.name }}
+                                                ({{ extra.line_total|money }})<br>
+                                            {% endfor %}
+                                        </dd>
+                                    {% endif %}
+
+                                    <dt class="col-sm-4">Estimate</dt>
+                                    <dd class="col-sm-8">{{ booking.hire_total|money }}</dd>
+
+                                    {% if booking.security_deposit %}
+                                        <dt class="col-sm-4">Security deposit</dt>
+                                        <dd class="col-sm-8">
+                                            {{ booking.security_deposit|money }}
+                                            <span class="text-muted small">(refundable)</span>
+                                        </dd>
+                                    {% endif %}
+
+                                    <dt class="col-sm-4">Status</dt>
+                                    <dd class="col-sm-8">
+                                        <span class="badge bg-warning text-dark">{{ booking.get_status_display }}</span>
+                                    </dd>
+                                </dl>
+                            </div>
+                        </div>
+                    {% endif %}
+
+                    <div class="d-flex flex-column flex-sm-row gap-2 justify-content-center mt-4">
+                        {% if user.is_authenticated %}
+                            <a href="{% url 'hiring:my_hire_bookings' %}" class="btn btn-primary">
+                                <i class="bi bi-calendar-check"></i> My hires
+                            </a>
+                        {% else %}
+                            <a href="{% url 'accounts:login' %}?next={% url 'hiring:my_hire_bookings' %}" class="btn btn-primary">
+                                <i class="bi bi-box-arrow-in-right"></i> Sign in to follow this booking
+                            </a>
+                        {% endif %}
+                        <a href="{% url 'hiring:hire_car_list' %}" class="btn btn-outline-secondary">
+                            Back to the fleet
+                        </a>
+                    </div>
+
+                    <p class="text-muted small mt-4 mb-0">
+                        <i class="bi bi-shield-lock"></i>
+                        We never confirm a booking before the payment has been received.
+                    </p>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

@@ -1,8 +1,10 @@
 {% extends "base.html" %}
+{% load currency analytics %}
 
 {% block title %}Order Submitted - Thank You{% endblock %}
 
 {% block content %}
+{% if order %}{% analytics_event "begin_checkout" value=order.price currency="KES" item_id=order.car.pk item_name=order.car.display_name %}{% endif %}
 <div class="container-lg py-5">
     <div class="row justify-content-center">
         <div class="col-lg-6">
@@ -22,11 +24,64 @@
                     <div class="mb-4">
                         <h5>Order Summary</h5>
                         <div class="text-start" style="background: #f8f9fa; padding: 1rem; border-radius: 6px;">
+                            {% if order %}
+                                <p class="mb-1"><strong>Order:</strong> #{{ order.id }} &bull; {{ order.car.year }} {{ order.car.make }} {{ order.car.model }}</p>
+                                <p class="mb-1"><strong>Price:</strong> {{ order.price|money }}</p>
+                                {% if order.trade_in_value %}
+                                    <p class="mb-1"><strong>Trade-in:</strong> -{{ order.trade_in_value|money }}</p>
+                                    <p class="mb-1"><strong>Payable:</strong> {{ order.amount_payable|money }}</p>
+                                {% endif %}
+                                <p class="mb-1"><strong>Deposit:</strong> {{ deposit|money }}</p>
+                            {% endif %}
                             <p class="mb-1"><strong>Status:</strong> <span class="badge bg-primary">Pending Review</span></p>
                             <p class="mb-1"><strong>Expected Response:</strong> Within 24 hours</p>
                             <p class="mb-0"><strong>Contact Method:</strong> Phone & Email</p>
                         </div>
                     </div>
+
+                    {% if order %}
+                        <div class="card mb-4 text-start">
+                            <div class="card-header bg-light">
+                                <h5 class="mb-0"><i class="bi bi-phone"></i> Reserve it with M-Pesa</h5>
+                            </div>
+                            <div class="card-body">
+                                {% if order.is_deposit_paid %}
+                                    <div class="alert alert-success mb-0">
+                                        <i class="bi bi-check-circle"></i>
+                                        Your deposit of {{ deposit|money }} has been received.
+                                        The order is still reviewed by our team before it is confirmed.
+                                    </div>
+                                {% elif mpesa_enabled %}
+                                    <p class="mb-3">
+                                        Pay a deposit of <strong>{{ deposit|money }}</strong> to hold this
+                                        car. The order stays pending until our team reviews it.
+                                    </p>
+                                    <form method="post" action="{% url 'cars:order_pay_deposit' order.pk %}">
+                                        {% csrf_token %}
+                                        <input type="hidden" name="token" value="{{ order_token }}">
+                                        <input type="hidden" name="next" value="{{ request.get_full_path }}">
+                                        <div class="mb-3">
+                                            <label for="phone_number" class="form-label">M-Pesa phone number</label>
+                                            <input type="tel" name="phone_number" id="phone_number"
+                                                   class="form-control" value="{{ order.customer_phone }}"
+                                                   placeholder="07XX XXX XXX" required>
+                                            <div class="form-text">
+                                                We will send an STK push; enter your PIN on your phone to pay.
+                                            </div>
+                                        </div>
+                                        <button type="submit" class="btn btn-success">
+                                            <i class="bi bi-phone"></i> Pay {{ deposit|money }} deposit
+                                        </button>
+                                    </form>
+                                {% else %}
+                                    <p class="mb-0 text-muted">
+                                        Online M-Pesa payments are not switched on yet. Our team will
+                                        contact you with the deposit details.
+                                    </p>
+                                {% endif %}
+                            </div>
+                        </div>
+                    {% endif %}
 
                     <div class="mb-4">
                         <h5>What happens next?</h5>

@@ -2,6 +2,26 @@
 
 {% block title %}Contact Us - Car Dealership{% endblock %}
 
+{% block meta_description %}Contact our dealership to book a test drive, ask about a vehicle, or discuss financing and car hire. Find our phone number, email, address and opening hours.{% endblock %}
+{% block og_title %}Contact {{ dealership.name|default:"Our Dealership" }}{% endblock %}
+{% block og_description %}Book a test drive or ask about a vehicle, financing, or car hire.{% endblock %}
+
+{% block extra_css %}
+<style>
+    .btn-whatsapp {
+        background-color: #25D366;
+        border-color: #25D366;
+        color: #fff;
+    }
+    .btn-whatsapp:hover,
+    .btn-whatsapp:focus {
+        background-color: #1da851;
+        border-color: #1da851;
+        color: #fff;
+    }
+</style>
+{% endblock %}
+
 {% block content %}
 <div class="page-header">
     <div class="container-lg">
@@ -18,6 +38,7 @@
 
                 <form method="post" novalidate>
                     {% csrf_token %}
+                    {% include "cars/_antispam_fields.html" %}
 
                     {% if form.non_field_errors %}
                         <div class="alert alert-danger">{{ form.non_field_errors }}</div>
@@ -83,6 +104,16 @@
                         <strong>Phone</strong><br>
                         <a href="tel:{{ contact_info.phone }}" class="text-decoration-none">{{ contact_info.phone }}</a>
                     </li>
+                    {% if contact_info.whatsapp %}
+                        <li class="mb-3">
+                            <i class="bi bi-whatsapp text-success"></i>
+                            <strong>WhatsApp</strong><br>
+                            <a href="{{ contact_info.whatsapp_url }}" target="_blank" rel="noopener"
+                               class="btn btn-whatsapp btn-sm mt-1">
+                                <i class="bi bi-whatsapp"></i> Chat on WhatsApp
+                            </a>
+                        </li>
+                    {% endif %}
                     <li class="mb-3">
                         <i class="bi bi-envelope text-primary"></i>
                         <strong>Email</strong><br>

@@ -1,4 +1,5 @@
 {% extends "base.html" %}
+{% load currency %}
 
 {% block title %}{{ sale.invoice_number }} - Car Dealership{% endblock %}
 
@@ -158,27 +159,27 @@
                             <tbody>
                                 <tr>
                                     <td>Sale Price</td>
-                                    <td class="text-end price-tag">${{ sale.sale_price }}</td>
+                                    <td class="text-end price-tag">{{ sale.sale_price|money }}</td>
                                 </tr>
                                 {% if sale.trade_in_value > 0 %}
                                     <tr class="table-success">
                                         <td>Trade-in Value</td>
-                                        <td class="text-end"><strong style="color: #28a745;">-${{ sale.trade_in_value }}</strong></td>
+                                        <td class="text-end"><strong style="color: #28a745;">-{{ sale.trade_in_value|money }}</strong></td>
                                     </tr>
                                 {% endif %}
                                 <tr class="table-primary">
                                     <td><strong>Subtotal</strong></td>
-                                    <td class="text-end"><strong>${{ sale.sale_price|add:sale.trade_in_value|stringformat:".2f" }}</strong></td>
+                                    <td class="text-end"><strong>{{ sale.total_amount|money }}</strong></td>
                                 </tr>
                                 {% if sale.down_payment > 0 %}
                                     <tr class="table-warning">
                                         <td>Down Payment</td>
-                                        <td class="text-end"><strong style="color: #ffc107;">-${{ sale.down_payment }}</strong></td>
+                                        <td class="text-end"><strong style="color: #ffc107;">-{{ sale.down_payment|money }}</strong></td>
                                     </tr>
                                 {% endif %}
                                 <tr class="table-danger">
                                     <td><strong>Total Amount Due</strong></td>
-                                    <td class="text-end"><strong>${{ sale.total_amount }}</strong></td>
+                                    <td class="text-end"><strong>{{ sale.amount_due|money }}</strong></td>
                                 </tr>
                             </tbody>
                         </table>
@@ -196,7 +197,7 @@
                         <div class="vehicle-specs">
                             <div class="spec-item">
                                 <div class="spec-label">Financed Amount</div>
-                                <div class="spec-value">${{ sale.financed_amount }}</div>
+                                <div class="spec-value">{{ sale.financed_amount|money }}</div>
                             </div>
                             <div class="spec-item">
                                 <div class="spec-label">Interest Rate</div>
@@ -209,7 +210,7 @@
                             <div class="spec-item">
                                 <div class="spec-label">Monthly Payment</div>
                                 <div class="spec-value" style="color: #f39c12;">
-                                    ${{ sale.calculate_monthly_payment|floatformat:2 }}
+                                    {{ sale.calculate_monthly_payment|money:2 }}
                                 </div>
                             </div>
                         </div>
@@ -240,20 +241,20 @@
                 <div class="card-body">
                     <div class="mb-3">
                         <p class="text-muted mb-1">Total Amount</p>
-                        <p class="price-tag mb-0">${{ sale.total_amount }}</p>
+                        <p class="price-tag mb-0">{{ sale.total_amount|money }}</p>
                     </div>
                     
                     {% if sale.down_payment > 0 %}
                         <div class="mb-3">
                             <p class="text-muted mb-1">Down Payment</p>
-                            <p class="mb-0">${{ sale.down_payment }}</p>
+                            <p class="mb-0">{{ sale.down_payment|money }}</p>
                         </div>
                     {% endif %}
 
                     {% if sale.financed_amount > 0 %}
                         <div class="mb-3">
                             <p class="text-muted mb-1">Financed Amount</p>
-                            <p class="mb-0">${{ sale.financed_amount }}</p>
+                            <p class="mb-0">{{ sale.financed_amount|money }}</p>
                         </div>
                     {% endif %}
 

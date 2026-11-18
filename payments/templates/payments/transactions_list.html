@@ -1,0 +1,180 @@
+{% extends "base.html" %}
+{% load currency %}
+
+{% block title %}M-Pesa Payments - Staff Panel{% endblock %}
+
+{% block content %}
+<div class="container-lg py-4">
+    <div class="d-flex flex-wrap flex-column flex-sm-row justify-content-between align-items-start align-items-sm-center gap-2 mb-4">
+        <div>
+            <h1 class="mb-1"><i class="bi bi-phone"></i> M-Pesa Payments</h1>
+            <p class="text-muted mb-0">Every STK push, what it was for, and where it got to.</p>
+        </div>
+        <div class="d-flex gap-2">
+            <a href="{% url 'payments:transactions_export' %}{% if filter_query %}?{{ filter_query }}{% endif %}"
+               class="btn btn-outline-secondary">
+                <i class="bi bi-download"></i> Export CSV
+            </a>
+            <a href="{% url 'cars:dashboard' %}" class="btn btn-outline-secondary">
+                <i class="bi bi-arrow-left"></i> Dashboard
+            </a>
+        </div>
+    </div>
+
+    <div class="row g-3 mb-4">
+        <div class="col-sm-6">
+            <div class="card h-100">
+                <div class="card-body">
+                    <div class="text-muted small">Collected in this filter</div>
+                    <div class="fs-4 fw-bold text-success">{{ collected|money }}</div>
+                </div>
+            </div>
+        </div>
+        <div class="col-sm-6">
+            <div class="card h-100">
+                <div class="card-body">
+                    <div class="text-muted small">Still pending</div>
+                    <div class="fs-4 fw-bold text-warning">{{ pending_count }}</div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="card mb-4">
+        <div class="card-body">
+            <form method="get" class="row g-3">
+                <div class="col-md-3">
+                    <label class="form-label" for="status">Status</label>
+                    <select name="status" id="status" class="form-select">
+                        <option value="">All</option>
+                        {% for value, label in status_choices %}
+                            <option value="{{ value }}" {% if status_filter == value %}selected{% endif %}>{{ label }}</option>
+                        {% endfor %}
+                    </select>
+                </div>
+                <div class="col-md-3">
+                    <label class="form-label" for="purpose">Purpose</label>
+                    <select name="purpose" id="purpose" class="form-select">
+                        <option value="">All</option>
+                        {% for value, label in purpose_choices %}
+                            <option value="{{ value }}" {% if purpose_filter == value %}selected{% endif %}>{{ label }}</option>
+                        {% endfor %}
+                    </select>
+                </div>
+                <div class="col-md-3">
+                    <label class="form-label" for="date_from">From</label>
+                    <input type="date" name="date_from" id="date_from" class="form-control" value="{{ date_from }}">
+                </div>
+                <div class="col-md-3">
+                    <label class="form-label" for="date_to">To</label>
+                    <input type="date" name="date_to" id="date_to" class="form-control" value="{{ date_to }}">
+                </div>
+                <div class="col-md-9">
+                    <label class="form-label" for="search">Search</label>
+                    <input type="search" name="search" id="search" class="form-control"
+                           value="{{ search }}"
+                           placeholder="Reference, phone, receipt, customer or booking">
+                </div>
+                <div class="col-md-3 d-flex align-items-end gap-2">
+                    <button type="submit" class="btn btn-primary">
+                        <i class="bi bi-funnel"></i> Filter
+                    </button>
+                    <a href="{% url 'payments:transactions_list' %}" class="btn btn-outline-secondary">Clear</a>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <div class="card">
+        <div class="card-body p-0">
+            <div class="table-responsive">
+                <table class="table table-hover align-middle mb-0">
+                    <thead class="table-light">
+                        <tr>
+                            <th>Reference</th>
+                            <th>For</th>
+                            <th>Phone</th>
+                            <th>Amount</th>
+                            <th>Status</th>
+                            <th>M-Pesa receipt</th>
+                            <th>Created</th>
+                            <th></th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for txn in transactions %}
+                            <tr>
+                                <td><code>{{ txn.reference }}</code></td>
+                                <td>
+                                    <div>{{ txn.get_purpose_display }}</div>
+                                    <small class="text-muted">{{ txn.related_description }}</small>
+                                </td>
+                                <td>{{ txn.phone_number }}</td>
+                                <td>{{ txn.amount|money }}</td>
+                                <td>
+                                    {% if txn.status == 'success' %}
+                                        <span class="badge bg-success">Success</span>
+                                    {% elif txn.status == 'pending' %}
+                                        <span class="badge bg-warning text-dark">Pending</span>
+                                    {% elif txn.status == 'cancelled' %}
+                                        <span class="badge bg-secondary">Cancelled</span>
+                                    {% else %}
+                                        <span class="badge bg-danger">Failed</span>
+                                    {% endif %}
+                                    {% if txn.result_desc %}
+                                        <div><small class="text-muted">{{ txn.result_desc|truncatechars:70 }}</small></div>
+                                    {% endif %}
+                                </td>
+                                <td>
+                                    {% if txn.mpesa_receipt_number %}
+                                        <code>{{ txn.mpesa_receipt_number }}</code>
+                                    {% else %}
+                                        <span class="text-muted">-</span>
+                                    {% endif %}
+                                </td>
+                                <td><small>{{ txn.created_at|date:"M d, Y H:i" }}</small></td>
+                                <td>
+                                    {% if txn.status == 'pending' %}
+                                        <form method="post" action="{% url 'payments:transaction_query' txn.reference %}">
+                                            {% csrf_token %}
+                                            <input type="hidden" name="next" value="{{ request.get_full_path }}">
+                                            <button type="submit" class="btn btn-sm btn-outline-primary"
+                                                    title="Ask Safaricom for the latest status">
+                                                <i class="bi bi-arrow-repeat"></i> Query
+                                            </button>
+                                        </form>
+                                    {% endif %}
+                                </td>
+                            </tr>
+                        {% empty %}
+                            <tr>
+                                <td colspan="8" class="text-center text-muted py-4">No payments match this filter.</td>
+                            </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+
+    {% if page_obj.has_other_pages %}
+        <nav class="mt-4" aria-label="Payment pages">
+            <ul class="pagination justify-content-center">
+                {% if page_obj.has_previous %}
+                    <li class="page-item">
+                        <a class="page-link" href="?page={{ page_obj.previous_page_number }}{% if filter_query %}&{{ filter_query }}{% endif %}">Previous</a>
+                    </li>
+                {% endif %}
+                <li class="page-item active">
+                    <span class="page-link">{{ page_obj.number }} of {{ page_obj.paginator.num_pages }}</span>
+                </li>
+                {% if page_obj.has_next %}
+                    <li class="page-item">
+                        <a class="page-link" href="?page={{ page_obj.next_page_number }}{% if filter_query %}&{{ filter_query }}{% endif %}">Next</a>
+                    </li>
+                {% endif %}
+            </ul>
+        </nav>
+    {% endif %}
+</div>
+{% endblock %}

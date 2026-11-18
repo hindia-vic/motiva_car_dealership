@@ -1,0 +1,175 @@
+{% extends "base.html" %}
+{% load currency %}
+
+{% block title %}Booking {{ booking.reference }} - Car Hire{% endblock %}
+
+{% block content %}
+<div class="container-lg py-4">
+    <nav aria-label="breadcrumb">
+        <ol class="breadcrumb">
+            <li class="breadcrumb-item"><a href="{% url 'cars:home' %}">Home</a></li>
+            <li class="breadcrumb-item"><a href="{% url 'hiring:my_hire_bookings' %}">My hires</a></li>
+            <li class="breadcrumb-item active" aria-current="page">{{ booking.reference }}</li>
+        </ol>
+    </nav>
+
+    <div class="row g-4">
+        <div class="col-lg-8">
+            <div class="card">
+                <div class="card-body">
+                    <div class="d-flex justify-content-between align-items-start mb-3">
+                        <h2 class="mb-0">
+                            {{ booking.hire_car.year }} {{ booking.hire_car.make }} {{ booking.hire_car.model }}
+                        </h2>
+                        <span class="badge bg-{% if booking.status == 'confirmed' %}success{% elif booking.status == 'pending' %}warning text-dark{% elif booking.status == 'active' %}info text-dark{% elif booking.status == 'completed' %}secondary{% else %}danger{% endif %}">
+                            {{ booking.get_status_display }}
+                        </span>
+                    </div>
+
+                    <dl class="row mb-0">
+                        <dt class="col-sm-4">Reference</dt>
+                        <dd class="col-sm-8"><strong>{{ booking.reference }}</strong></dd>
+
+                        <dt class="col-sm-4">Service</dt>
+                        <dd class="col-sm-8">{{ booking.service_label }}</dd>
+
+                        <dt class="col-sm-4">Pick-up</dt>
+                        <dd class="col-sm-8">{{ booking.start_date|date:"l, d M Y" }}</dd>
+
+                        <dt class="col-sm-4">Return</dt>
+                        <dd class="col-sm-8">{{ booking.end_date|date:"l, d M Y" }}</dd>
+
+                        <dt class="col-sm-4">Days</dt>
+                        <dd class="col-sm-8">{{ booking.days }}</dd>
+
+                        <dt class="col-sm-4">Passengers</dt>
+                        <dd class="col-sm-8">{{ booking.passengers }}</dd>
+
+                        {% if booking.pickup_location %}
+                            <dt class="col-sm-4">Pick-up place</dt>
+                            <dd class="col-sm-8">{{ booking.pickup_location }}</dd>
+                        {% endif %}
+
+                        {% if booking.destination %}
+                            <dt class="col-sm-4">Destination</dt>
+                            <dd class="col-sm-8">{{ booking.destination }}</dd>
+                        {% endif %}
+
+                        {% if booking.driver_name %}
+                            <dt class="col-sm-4">Your driver</dt>
+                            <dd class="col-sm-8">{{ booking.driver_name }}</dd>
+                        {% endif %}
+
+                        {% if booking.notes %}
+                            <dt class="col-sm-4">Your notes</dt>
+                            <dd class="col-sm-8">{{ booking.notes|linebreaksbr }}</dd>
+                        {% endif %}
+                    </dl>
+                </div>
+            </div>
+
+            {% if booking.status == 'rejected' and booking.rejection_reason %}
+                <div class="alert alert-danger mt-3">
+                    <strong>Why this was turned down</strong>
+                    <p class="mb-0 mt-1">{{ booking.rejection_reason|linebreaksbr }}</p>
+                </div>
+            {% endif %}
+        </div>
+
+        <div class="col-lg-4">
+            <div class="card mb-3">
+                <div class="card-body">
+                    <h5 class="mb-3"><i class="bi bi-cash-coin"></i> Payment</h5>
+                    <dl class="row mb-2 small">
+                        <dt class="col-7">Hire ({{ booking.days }} day{{ booking.days|pluralize }})</dt>
+                        <dd class="col-5 text-end">{{ booking.quoted_price|money }}</dd>
+                        {% for extra in booking.extras.all %}
+                            <dt class="col-7">{{ extra.quantity }} &times; {{ extra.name }}</dt>
+                            <dd class="col-5 text-end">{{ extra.line_total|money }}</dd>
+                        {% endfor %}
+                        {% if booking.security_deposit %}
+                            <dt class="col-7">Security deposit (refundable)</dt>
+                            <dd class="col-5 text-end">{{ booking.security_deposit|money }}</dd>
+                        {% endif %}
+                        <dt class="col-7 border-top pt-1">Total due</dt>
+                        <dd class="col-5 text-end border-top pt-1">
+                            <strong>{{ booking.total_due|money }}</strong>
+                        </dd>
+                    </dl>
+                    <p class="text-muted small mb-0">
+                        {% if booking.payment_status == 'paid' %}
+                            Paid on {{ booking.payment_received_at|date:"d M Y" }}
+                            {% if booking.payment_reference %}
+                                <br>Reference {{ booking.payment_reference }}
+                            {% endif %}
+                        {% elif booking.payment_status == 'partial' %}
+                            Part paid
+                            {% if booking.payment_reference %}
+                                <br>Reference {{ booking.payment_reference }}
+                            {% endif %}
+                        {% elif booking.payment_status == 'refunded' %}
+                            Refunded
+                        {% else %}
+                            Not paid yet. You can pay the total due below with M-Pesa.
+                        {% endif %}
+                    </p>
+
+                    {% if not booking.is_settled and booking.status != 'rejected' and booking.status != 'cancelled' %}
+                        <form method="post" action="{% url 'hiring:hire_booking_pay' booking.pk %}" class="mt-3">
+                            {% csrf_token %}
+                            <label for="hire_phone" class="form-label small">M-Pesa phone number</label>
+                            <input type="tel" name="phone_number" id="hire_phone"
+                                   class="form-control form-control-sm mb-2"
+                                   value="{{ booking.customer_phone }}" required>
+                            <button type="submit" class="btn btn-success btn-sm w-100">
+                                <i class="bi bi-phone"></i> Pay {{ booking.total_due|money }}
+                            </button>
+                        </form>
+                    {% endif %}
+
+                    {% if booking.security_deposit %}
+                        <hr>
+                        <p class="mb-1 small"><strong>Security deposit</strong></p>
+                        {% if booking.deposit_state == 'refunded' %}
+                            <p class="small text-muted mb-0">
+                                Refunded.
+                                {% if booking.deposit_retained %}
+                                    {{ booking.deposit_retained|money }} was kept for damage or fuel.
+                                {% endif %}
+                            </p>
+                        {% elif booking.deposit_state == 'held' %}
+                            <p class="small text-muted mb-0">
+                                Received. {{ booking.deposit_to_refund|money }} comes back when
+                                the car is returned.
+                            </p>
+                        {% else %}
+                            <p class="small text-muted mb-0">
+                                Collected with the hire and given back when the car comes home.
+                            </p>
+                        {% endif %}
+                    {% endif %}
+                </div>
+            </div>
+
+            <div class="card">
+                <div class="card-body">
+                    <h5 class="mb-3"><i class="bi bi-shield-check"></i> Driver details</h5>
+                    <dl class="row mb-0 small">
+                        <dt class="col-sm-5">Licence</dt>
+                        <dd class="col-sm-7">{{ booking.licence_number }}</dd>
+                        <dt class="col-sm-5">ID / passport</dt>
+                        <dd class="col-sm-7">{{ booking.id_number }}</dd>
+                    </dl>
+                    <p class="text-muted small mt-2 mb-0">
+                        We keep these on the booking so we can check them before the car goes out.
+                    </p>
+                </div>
+            </div>
+
+            <a href="{% url 'hiring:hire_car_list' %}" class="btn btn-outline-secondary w-100 mt-3">
+                Hire another car
+            </a>
+        </div>
+    </div>
+</div>
+{% endblock %}

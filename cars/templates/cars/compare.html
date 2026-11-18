@@ -1,4 +1,5 @@
 {% extends "base.html" %}
+{% load currency %}
 
 {% block title %}Compare Vehicles - Car Dealership{% endblock %}
 
@@ -26,7 +27,7 @@
                             <th scope="col" class="text-center" style="min-width: 220px;">
                                 {% with first_image=car.images.first %}
                                     {% if first_image %}
-                                        <img src="{{ first_image.image.url }}" class="img-fluid rounded mb-2"
+                                        <img src="{{ first_image.thumbnail_url }}" class="img-fluid rounded mb-2"
                                              style="height: 120px; width: 100%; object-fit: cover;"
                                              alt="{{ car.year }} {{ car.make }} {{ car.model }}">
                                     {% endif %}
@@ -41,7 +42,7 @@
                     <tr>
                         <th scope="row">Price</th>
                         {% for car in cars %}
-                            <td class="text-center price-tag">${{ car.asking_price }}</td>
+                            <td class="text-center price-tag">{{ car.asking_price|money }}</td>
                         {% endfor %}
                     </tr>
                     <tr>

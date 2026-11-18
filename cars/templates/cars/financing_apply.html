@@ -1,0 +1,230 @@
+{% extends "base.html" %}
+{% load currency %}
+
+{% block title %}Apply for Financing - Car Dealership{% endblock %}
+
+{% block meta_description %}Apply online to finance your next vehicle. Tell us what you earn and what you can put down, and our finance team will review your application.{% endblock %}
+{% block og_title %}Apply for Financing - {{ dealership.name|default:"Car Dealership" }}{% endblock %}
+{% block og_description %}Apply online to finance your next vehicle in about five minutes.{% endblock %}
+
+{% block content %}
+<div class="page-header">
+    <div class="container-lg">
+        <h1><i class="bi bi-credit-card"></i> Apply for Financing</h1>
+        <p>Tell us about the car and your budget. It takes about five minutes.</p>
+    </div>
+</div>
+
+<div class="container-lg py-4">
+    <div class="row g-4">
+        <div class="col-lg-8">
+            <div class="card">
+                <div class="card-body p-4">
+                    {% if form.non_field_errors %}
+                        <div class="alert alert-danger">{{ form.non_field_errors }}</div>
+                    {% endif %}
+
+                    <form method="post">
+                        {% csrf_token %}
+                        {% include "cars/_antispam_fields.html" %}
+
+                        <h5 class="mb-3"><i class="bi bi-car-front"></i> The car</h5>
+
+                        <div class="row g-3">
+                            <div class="col-12">
+                                <label for="{{ form.car.id_for_label }}" class="form-label">{{ form.car.label }}</label>
+                                {{ form.car }}
+                                {% if form.car.errors %}
+                                    <div class="text-danger small mt-1">
+                                        {% for error in form.car.errors %}{{ error }}<br>{% endfor %}
+                                    </div>
+                                {% endif %}
+                                <div class="form-text">{{ form.car.help_text }}</div>
+                            </div>
+                            <div class="col-12">
+                                <label for="{{ form.car_label.id_for_label }}" class="form-label">{{ form.car_label.label }}</label>
+                                {{ form.car_label }}
+                                {% if form.car_label.errors %}
+                                    <div class="text-danger small mt-1">
+                                        {% for error in form.car_label.errors %}{{ error }}<br>{% endfor %}
+                                    </div>
+                                {% endif %}
+                            </div>
+                            <div class="col-md-6">
+                                <label for="{{ form.price.id_for_label }}" class="form-label">Vehicle price (KSh) *</label>
+                                {{ form.price }}
+                                {% if form.price.errors %}
+                                    <div class="text-danger small mt-1">
+                                        {% for error in form.price.errors %}{{ error }}<br>{% endfor %}
+                                    </div>
+                                {% endif %}
+                                <div class="form-text">Leave this blank when you picked a car above.</div>
+                            </div>
+                            <div class="col-md-6">
+                                <label for="{{ form.loan_term_months.id_for_label }}" class="form-label">Loan term *</label>
+                                {{ form.loan_term_months }}
+                                {% if form.loan_term_months.errors %}
+                                    <div class="text-danger small mt-1">
+                                        {% for error in form.loan_term_months.errors %}{{ error }}<br>{% endfor %}
+                                    </div>
+                                {% endif %}
+                            </div>
+                            <div class="col-md-6">
+                                <label for="{{ form.deposit_amount.id_for_label }}" class="form-label">Deposit you can pay (KSh) *</label>
+                                {{ form.deposit_amount }}
+                                {% if form.deposit_amount.errors %}
+                                    <div class="text-danger small mt-1">
+                                        {% for error in form.deposit_amount.errors %}{{ error }}<br>{% endfor %}
+                                    </div>
+                                {% endif %}
+                                <div class="form-text">At least {{ min_deposit_ratio }}% of the price.</div>
+                            </div>
+                            <div class="col-md-6">
+                                <label for="{{ form.trade_in_value.id_for_label }}" class="form-label">Trade-in value (KSh)</label>
+                                {{ form.trade_in_value }}
+                                {% if form.trade_in_value.errors %}
+                                    <div class="text-danger small mt-1">
+                                        {% for error in form.trade_in_value.errors %}{{ error }}<br>{% endfor %}
+                                    </div>
+                                {% endif %}
+                                <div class="form-text">What we would value your current car at, if you have one.</div>
+                            </div>
+                        </div>
+
+                        <h5 class="mb-3 mt-4"><i class="bi bi-person"></i> Your details</h5>
+
+                        <div class="row g-3">
+                            <div class="col-md-6">
+                                <label for="{{ form.customer_name.id_for_label }}" class="form-label">Your name *</label>
+                                {{ form.customer_name }}
+                                {% if form.customer_name.errors %}
+                                    <div class="text-danger small mt-1">
+                                        {% for error in form.customer_name.errors %}{{ error }}<br>{% endfor %}
+                                    </div>
+                                {% endif %}
+                            </div>
+                            <div class="col-md-6">
+                                <label for="{{ form.customer_email.id_for_label }}" class="form-label">Email address *</label>
+                                {{ form.customer_email }}
+                                {% if form.customer_email.errors %}
+                                    <div class="text-danger small mt-1">
+                                        {% for error in form.customer_email.errors %}{{ error }}<br>{% endfor %}
+                                    </div>
+                                {% endif %}
+                            </div>
+                            <div class="col-md-6">
+                                <label for="{{ form.customer_phone.id_for_label }}" class="form-label">Phone number *</label>
+                                {{ form.customer_phone }}
+                                {% if form.customer_phone.errors %}
+                                    <div class="text-danger small mt-1">
+                                        {% for error in form.customer_phone.errors %}{{ error }}<br>{% endfor %}
+                                    </div>
+                                {% endif %}
+                            </div>
+                        </div>
+
+                        <h5 class="mb-3 mt-4"><i class="bi bi-briefcase"></i> What you do</h5>
+
+                        <div class="row g-3">
+                            <div class="col-md-6">
+                                <label for="{{ form.employment_status.id_for_label }}" class="form-label">Employment *</label>
+                                {{ form.employment_status }}
+                                {% if form.employment_status.errors %}
+                                    <div class="text-danger small mt-1">
+                                        {% for error in form.employment_status.errors %}{{ error }}<br>{% endfor %}
+                                    </div>
+                                {% endif %}
+                            </div>
+                            <div class="col-md-6">
+                                <label for="{{ form.employer_name.id_for_label }}" class="form-label">Employer</label>
+                                {{ form.employer_name }}
+                                {% if form.employer_name.errors %}
+                                    <div class="text-danger small mt-1">
+                                        {% for error in form.employer_name.errors %}{{ error }}<br>{% endfor %}
+                                    </div>
+                                {% endif %}
+                            </div>
+                            <div class="col-md-6">
+                                <label for="{{ form.job_title.id_for_label }}" class="form-label">Job title</label>
+                                {{ form.job_title }}
+                                {% if form.job_title.errors %}
+                                    <div class="text-danger small mt-1">
+                                        {% for error in form.job_title.errors %}{{ error }}<br>{% endfor %}
+                                    </div>
+                                {% endif %}
+                            </div>
+                            <div class="col-md-6">
+                                <label for="{{ form.monthly_income.id_for_label }}" class="form-label">Net monthly income (KSh) *</label>
+                                {{ form.monthly_income }}
+                                {% if form.monthly_income.errors %}
+                                    <div class="text-danger small mt-1">
+                                        {% for error in form.monthly_income.errors %}{{ error }}<br>{% endfor %}
+                                    </div>
+                                {% endif %}
+                            </div>
+                            <div class="col-md-6">
+                                <label for="{{ form.monthly_expenses.id_for_label }}" class="form-label">Monthly commitments (KSh)</label>
+                                {{ form.monthly_expenses }}
+                                {% if form.monthly_expenses.errors %}
+                                    <div class="text-danger small mt-1">
+                                        {% for error in form.monthly_expenses.errors %}{{ error }}<br>{% endfor %}
+                                    </div>
+                                {% endif %}
+                                <div class="form-text">Rent, school fees, existing loans - what is already committed.</div>
+                            </div>
+                        </div>
+
+                        <button type="submit" class="btn btn-primary w-100 btn-lg mt-4">
+                            <i class="bi bi-send"></i> Send My Application
+                        </button>
+                    </form>
+                </div>
+            </div>
+        </div>
+
+        <div class="col-lg-4">
+            <div class="card mb-4">
+                <div class="card-header bg-light">
+                    <h5 class="mb-0"><i class="bi bi-info-circle"></i> How it works</h5>
+                </div>
+                <div class="card-body">
+                    <ol class="mb-0 ps-3">
+                        <li class="mb-2">You tell us the car, your deposit and what you earn.</li>
+                        <li class="mb-2">We show the monthly repayment at {{ rate }}% a year.</li>
+                        <li class="mb-2">Our finance team reviews the application by hand.</li>
+                        <li>We email you the decision, usually within two working days.</li>
+                    </ol>
+                </div>
+            </div>
+
+            <div class="card">
+                <div class="card-body">
+                    <h6><i class="bi bi-calculator"></i> The numbers</h6>
+                    <ul class="list-unstyled mb-0 small">
+                        <li class="d-flex justify-content-between py-1">
+                            <span class="text-muted">Interest rate</span>
+                            <strong>{{ rate }}% p.a.</strong>
+                        </li>
+                        <li class="d-flex justify-content-between py-1">
+                            <span class="text-muted">Minimum deposit</span>
+                            <strong>{{ min_deposit_ratio }}%</strong>
+                        </li>
+                        <li class="d-flex justify-content-between py-1">
+                            <span class="text-muted">Terms</span>
+                            <strong>12 to 72 months</strong>
+                        </li>
+                        <li class="d-flex justify-content-between py-1">
+                            <span class="text-muted">Repayment limit</span>
+                            <strong>&frac13; of income</strong>
+                        </li>
+                    </ul>
+                    <p class="text-muted small mb-0 mt-3">
+                        The estimate is not an offer of credit. The final agreement is
+                        signed at the dealership.
+                    </p>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

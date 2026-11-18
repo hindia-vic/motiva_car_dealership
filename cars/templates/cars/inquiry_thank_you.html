@@ -1,8 +1,10 @@
 {% extends "base.html" %}
+{% load analytics %}
 
 {% block title %}Inquiry Submitted - Thank You{% endblock %}
 
 {% block content %}
+{% analytics_event "generate_lead" lead_type="inquiry" %}
 <div class="container-lg py-5">
     <div class="row justify-content-center">
         <div class="col-lg-6">

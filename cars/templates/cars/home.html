@@ -1,259 +1,753 @@
 {% extends "base.html" %}
+{% load currency %}
 
-{% block title %}Home - Premier Car Dealership{% endblock %}
+{% block title %}Home - {{ dealership.name|default:"Premier Car Dealership" }}{% endblock %}
 
 {% block meta %}
-<meta name="description" content="Welcome to Car Dealership — quality new and used cars, flexible financing, test drives, and trusted customer service. Browse our inventory today.">
+<meta name="description" content="Welcome to {{ dealership.name|default:'Premier Car Dealership' }} - quality new and used cars, flexible financing, test drives, car hire, and trusted customer service. Browse our inventory today.">
 <link rel="canonical" href="{{ request.scheme }}://{{ request.get_host }}{% url 'cars:home' %}">
 <meta property="og:type" content="website">
-<meta property="og:site_name" content="Car Dealership">
+<meta property="og:site_name" content="{{ dealership.name|default:'Premier Car Dealership' }}">
 <meta property="og:url" content="{{ request.scheme }}://{{ request.get_host }}{% url 'cars:home' %}">
-<meta property="og:title" content="Car Dealership - Find Your Perfect Vehicle">
-<meta property="og:description" content="Quality new and used cars with flexible financing and trusted service.">
+<meta property="og:title" content="{{ dealership.name|default:'Premier Car Dealership' }} - Find Your Perfect Vehicle">
+<meta property="og:description" content="Quality new and used cars with flexible financing, car hire, and trusted service.">
 {% endblock %}
+
+{% block structured_data %}{% include "cars/_structured_data.html" %}{% endblock %}
 
 {% block extra_css %}
 <style>
-    .hero-section {
-        background: linear-gradient(135deg, var(--primary-color) 0%, #0f3d50 100%);
+    .hero-modern {
+        background: linear-gradient(135deg, var(--primary-700) 0%, var(--primary-900) 50%, #000000 100%);
         color: white;
-        padding: 4rem 0;
+        padding: 5rem 0 4rem;
+        position: relative;
+        overflow: hidden;
+        margin-bottom: 3rem;
+    }
+
+    /* Crossfading inventory photos behind the hero copy. */
+    .hero-slider {
+        position: absolute;
+        inset: 0;
+        z-index: 0;
+        pointer-events: none;
+    }
+
+    .hero-slide {
+        position: absolute;
+        inset: 0;
+        width: 100%;
+        height: 100%;
+        object-fit: cover;
+        object-position: center;
+        opacity: 0;
+        transition: opacity 1.8s ease-in-out;
+        will-change: opacity;
+    }
+
+    .hero-slide.is-active {
+        opacity: 1;
+    }
+
+    /* Only dim the photos when they are actually there, so a hero without
+       inventory photos keeps its original gradient look. The scrim is
+       deliberately strong in the middle, where the headline sits, and is
+       stacked above the slides but below the content. */
+    .hero-modern.has-slider::after {
+        content: '';
+        position: absolute;
+        inset: 0;
+        z-index: 1;
+        background:
+            radial-gradient(ellipse at 50% 45%, rgba(2, 12, 22, 0.6) 0%, rgba(2, 12, 22, 0.42) 55%, rgba(2, 12, 22, 0.3) 100%),
+            linear-gradient(180deg, rgba(2, 12, 22, 0.45) 0%, rgba(2, 12, 22, 0.6) 100%);
+        pointer-events: none;
+    }
+
+    .hero-modern.has-slider::before {
+        display: none;
+    }
+
+    @media (prefers-reduced-motion: reduce) {
+        .hero-slide {
+            transition: none;
+        }
+    }
+    
+    .hero-modern::before {
+        content: '';
+        position: absolute;
+        top: 0;
+        left: 0;
+        right: 0;
+        bottom: 0;
+        background: url("data:image/svg+xml,%3Csvg width='100' height='100' viewBox='0 0 100 100' xmlns='http://www.w3.org/2000/svg'%3E%3Cg fill='%23ffffff' fill-opacity='0.03'%3E%3Cpolygon points='50 0 60 40 100 50 60 60 50 100 40 60 0 50 40 40'/%3E%3C/g%3E%3C/svg%3E");
+        animation: float 20s ease-in-out infinite;
+    }
+    
+    @keyframes float {
+        0%, 100% { transform: translateY(0px); }
+        50% { transform: translateY(-20px); }
+    }
+    
+    .hero-modern .container {
+        position: relative;
+        z-index: 2;
+    }
+    
+    .hero-title {
+        font-size: 3rem;
+        font-weight: 800;
+        margin-bottom: 1rem;
+        line-height: 1.1;
+        /* base.html colours every heading dark, which would otherwise make
+           this title unreadable over the photo scrim. */
+        color: #fff;
+        text-shadow: 0 2px 18px rgba(0, 0, 0, 0.65);
+    }
+    
+    .hero-subtitle {
+        font-size: 1.25rem;
+        margin-bottom: 2rem;
+        opacity: 0.95;
+        font-weight: 400;
+        color: #fff;
+        text-shadow: 0 1px 10px rgba(0, 0, 0, 0.6);
+    }
+    
+    .hero-search {
+        background: white;
+        padding: 1.5rem;
+        border-radius: var(--radius-xl);
+        box-shadow: var(--shadow-xl);
+        max-width: 600px;
+        margin: 0 auto;
+    }
+    
+    .search-input-group {
+        display: flex;
+        gap: 0.75rem;
+        align-items: center;
+    }
+    
+    .search-input {
+        flex: 1;
+        border: 2px solid var(--gray-200);
+        border-radius: var(--radius-lg);
+        padding: 0.875rem 1rem;
+        font-size: 1rem;
+    }
+    
+    .search-input:focus {
+        border-color: var(--primary-500);
+        outline: none;
+        box-shadow: 0 0 0 3px rgb(59 130 246 / 0.1);
+    }
+    
+    .section-header {
         text-align: center;
         margin-bottom: 3rem;
     }
     
-    .hero-section h1 {
-        font-size: 2.5rem;
-        font-weight: 700;
-        margin-bottom: 1rem;
+    .section-title {
+        font-size: 2.25rem;
+        font-weight: 800;
+        margin-bottom: 0.75rem;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        gap: 0.5rem;
     }
     
-    .hero-section p {
-        font-size: 1.2rem;
-        margin-bottom: 2rem;
-        opacity: 0.95;
+    .section-subtitle {
+        font-size: 1.125rem;
+        color: var(--gray-600);
+        margin-bottom: 0;
+    }
+    
+    .quick-actions {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+        gap: 1rem;
+        margin-bottom: 3rem;
+    }
+    
+    .quick-action-card {
+        background: white;
+        padding: 1.5rem;
+        border-radius: var(--radius-xl);
+        border: 1px solid var(--gray-200);
+        text-decoration: none;
+        color: inherit;
+        display: flex;
+        align-items: center;
+        gap: 1rem;
+        transition: all 0.3s ease;
+        box-shadow: var(--shadow);
+    }
+    
+    .quick-action-card:hover {
+        box-shadow: var(--shadow-lg);
+        transform: translateY(-2px);
+        border-color: var(--primary-300);
+        color: inherit;
+    }
+    
+    .quick-action-icon {
+        width: 3rem;
+        height: 3rem;
+        border-radius: var(--radius-lg);
+        background: linear-gradient(135deg, var(--primary-100) 0%, var(--primary-50) 100%);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 1.5rem;
+        color: var(--primary-700);
+        flex-shrink: 0;
+    }
+    
+    .quick-action-content h6 {
+        margin-bottom: 0.25rem;
+        font-weight: 700;
+    }
+    
+    .quick-action-content p {
+        margin-bottom: 0;
+        font-size: 0.875rem;
+        color: var(--gray-600);
+    }
+    
+    .car-card-modern {
+        background: white;
+        border-radius: var(--radius-xl);
+        overflow: hidden;
+        box-shadow: var(--shadow);
+        border: 1px solid var(--gray-200);
+        transition: all 0.3s ease;
+        height: 100%;
+        display: flex;
+        flex-direction: column;
+    }
+    
+    .car-card-modern:hover {
+        box-shadow: var(--shadow-xl);
+        transform: translateY(-4px);
+        border-color: var(--primary-200);
+    }
+    
+    .car-card-image {
+        position: relative;
+        height: 220px;
+        overflow: hidden;
+        background: var(--gray-100);
+    }
+    
+    .car-card-image img {
+        width: 100%;
+        height: 100%;
+        object-fit: cover;
+        transition: transform 0.3s ease;
+    }
+    
+    .car-card-modern:hover .car-card-image img {
+        transform: scale(1.08);
+    }
+    
+    .car-card-badge {
+        position: absolute;
+        top: 0.75rem;
+        left: 0.75rem;
+        z-index: 2;
+    }
+    
+    .car-card-favorite {
+        position: absolute;
+        top: 0.75rem;
+        right: 0.75rem;
+        z-index: 2;
+        background: rgba(255, 255, 255, 0.9);
+        backdrop-filter: blur(4px);
+        border: none;
+        border-radius: 50%;
+        width: 2rem;
+        height: 2rem;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        color: var(--gray-600);
+        transition: all 0.2s ease;
+    }
+    
+    .car-card-favorite:hover {
+        background: white;
+        color: var(--danger-500);
+    }
+    
+    .car-card-body {
+        padding: 1.25rem;
+        flex: 1;
+        display: flex;
+        flex-direction: column;
+    }
+    
+    .car-card-title {
+        font-size: 1.125rem;
+        font-weight: 700;
+        margin-bottom: 0.5rem;
+        color: var(--gray-900);
+        line-height: 1.4;
+    }
+    
+    .car-card-specs {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 0.5rem;
+        margin-bottom: 0.75rem;
+    }
+    
+    .car-card-spec {
+        display: flex;
+        align-items: center;
+        gap: 0.25rem;
+        font-size: 0.8125rem;
+        color: var(--gray-600);
+        background: var(--gray-50);
+        padding: 0.25rem 0.5rem;
+        border-radius: var(--radius);
+    }
+    
+    .car-card-price {
+        font-size: 1.375rem;
+        font-weight: 800;
+        color: var(--primary-700);
+        font-family: 'Plus Jakarta Sans', sans-serif;
+        margin-bottom: 0.75rem;
+    }
+    
+    .car-card-footer {
+        padding: 0 1.25rem 1.25rem;
+    }
+    
+    @media (max-width: 768px) {
+        .hero-title {
+            font-size: 2.25rem;
+        }
+        
+        .hero-subtitle {
+            font-size: 1.125rem;
+        }
+        
+        .section-title {
+            font-size: 1.875rem;
+        }
+        
+        .search-input-group {
+            flex-direction: column;
+        }
+        
+        .search-input {
+            width: 100%;
+        }
     }
 </style>
 {% endblock %}
 
 {% block content %}
 <!-- Hero Section -->
-<div class="hero-section">
-    <div class="container-lg">
-        <h1><i class="bi bi-car-front-fill"></i> Welcome to Our Dealership</h1>
-        <p>Find Your Perfect Vehicle Today</p>
-        <a href="{% url 'cars:browse_cars' %}" class="btn btn-secondary btn-lg">
-            <i class="bi bi-search"></i> Browse All Cars
-        </a>
+<section class="hero-modern{% if hero_images %} has-slider{% endif %}">
+    {% if hero_images %}
+        <div class="hero-slider" aria-hidden="true">
+            {% for image in hero_images %}
+                <img class="hero-slide{% if forloop.first %} is-active{% endif %}"
+                     src="{{ image.image.url }}"
+                     alt=""
+                     {% if forloop.first %}fetchpriority="high"{% else %}loading="lazy" fetchpriority="low"{% endif %}
+                     decoding="async">
+            {% endfor %}
+        </div>
+    {% endif %}
+    <div class="container">
+        <div class="row justify-content-center text-center">
+            <div class="col-lg-8">
+                <h1 class="hero-title">
+                    Find Your <span style="color: var(--secondary-400);">Perfect</span> Vehicle
+                </h1>
+                <p class="hero-subtitle">
+                    Quality new and used cars, flexible financing, car hire & tours. 
+                    Your dream car is just a search away.
+                </p>
+                
+                <div class="hero-search">
+                    <form action="{% url 'cars:browse_cars' %}" method="get">
+                        <div class="search-input-group">
+                            <input type="text" name="search" class="search-input" 
+                                   placeholder="Search by make, model, or keyword..." 
+                                   aria-label="Search cars">
+                            <button type="submit" class="btn btn-primary btn-lg">
+                                <i class="bi bi-search"></i> Search Cars
+                            </button>
+                        </div>
+                    </form>
+                    <div class="mt-3 d-flex flex-wrap gap-2 justify-content-center">
+                        <small class="text-muted">Popular:</small>
+                        <a href="{% url 'cars:browse_cars' %}?make=Toyota" class="badge bg-light text-dark text-decoration-none">Toyota</a>
+                        <a href="{% url 'cars:browse_cars' %}?make=Honda" class="badge bg-light text-dark text-decoration-none">Honda</a>
+                        <a href="{% url 'cars:browse_cars' %}?make=Nissan" class="badge bg-light text-dark text-decoration-none">Nissan</a>
+                        <a href="{% url 'cars:browse_cars' %}?body_type=SUV" class="badge bg-light text-dark text-decoration-none">SUV</a>
+                    </div>
+                </div>
+            </div>
+        </div>
     </div>
-</div>
+</section>
 
 <div class="container-lg">
-    <!-- Stats Section -->
-    <div class="row mb-5">
-        <div class="col-6 col-lg-4">
-            <div class="stat-card">
-                <h3>{{ total_cars }}</h3>
-                <p><i class="bi bi-car-front"></i> Vehicles Available</p>
-            </div>
+    <!-- Quick Actions -->
+    <section class="mb-5">
+        <div class="quick-actions">
+            <a href="{% url 'cars:browse_cars' %}" class="quick-action-card">
+                <div class="quick-action-icon">
+                    <i class="bi bi-grid"></i>
+                </div>
+                <div class="quick-action-content">
+                    <h6>Browse Inventory</h6>
+                    <p>Explore our full car collection</p>
+                </div>
+            </a>
+            <a href="{% url 'cars:financing' %}" class="quick-action-card">
+                <div class="quick-action-icon">
+                    <i class="bi bi-calculator"></i>
+                </div>
+                <div class="quick-action-content">
+                    <h6>Get Financing</h6>
+                    <p>Calculate and apply for loans</p>
+                </div>
+            </a>
+            <a href="{% url 'cars:trade_in' %}" class="quick-action-card">
+                <div class="quick-action-icon">
+                    <i class="bi bi-arrow-left-right"></i>
+                </div>
+                <div class="quick-action-content">
+                    <h6>Trade-In Value</h6>
+                    <p>Get instant valuation</p>
+                </div>
+            </a>
+            <a href="{% url 'hiring:hire_car_list' %}" class="quick-action-card">
+                <div class="quick-action-icon">
+                    <i class="bi bi-key"></i>
+                </div>
+                <div class="quick-action-content">
+                    <h6>Car Hire</h6>
+                    <p>Rent for trips and events</p>
+                </div>
+            </a>
         </div>
-        <div class="col-6 col-lg-4">
-            <div class="stat-card">
-                <h3>100%</h3>
-                <p><i class="bi bi-star-fill"></i> Quality Assured</p>
-            </div>
-        </div>
-        <div class="col-6 col-lg-4">
-            <div class="stat-card">
-                <h3>24/7</h3>
-                <p><i class="bi bi-clock"></i> Customer Support</p>
-            </div>
-        </div>
-    </div>
+    </section>
 
-    <!-- Featured Cars Section -->
-    <div class="featured-section">
-        <h2 class="mb-4"><i class="bi bi-star-fill"></i> Featured Vehicles</h2>
+    <!-- Stats -->
+    <section class="mb-5">
+        <div class="row g-3">
+            <div class="col-6 col-lg-3">
+                <div class="stat-card">
+                    <h3>{{ total_cars }}+</h3>
+                    <p><i class="bi bi-car-front"></i> Vehicles in Stock</p>
+                </div>
+            </div>
+            <div class="col-6 col-lg-3">
+                <div class="stat-card">
+                    <h3>100%</h3>
+                    <p><i class="bi bi-shield-check"></i> Quality Assured</p>
+                </div>
+            </div>
+            <div class="col-6 col-lg-3">
+                <div class="stat-card">
+                    <h3>24/7</h3>
+                    <p><i class="bi bi-headset"></i> Customer Support</p>
+                </div>
+            </div>
+            <div class="col-6 col-lg-3">
+                <div class="stat-card">
+                    <h3>5★</h3>
+                    <p><i class="bi bi-star-fill"></i> Customer Rating</p>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Featured Cars -->
+    <section class="mb-5">
+        <div class="section-header">
+            <h2 class="section-title">
+                <i class="bi bi-star-fill text-warning"></i>
+                Featured Vehicles
+            </h2>
+            <p class="section-subtitle">Handpicked cars just for you</p>
+        </div>
         
         {% if featured_cars %}
-            <div class="featured-cars-grid">
+            <div class="row g-4">
                 {% for car in featured_cars %}
-                    <div class="card h-100">
-                        {% with first_image=car.images.first %}
-                            {% if first_image %}
-                                <img src="{{ first_image.image.url }}" class="card-img-top"
-                                     style="height: 200px; object-fit: cover;"
-                                     alt="{{ car.year }} {{ car.make }} {{ car.model }}">
-                            {% endif %}
-                        {% endwith %}
-                        <div class="card-body">
-                            <div class="d-flex justify-content-between align-items-start mb-2">
-                                <h5 class="card-title mb-0">{{ car.year }} {{ car.make }} {{ car.model }}</h5>
-                                <span class="badge badge-available">{{ car.condition|title }}</span>
+                    <div class="col-md-6 col-lg-4">
+                        <div class="car-card-modern">
+                            <div class="car-card-image">
+                                {% with first_image=car.images.first %}
+                                    {% if first_image %}
+                                        <img src="{{ first_image.thumbnail_url|default:first_image.image.url }}"
+                                             srcset="{{ first_image.srcset }}"
+                                             sizes="(min-width: 992px) 33vw, (min-width: 768px) 50vw, 100vw"
+                                             loading="lazy" decoding="async"
+                                             alt="{{ car.year }} {{ car.make }} {{ car.model }}">
+                                    {% else %}
+                                        <div class="d-flex align-items-center justify-content-center h-100 bg-gradient" 
+                                             style="background: linear-gradient(135deg, var(--gray-200) 0%, var(--gray-300) 100%);">
+                                            <i class="bi bi-car-front fs-1 text-muted"></i>
+                                        </div>
+                                    {% endif %}
+                                {% endwith %}
+                                <span class="badge badge-available car-card-badge">{{ car.condition|title }}</span>
+                                {% if user.is_authenticated %}
+                                    <button class="car-card-favorite" title="Add to favorites">
+                                        <i class="bi bi-heart"></i>
+                                    </button>
+                                {% endif %}
                             </div>
-                            
-                            <div class="vehicle-specs">
-                                <div class="spec-item">
-                                    <div class="spec-label">Color</div>
-                                    <div class="spec-value">{{ car.color }}</div>
+                            <div class="car-card-body">
+                                <h5 class="car-card-title">{{ car.year }} {{ car.make }} {{ car.model }}</h5>
+                                <div class="car-card-specs">
+                                    <span class="car-card-spec">
+                                        <i class="bi bi-palette"></i> {{ car.color }}
+                                    </span>
+                                    <span class="car-card-spec">
+                                        <i class="bi bi-gear"></i> {{ car.transmission|title }}
+                                    </span>
+                                    <span class="car-card-spec">
+                                        <i class="bi bi-fuel-pump"></i> {{ car.fuel_type|title }}
+                                    </span>
+                                    <span class="car-card-spec">
+                                        <i class="bi bi-speedometer2"></i> {{ car.mileage|floatformat:0 }} mi
+                                    </span>
                                 </div>
-                                <div class="spec-item">
-                                    <div class="spec-label">Transmission</div>
-                                    <div class="spec-value">{{ car.transmission|title }}</div>
-                                </div>
-                                <div class="spec-item">
-                                    <div class="spec-label">Fuel Type</div>
-                                    <div class="spec-value">{{ car.fuel_type|title }}</div>
-                                </div>
-                                <div class="spec-item">
-                                    <div class="spec-label">Mileage</div>
-                                    <div class="spec-value">{{ car.mileage|floatformat:0 }} mi</div>
-                                </div>
+                                <div class="car-card-price">{{ car.asking_price|money }}</div>
                             </div>
-                            
-                            <div class="mt-3 pt-3 border-top">
-                                <p class="mb-0">
-                                    <strong>Price:</strong>
-                                    <span class="price-tag">${{ car.asking_price }}</span>
-                                </p>
+                            <div class="car-card-footer">
+                                <a href="{% url 'cars:car_detail' car.id %}" class="btn btn-primary w-100">
+                                    <i class="bi bi-eye"></i> View Details
+                                </a>
                             </div>
-                        </div>
-                        <div class="card-footer bg-light">
-                            <a href="{% url 'cars:car_detail' car.id %}" class="btn btn-primary btn-sm w-100">
-                                <i class="bi bi-eye"></i> View Details
-                            </a>
                         </div>
                     </div>
                 {% endfor %}
             </div>
-
             <div class="text-center mt-4">
-                <a href="{% url 'cars:browse_cars' %}" class="btn btn-primary btn-lg">
-                    <i class="bi bi-arrow-right"></i> View All Vehicles
+                <a href="{% url 'cars:browse_cars' %}" class="btn btn-outline-primary btn-lg">
+                    View All Vehicles <i class="bi bi-arrow-right"></i>
                 </a>
             </div>
         {% else %}
-            <div class="alert alert-info">
-                <i class="bi bi-info-circle"></i> No vehicles available at the moment. Please check back soon!
+            <div class="alert alert-info text-center">
+                <i class="bi bi-info-circle fs-4 d-block mb-2"></i>
+                <h5>No vehicles available at the moment</h5>
+                <p class="mb-0">Please check back soon for new arrivals!</p>
             </div>
         {% endif %}
-    </div>
+    </section>
 
-    <!-- Customer Feedback Section -->
-    <div class="featured-section">
-        <div class="d-flex flex-wrap justify-content-between align-items-center mb-4">
-            <h2 class="mb-0"><i class="bi bi-chat-quote"></i> What Our Customers Say</h2>
-            <a href="{% url 'cars:reviews' %}" class="btn btn-outline-primary">
-                <i class="bi bi-pencil-square"></i> Write a Review
-            </a>
-        </div>
-
-        <div class="featured-cars-grid">
-            {% for testimonial in testimonials %}
-                <div class="card h-100">
-                    <div class="card-body">
-                        <i class="bi bi-quote" style="font-size: 2rem; color: #f39c12;"></i>
-                        <div class="mb-2">
-                            {% for _ in ""|ljust:testimonial.rating %}
-                                <i class="bi bi-star-fill" style="color: #f39c12;"></i>
-                            {% endfor %}
-                        </div>
-                        <p class="card-text">
-                            "{{ testimonial.quote }}"
-                        </p>
-                        <p class="mb-0"><strong>{{ testimonial.customer_name }}</strong>
-                            {% if testimonial.vehicle %}<span class="text-muted">{{ testimonial.vehicle }}</span>{% endif %}
-                        </p>
-                    </div>
-                </div>
-            {% empty %}
-                <p class="text-muted">No testimonials yet.</p>
-            {% endfor %}
-        </div>
-    </div>
-
-    <!-- Why Choose Us Section -->
-    <div class="row my-5">
-        <div class="col-md-6 mb-4">
-            <div class="card">
-                <div class="card-body text-center">
-                    <i class="bi bi-check-circle" style="font-size: 2rem; color: #28a745;"></i>
-                    <h5 class="card-title mt-3">Quality Vehicles</h5>
-                    <p class="card-text">Every vehicle is thoroughly inspected and certified</p>
-                </div>
+    <!-- Car Hire Section -->
+    {% if hire_cars %}
+        <section class="mb-5">
+            <div class="section-header">
+                <h2 class="section-title">
+                    <i class="bi bi-key text-primary"></i>
+                    Car Hire &amp; Tours
+                </h2>
+                <p class="section-subtitle">Rent vehicles for any occasion</p>
             </div>
-        </div>
-        <div class="col-md-6 mb-4">
-            <div class="card">
-                <div class="card-body text-center">
-                    <i class="bi bi-credit-card" style="font-size: 2rem; color: #f39c12;"></i>
-                    <h5 class="card-title mt-3">Flexible Financing</h5>
-                    <p class="card-text">Multiple financing options available for your convenience</p>
-                </div>
-            </div>
-        </div>
-        <div class="col-md-6 mb-4">
-            <div class="card">
-                <div class="card-body text-center">
-                    <i class="bi bi-shield-check" style="font-size: 2rem; color: #1a5f7a;"></i>
-                    <h5 class="card-title mt-3">Warranty & Protection</h5>
-                    <p class="card-text">Comprehensive warranty on all vehicles</p>
-                </div>
-            </div>
-        </div>
-        <div class="col-md-6 mb-4">
-            <div class="card">
-                <div class="card-body text-center">
-                    <i class="bi bi-telephone" style="font-size: 2rem; color: #dc3545;"></i>
-                    <h5 class="card-title mt-3">Expert Support</h5>
-                    <p class="card-text">Dedicated team ready to assist you 24/7</p>
-                </div>
-            </div>
-        </div>
-    </div>
-
-    <!-- Call to Action Section -->
-    <div class="card bg-light mb-5">
-        <div class="card-body text-center py-5">
-            <h3>Ready to Find Your Perfect Car?</h3>
-            <p class="text-muted mb-3">Browse our extensive inventory or contact us today</p>
-            <a href="{% url 'cars:browse_cars' %}" class="btn btn-primary btn-lg me-2">
-                <i class="bi bi-search"></i> Browse Inventory
-            </a>
-            <a href="{% url 'cars:financing' %}" class="btn btn-secondary btn-lg">
-                <i class="bi bi-credit-card"></i> Financing Options
-            </a>
-        </div>
-    </div>
-
-    <!-- Latest News Section -->
-    {% if latest_posts %}
-        <div class="featured-section">
-            <div class="d-flex flex-wrap justify-content-between align-items-center mb-4">
-                <h2 class="mb-0"><i class="bi bi-newspaper"></i> Latest News</h2>
-                <a href="{% url 'cars:blog_list' %}" class="btn btn-outline-primary">
-                    View All News <i class="bi bi-arrow-right"></i>
-                </a>
-            </div>
-            <div class="featured-cars-grid">
-                {% for post in latest_posts %}
-                    <div class="card h-100">
-                        {% if post.cover_image %}
-                            <img src="{{ post.cover_image.url }}" class="card-img-top"
-                                 style="height: 160px; object-fit: cover;" alt="{{ post.title }}">
-                        {% endif %}
-                        <div class="card-body d-flex flex-column">
-                            <p class="text-muted small mb-1">{{ post.published_at|date:"M d, Y" }}</p>
-                            <h5 class="card-title">
-                                <a href="{% url 'cars:blog_detail' post.slug %}" class="text-decoration-none">{{ post.title }}</a>
-                            </h5>
-                            <p class="card-text flex-grow-1">{{ post.excerpt|default:post.body|truncatewords:20 }}</p>
-                            <a href="{% url 'cars:blog_detail' post.slug %}" class="btn btn-primary btn-sm align-self-start">Read More</a>
+            
+            <div class="row g-4">
+                {% for car in hire_cars %}
+                    <div class="col-md-6 col-lg-4">
+                        <div class="car-card-modern">
+                            <div class="car-card-image">
+                                {% with photo=car.primary_photo %}
+                                    {% if photo %}
+                                        <img src="{{ photo.thumbnail_url }}" alt="{{ car }}">
+                                    {% else %}
+                                        <div class="d-flex align-items-center justify-content-center h-100 bg-gradient" 
+                                             style="background: linear-gradient(135deg, var(--gray-200) 0%, var(--gray-300) 100%);">
+                                            <i class="bi bi-car-front fs-1 text-muted"></i>
+                                        </div>
+                                    {% endif %}
+                                {% endwith %}
+                                <span class="badge bg-primary car-card-badge">For Hire</span>
+                            </div>
+                            <div class="car-card-body">
+                                <h5 class="car-card-title">{{ car.year }} {{ car.make }} {{ car.model }}</h5>
+                                <div class="car-card-specs">
+                                    <span class="car-card-spec">
+                                        <i class="bi bi-people"></i> {{ car.seats }} Seats
+                                    </span>
+                                    <span class="car-card-spec">
+                                        <i class="bi bi-gear"></i> {{ car.transmission|capfirst }}
+                                    </span>
+                                </div>
+                                <div class="mb-2">
+                                    <small class="text-muted">Self-drive per day</small>
+                                    <div class="car-card-price">{{ car.hire_daily_rate|money }}</div>
+                                </div>
+                                {% if car.allows_tours %}
+                                    <div>
+                                        <small class="text-muted">With driver per day</small>
+                                        <div style="font-size: 1rem; font-weight: 600; color: var(--gray-700);">
+                                            {{ car.tour_daily_rate|money }}
+                                        </div>
+                                    </div>
+                                {% endif %}
+                            </div>
+                            <div class="car-card-footer">
+                                <a href="{% url 'hiring:hire_car_detail' car.pk %}" class="btn btn-primary w-100">
+                                    <i class="bi bi-calendar-check"></i> Book Now
+                                </a>
+                            </div>
                         </div>
                     </div>
                 {% endfor %}
             </div>
-        </div>
+            <div class="text-center mt-4">
+                <a href="{% url 'hiring:hire_car_list' %}" class="btn btn-outline-primary btn-lg me-2">
+                    View All Fleet <i class="bi bi-arrow-right"></i>
+                </a>
+                <a href="{% url 'hiring:hire_tours' %}" class="btn btn-outline-secondary btn-lg">
+                    <i class="bi bi-map"></i> Tours & Travel
+                </a>
+            </div>
+        </section>
     {% endif %}
+
+    <!-- Customer Testimonials -->
+    {% if testimonials %}
+        <section class="mb-5">
+            <div class="section-header">
+                <h2 class="section-title">
+                    <i class="bi bi-chat-quote text-primary"></i>
+                    What Our Customers Say
+                </h2>
+                <p class="section-subtitle">Real feedback from real buyers</p>
+            </div>
+            <div class="featured-cars-grid">
+                {% for testimonial in testimonials %}
+                    <div class="card h-100">
+                        <div class="card-body">
+                            <i class="bi bi-quote" style="font-size: 2rem; color: var(--secondary-500);"></i>
+                            <div class="mb-2">
+                                {% for _ in ""|ljust:testimonial.rating %}
+                                    <i class="bi bi-star-fill" style="color: var(--secondary-500);"></i>
+                                {% endfor %}
+                            </div>
+                            <p class="card-text">"{{ testimonial.quote }}"</p>
+                            <p class="mb-0">
+                                <strong>{{ testimonial.customer_name }}</strong>
+                                {% if testimonial.vehicle %}<span class="text-muted">{{ testimonial.vehicle }}</span>{% endif %}
+                            </p>
+                        </div>
+                    </div>
+                {% endfor %}
+            </div>
+            <div class="text-center mt-4">
+                <a href="{% url 'cars:reviews' %}" class="btn btn-outline-primary">
+                    Read All Reviews <i class="bi bi-arrow-right"></i>
+                </a>
+            </div>
+        </section>
+    {% endif %}
+
+    <!-- Latest News -->
+    {% if latest_posts %}
+        <section class="mb-5">
+            <div class="section-header">
+                <h2 class="section-title">
+                    <i class="bi bi-newspaper text-primary"></i>
+                    Latest News
+                </h2>
+                <p class="section-subtitle">Updates from the showroom</p>
+            </div>
+            <div class="row g-4">
+                {% for post in latest_posts %}
+                    <div class="col-md-6 col-lg-4">
+                        <div class="card h-100">
+                            <div class="card-body d-flex flex-column">
+                                <h5 class="card-title">{{ post.title }}</h5>
+                                <p class="card-text text-muted flex-grow-1">
+                                    {{ post.excerpt|default:post.body|truncatewords:24 }}
+                                </p>
+                                <a href="{% url 'cars:blog_detail' post.slug %}" class="btn btn-outline-primary mt-3">
+                                    Read More <i class="bi bi-arrow-right"></i>
+                                </a>
+                            </div>
+                        </div>
+                    </div>
+                {% endfor %}
+            </div>
+        </section>
+    {% endif %}
+
+    <!-- CTA Section -->
+    <section class="mb-5">
+        <div class="card border-0" style="background: linear-gradient(135deg, var(--primary-600) 0%, var(--primary-800) 100%); color: white;">
+            <div class="card-body p-5 text-center">
+                <h2 class="text-white mb-3" style="font-size: 2rem;">Ready to Find Your Dream Car?</h2>
+                <p class="text-white-50 mb-4" style="font-size: 1.125rem;">Browse our inventory or get in touch with our team today</p>
+                <div class="d-flex gap-3 justify-content-center flex-wrap">
+                    <a href="{% url 'cars:browse_cars' %}" class="btn btn-light btn-lg">
+                        <i class="bi bi-search"></i> Browse Cars
+                    </a>
+                    <a href="{% url 'cars:contact' %}" class="btn btn-outline-light btn-lg">
+                        <i class="bi bi-envelope"></i> Contact Us
+                    </a>
+                    <a href="{% url 'cars:financing' %}" class="btn btn-secondary btn-lg">
+                        <i class="bi bi-calculator"></i> Get Financing
+                    </a>
+                </div>
+            </div>
+        </div>
+    </section>
 </div>
+{% endblock %}
+
+{% block extra_js %}
+{% if hero_images %}
+<script>
+(function () {
+    var slides = document.querySelectorAll('.hero-slide');
+    if (slides.length < 2) { return; }
+    if (window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches) { return; }
+
+    var current = 0;
+    var delay = 6000;
+    var timer = null;
+
+    function advance() {
+        if (document.hidden) { return; }
+        slides[current].classList.remove('is-active');
+        current = (current + 1) % slides.length;
+        slides[current].classList.add('is-active');
+    }
+
+    function start() {
+        if (timer === null) { timer = window.setInterval(advance, delay); }
+    }
+
+    function stop() {
+        window.clearInterval(timer);
+        timer = null;
+    }
+
+    document.addEventListener('visibilitychange', function () {
+        if (document.hidden) { stop(); } else { start(); }
+    });
+
+    start();
+})();
+</script>
+{% endif %}
 {% endblock %}
