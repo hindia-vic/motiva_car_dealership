@@ -6,7 +6,7 @@ jobs:
   test:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
       - name: Set up Python
         uses: actions/setup-python@v5
         with:
@@ -61,7 +61,7 @@ jobs:
       AWS_STORAGE_BUCKET_NAME: 'ci-bucket'
       BACKUP_DIR: '/tmp/dealership-backups'
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
       - name: Set up Python
         uses: actions/setup-python@v5
         with:
@@ -105,7 +105,7 @@ jobs:
       ALLOWED_HOSTS: 'localhost,127.0.0.1,testserver'
       EMAIL_BACKEND: 'django.core.mail.backends.locmem.EmailBackend'
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
       - name: Set up Python
         uses: actions/setup-python@v5
         with:
