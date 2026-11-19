@@ -929,21 +929,25 @@ rather than a redirect).
 
 ## Deployment
 
-The project targets a managed PaaS. [`render.yaml`](render.yaml) is a Render
-blueprint that creates a web service, a Celery worker, a Celery beat instance,
-managed Postgres and Redis. See [DEPLOYMENT.md](DEPLOYMENT.md) for the full
-pre-deployment checklist (secrets, HTTPS/HSTS, SMTP, static files, Celery,
-backups and go-live checks).
+The web service runs on **Vercel** as a Django WSGI function; **Render** keeps
+the Redis instance, Celery worker and Celery beat; **Supabase** provides
+Postgres. See [DEPLOYMENT.md](DEPLOYMENT.md) for the full setup (Vercel/Render
+environment variables, Supabase pooler, Redis access, custom domains, secret
+`ADMIN_URL`, HTTPS/HSTS, SMTP, static files and go-live checks).
 
 Things worth calling out:
 
-- **Managed services** — set `DATABASE_URL` (Postgres) and `REDIS_URL`. The app
-  refuses to boot if `DATABASE_URL` is set but cannot be parsed, rather than
-  silently falling back to SQLite. Redis backs both the cache and Celery, so
-  rate limits and axes lockouts are shared across workers.
-- **Object storage** — a PaaS filesystem is ephemeral. Set `USE_S3=true` and the
-  `AWS_*` variables (S3 or Cloudflare R2) so uploads survive a deploy. Static
-  files are served by Whitenoise and built with `collectstatic`.
+- **Managed services** — set `DATABASE_URL` to the Supabase **shared pooler in
+  session mode** (port `5432`), not the IPv6-only direct host. Set `REDIS_URL`
+  to Render Redis's **external** `rediss://` URL in Vercel and its internal URL
+  on Render. The app refuses to boot if `DATABASE_URL` is set but cannot be
+  parsed, rather than silently falling back to SQLite.
+- **Split responsibilities** — Vercel serves requests and static files; it does
+  not run Celery or migrations. Render runs the worker and exactly one beat
+  instance. `vercel.json` configures the WSGI function timeout.
+- **Object storage** — Vercel's filesystem is ephemeral. Set `USE_S3=true` and
+  the `AWS_*` variables (S3 or Cloudflare R2) so uploads and backups survive a
+  deploy. Vercel serves collected static files from its CDN.
 - **Staff two-factor authentication** — outside development, a staff sign-in
   pauses after the password and emails a six-digit one-time code
   (`STAFF_2FA_ENABLED`, on by default when `DEBUG=false`). Staff accounts

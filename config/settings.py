@@ -75,8 +75,8 @@ SECRET_KEY = os.environ.get('SECRET_KEY', 'django-insecure-5047^2r4m59l@9lwjefu=
 DEBUG = os.environ.get('DEBUG', 'False').lower() == 'true'
 
 # Hosts supplied by the platform at runtime. Render exposes the public hostname
-# and URL; Fly and Railway use their own variables. Adding them automatically
-# means the platform health check and generated URL work without duplicating
+# and URL; Vercel, Fly and Railway use their own variables. Adding them
+# automatically means platform-generated URLs work without duplicating
 # configuration. A custom domain still needs to be added to ALLOWED_HOSTS.
 _PLATFORM_HOSTS = []
 for _host_env in ('RENDER_EXTERNAL_HOSTNAME', 'RAILWAY_PUBLIC_DOMAIN'):
@@ -92,6 +92,14 @@ for _url_env in ('RENDER_EXTERNAL_URL',):
 _fly_app = os.environ.get('FLY_APP_NAME', '').strip()
 if _fly_app:
     _PLATFORM_HOSTS.append(f'{_fly_app}.fly.dev')
+
+_ON_VERCEL = os.environ.get('VERCEL', '').strip().lower() in {'1', 'true', 'yes'}
+for _vercel_host_env in ('VERCEL_BRANCH_URL', 'VERCEL_PROJECT_PRODUCTION_URL', 'VERCEL_URL'):
+    _vercel_host = os.environ.get(_vercel_host_env, '').strip()
+    if '://' in _vercel_host:
+        _vercel_host = urlsplit(_vercel_host).hostname or ''
+    if _vercel_host and _vercel_host not in _PLATFORM_HOSTS:
+        _PLATFORM_HOSTS.append(_vercel_host)
 
 ALLOWED_HOSTS = [h.strip() for h in os.environ.get('ALLOWED_HOSTS', '').split(',') if h.strip()]
 for _platform_host in _PLATFORM_HOSTS:
@@ -467,10 +475,12 @@ CSRF_COOKIE_SAMESITE = os.environ.get('CSRF_COOKIE_SAMESITE', 'Lax')
 SESSION_COOKIE_AGE = int(os.environ.get('SESSION_COOKIE_AGE', str(60 * 60 * 24 * 14)))
 
 # TLS terminates at a proxy on most platforms. Trust X-Forwarded-Proto only
-# when the deployment explicitly says a proxy is in front of the app.
+# when the deployment explicitly says a proxy is in front of the app. Vercel
+# always terminates TLS in front of the function, so it opts in automatically.
+_USE_X_FORWARDED_PROTO = _env_bool('USE_X_FORWARDED_PROTO', _ON_VERCEL)
 SECURE_PROXY_SSL_HEADER = (
     ('HTTP_X_FORWARDED_PROTO', 'https')
-    if _env_bool('USE_X_FORWARDED_PROTO', False) else None
+    if _USE_X_FORWARDED_PROTO else None
 )
 
 # Client IP handling. X-Forwarded-For is trivially spoofable unless the app is
@@ -479,7 +489,7 @@ SECURE_PROXY_SSL_HEADER = (
 # than the first (client-supplied) value. django-axes is told the same number
 # of trusted proxies so lockouts key on the real client.
 TRUST_X_FORWARDED_FOR = _env_bool(
-    'TRUST_X_FORWARDED_FOR', _env_bool('USE_X_FORWARDED_PROTO', False),
+    'TRUST_X_FORWARDED_FOR', _USE_X_FORWARDED_PROTO,
 )
 X_FORWARDED_FOR_PROXY_COUNT = int(os.environ.get('X_FORWARDED_FOR_PROXY_COUNT', '1'))
 AXES_IPWARE_PROXY_COUNT = X_FORWARDED_FOR_PROXY_COUNT if TRUST_X_FORWARDED_FOR else None

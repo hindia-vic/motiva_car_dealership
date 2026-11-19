@@ -1,0 +1,28 @@
+# Local secrets and environment files
+.env
+.env.*
+!.env.example
+
+# Local databases and generated artifacts
+db.sqlite3
+db.sqlite3-wal
+db.sqlite3-shm
+staticfiles/
+media/
+backups/
+
+# Python environments and caches
+virtual/
+.venv/
+__pycache__/
+*.py[cod]
+.pytest_cache/
+.mypy_cache/
+.coverage
+htmlcov/
+
+# Editor / OS noise
+.vscode/
+.idea/
+.DS_Store
+Thumbs.db
